@@ -12,16 +12,16 @@
 
 ## Bootstrap skill
 
-- Codex 側の正本: `.agents/skills/monorepo-bootstrap/SKILL.md`
-- Claude 側の対応版: `.claude/skills/monorepo-bootstrap/SKILL.md`
+- 正本: `.agents/skills/monorepo-bootstrap/SKILL.md`
+- Claude 側入口: `.claude/skills/monorepo-bootstrap/SKILL.md`
 
 Codex で bootstrap を実行するときは `.agents/skills/monorepo-bootstrap/SKILL.md` を読み、そこに定義された Intake、技術調査、承認ゲート、ハーネス整備、実装、検証、完了報告の順に進める。
 
 ## 両対応の保守ルール
 
 - `AGENTS.md` と `CLAUDE.md` は薄い adapter とし、詳細手順を二重管理しない。
-- skill 本文や `references/` を変更した場合は、`.agents/skills/monorepo-bootstrap/` と `.claude/skills/monorepo-bootstrap/` の対応関係を確認する。
-- platform 固有の表現以外は同じ意味になるように揃える。
+- skill 本文や `references/` を変更する場合は、`.agents/skills/monorepo-bootstrap/` 側を編集する。
+- `.claude/skills/monorepo-bootstrap/` 配下の link を実体ファイルに置き換えない。
 - bootstrap 先 repository では、共通正本を `docs/harness/OPERATING_MODEL.md` など neutral な場所へ置き、`AGENTS.md` と `CLAUDE.md` から参照する。
 
 ## Git / quality

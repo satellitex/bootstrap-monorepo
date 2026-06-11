@@ -9,7 +9,7 @@ user_invocable: true
 任意のプロダクト概要から、実装可能なモノレポを立ち上げる上位オーケストレーション Skill。
 このリポジトリのハーネス構成を参考に、Codex と Claude の両方で使える運用ファイル、Skill/Agent 相当の手順、環境整備、CI/CD、初期実装、deploy 検証までを人間承認ゲート付きで進める。
 
-本 repo では `.agents/skills/` 配下に置かれているが、bootstrap 先では特定ベンダーの形式に固定しない。
+本 repo では `.agents/skills/monorepo-bootstrap/` を正本とし、`.claude/skills/monorepo-bootstrap/` からは link で参照する。bootstrap 先では特定ベンダーの形式に固定しない。
 Codex は `AGENTS.md`、Claude は `CLAUDE.md` を入口にし、共通の正本は `docs/harness/` などの neutral な場所へ置く。
 
 ## 入力
