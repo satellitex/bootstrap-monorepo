@@ -5,8 +5,8 @@
 
 ## 1. Repository Knowledge Map
 
-この repo では `.claude/CLAUDE.md` が Claude 側の入口になり、Codex 側では repo root の `AGENTS.md` が入口になる。
-bootstrap 先では、両入口に同じ詳細を複製せず、`docs/harness/` に共通正本を置いて参照させる。
+この repo は `.claude/CLAUDE.md` が Claude 側の入口で、Codex 側では repo root の `AGENTS.md` が入口になる。
+bootstrap 先では、両入口に同じ詳細を複製せず、docs 正本へ参照させる。
 
 移植時の最小構成:
 
@@ -14,17 +14,17 @@ bootstrap 先では、両入口に同じ詳細を複製せず、`docs/harness/` 
 |-------------|------|
 | `AGENTS.md` | Codex 用入口。repo の目的、正本 docs、主要コマンド、ブランチ/PR 運用への pointer |
 | `CLAUDE.md` | Claude 用入口。`AGENTS.md` と同じ共通正本への pointer |
+| `docs/README.md` | docs ナレッジハブ。置き場所、INDEX 更新、原本/要約ルール |
+| `docs/styles/coding_guide/docs.md` | docs 層分離と現状層 3 原則 |
 | `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認ゲート、品質基準 |
 | `docs/harness/LANGUAGE_POLICY.md` | 日本語既定の会話・Issue・PR・ADR・sync レポート運用 |
 | `docs/product/TECH_STACK.md` | 採用技術と理由 |
 | `docs/product/ARCHITECTURE.md` | システム境界、データフロー、依存方向 |
 | `docs/product/adr/` | 重要判断の履歴 |
-| `docs/styles/coding_guide/` | 言語、テスト、セキュリティ、コメント規約 |
 | `docs/notes/research/` | 技術調査、比較、外部資料 |
 
 常時読むファイルは短くし、更新頻度が低い詳細は docs へ逃がす。
 `AGENTS.md` と `CLAUDE.md` の文言は、片方だけに重要ルールが入らないように同期する。
-両ファイルには、日本語を既定のコミュニケーション言語にすることと、詳細は `docs/harness/LANGUAGE_POLICY.md` を参照することを記載する。
 
 ## 2. Workflow / Skill Layers
 
@@ -83,8 +83,9 @@ bootstrap で必須にする gate:
 | Gate | Before | Approval target |
 |------|--------|-----------------|
 | Gate A | dependency install / scaffold | 技術選定と主要 trade-off |
-| Gate B | file creation / CI / infra | bootstrap-plan.md |
+| Gate B | file creation / CI / infra | harness-catalog.md と bootstrap-plan.md |
 | Gate C | staging/production deploy | deploy target, cost, rollback |
+| Gate D | GitHub Project/milestone mutation | labels, milestones, Project fields, sample issue |
 
 承認ログは成果物に残す。
 チャットだけに閉じると、後続 agent や別ツールが判断経緯を読めない。
@@ -100,7 +101,7 @@ generic baseline:
 | CI | Yes | install, format, lint, typecheck, test, build |
 | PR title/body check | Optional | チーム運用がある場合 |
 | Secret scan | Yes | public/private を問わず早期に入れる |
-| Docs check | Optional | public docs や SDK がある場合 |
+| Docs check | Yes if docs/public docs exist | docs 層ルール、internal reference、customer gate |
 | Preview deploy | If web/API | PR ごとの確認 URL |
 | Staging smoke | If external services | deploy 後に health/API/UI を検証 |
 
@@ -127,14 +128,15 @@ bootstrap 時に作るもの:
 
 ## 7. Documentation Freshness
 
-この repo は README/docs と実装の drift を検知する Skill を持つ。
-新規 repo では、最初から重い drift detector を作る必要はない。
+この repo は README/docs/code/public docs/dependency/env の drift を Skill で分けて検知する。
+新規 repo でも、責務境界だけは最初に作る。
 
-代わりに bootstrap 直後は以下を PR checklist に入れる。
+bootstrap 直後の PR checklist:
 
 - app/package を追加したら nearest README を更新
 - env/secret を追加したら `.env.example` と setup docs を更新
 - public API を変えたら OpenAPI/SDK/docs を更新
+- public/customer docs がある場合は公開射影と内部参照 gate を更新
 - deploy workflow を変えたら smoke test と rollback docs を更新
 
 ## 8. PR Contract
@@ -144,6 +146,7 @@ PR body に最低限入れる情報:
 - Summary
 - Related issue or bootstrap request
 - Test plan
+- Docs impact
 - Deploy URL or reason no deploy was run
 - Bootstrap artifacts path
 - Remaining risks and follow-up issues
@@ -158,11 +161,11 @@ title だけに issue number を書いても auto-close されない。
 - workflow 正本を `.claude/` だけ、または `AGENTS.md` だけに閉じる
 - slash command 名を唯一の呼び出し方法として書く
 - Claude subagent の存在を前提にし、Codex で代替できる role separation を書かない
-- Codex/Claude の片方だけに secret/deploy/PR ルールを書く
+- Codex/Claude の片方だけに secret/deploy/PR/docs ルールを書く
 
 推奨:
 
-- 共通正本は `docs/harness/` に置く
+- docs 正本は `docs/` に置く
 - `AGENTS.md` と `CLAUDE.md` は thin adapter にする
 - workflow 名は `implement-feature` のように tool-neutral にする
 - tool 固有の実装詳細は adapter 側に閉じ込める

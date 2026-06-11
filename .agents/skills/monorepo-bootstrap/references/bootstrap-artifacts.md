@@ -133,6 +133,20 @@ Decision criteria:
 ```markdown
 # Harness Catalog
 
+## Docs Operating Model
+
+| Area | Path | Responsibility | Sync owner |
+|------|------|----------------|------------|
+| Knowledge hub | `docs/README.md` | Placement rules and INDEX discipline | docs-sync |
+| State-of-now | `docs/product/`, `docs/styles/`, `docs/schedule/` | Current facts only | docs-sync |
+| Decisions | `docs/product/adr/` | Why, alternatives, supersession history | create-adr |
+| Research | `docs/notes/research/` | Investigation and comparisons | research workflow |
+| Issue plans | `docs/product/issues/` | Issue-specific plans | implement-feature/bootstrap-infra |
+| Requirements | `docs/requirements/` | Human-approved requirements | manual approval |
+| Customer docs | `docs/customer/` | Originals and summaries | customer-docs workflow |
+| Runbooks | `docs/runbooks/` | Operations procedures | env-sync / infra workflow |
+| Public projection | `docs/product/PUBLIC_*.md` | External/customer-safe docs | public-docs-sync |
+
 ## Product-Derived Workflow Inventory
 
 | Workflow | Generate? | Why this product needs it | Output path | Codex invocation | Claude invocation |
@@ -226,7 +240,12 @@ Rules:
 | Layer | Path | Responsibility | Depends on |
 |-------|------|----------------|------------|
 
-## 3. Harness
+## 3. Docs Operating Model
+
+| Docs artifact | Path | Purpose | Required before first implementation |
+|---------------|------|---------|--------------------------------------|
+
+## 4. Harness
 
 | Harness item | Path | Purpose | Required for first iteration |
 |--------------|------|---------|------------------------------|
@@ -240,11 +259,11 @@ Rules:
 
 Shared source of truth:
 
-- Operating model:
+- Docs operating model:
+- Language policy:
 - Skill/workflow docs:
 - Role docs:
 - Rules:
-- Language policy:
 
 ### Generated Sync Workflows
 
@@ -259,32 +278,32 @@ Shared source of truth:
 | project field constants | `docs/harness/references/project-fields.md` | |
 | project management guide | `docs/harness/project-management.md` | |
 
-## 4. Environment
+## 5. Environment
 
 | Item | Path/Provider | Notes |
 |------|---------------|-------|
 
-## 5. CI/CD
+## 6. CI/CD
 
 | Check | Command/Workflow | Required before merge |
 |-------|------------------|-----------------------|
 
-## 6. Deploy
+## 7. Deploy
 
 | Environment | Provider | Trigger | Smoke check | Rollback |
 |-------------|----------|---------|-------------|----------|
 
-## 7. Implementation Tasks
+## 8. Implementation Tasks
 
 | Task | Why | What | Verification | Depends on |
 |------|-----|------|--------------|------------|
 
-## 8. Risks And Mitigations
+## 9. Risks And Mitigations
 
 | Risk | Impact | Mitigation | Owner |
 |------|--------|------------|-------|
 
-## 9. Gate B Approval
+## 10. Gate B Approval
 
 - Status: Pending / Approved / Revision requested
 - Approved by:
