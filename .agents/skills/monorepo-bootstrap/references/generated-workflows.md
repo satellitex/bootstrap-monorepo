@@ -19,8 +19,12 @@ Derive workflows from product surfaces and operational needs.
 | Environment bindings, `.env.example`, secrets, deploy targets | `env-sync` | Keep env examples, secret docs, and deploy bindings aligned |
 | OpenAPI/GraphQL/protobuf/schema-driven SDK | `api-schema-sync` | Keep schema, generated client, docs, and tests aligned |
 | Security/compliance-sensitive product | `security-sync` | Secret scan policy, authz docs, audit controls, dependency alerts |
+| Long-running tasks, queues, workflows, schedulers | `async-ops-sync` or product-specific workflow | Keep async runbooks, retries, DLQ, and visibility aligned |
+| Self-hosted runner | `runner-sync` or runner runbook check | Keep runner service, credentials, logs, and CLI versions documented |
 
-Do not generate every workflow by default. Generate `static-check`, `implement-feature`, `bootstrap-infra`, and `create-issue` unless the user opts out. Add `*-sync` workflows only when the product has the corresponding surface.
+Do not generate every workflow by default.
+Generate `static-check`, `implement-feature`, `bootstrap-infra`, and `create-issue` unless the user opts out.
+Add `*-sync` workflows only when the product has the corresponding surface.
 
 ## 2. Generic `*-sync` Shape
 
@@ -30,14 +34,14 @@ Every generated sync workflow should follow the same contract:
 |---------|------------------|
 | Purpose | What freshness boundary this workflow owns |
 | Source of truth | The canonical files or generated artifacts |
-| Compared against | Code, config, schema, deploy provider, docs, or dependency metadata |
+| Compared against | Code, config, schema, deploy provider, docs, dependency metadata, or runner state |
 | Scope | Include / exclude paths and generated-file exclusions |
 | Detection | Drift categories and severity |
 | Auto-edit policy | What may be changed automatically and what must be reported only |
 | Branch / PR policy | Whether to push automatically or only when user/repo policy asks |
 | Validation | Commands and CI checks |
 | Report shape | PR body or local report sections |
-| Language | Reports, PR bodies, and review notes are Japanese by default |
+| Language | Reports, PR bodies, and review notes use the project language from intake |
 
 Recommended generated files:
 
@@ -52,21 +56,23 @@ docs/harness/skills/api-schema-sync.md
 docs/harness/skills/security-sync.md
 ```
 
-Each workflow should be tool-neutral. If Claude slash commands or Codex Skills are installed later, they should point to these shared docs instead of duplicating the procedure.
+Each workflow should be tool-neutral.
+If Claude slash commands or Codex Skills are installed later, they should point to these shared docs instead of duplicating the procedure.
 
 ## 3. `create-issue` Generation
 
-Generate `docs/harness/skills/create-issue.md` from the product brief and roadmap.
+Generate `docs/harness/skills/create-issue.md` from the product brief, roadmap, and `references/issue-lifecycle.md`.
 
 Required behavior:
 
-- Build a Japanese issue body with summary, motivation, acceptance criteria, dependencies, and references.
+- Build an issue body in the project language with summary, motivation, acceptance criteria, dependencies, and references.
 - Infer labels from the product-specific taxonomy.
 - Infer milestone from the roadmap phase.
-- Infer Project board from issue category.
-- Set default status to Todo.
+- Infer Project board from issue category, if Projects are used.
+- Set default status to Todo or the target repo's equivalent.
 - Set a target/expired date only if the team uses date fields.
 - Support parent/sub-issue or blocked-by relationships when GitHub supports them in the target org.
+- Create or reference the issue-local docs directory `docs/product/issues/<number>-<slug>/`.
 - Ask for human confirmation before creating or mutating remote GitHub state.
 
 Required generated references:
@@ -74,6 +80,7 @@ Required generated references:
 ```text
 docs/harness/project-management.md
 docs/harness/references/project-fields.md
+docs/harness/issue-lifecycle.md
 ```
 
 `project-fields.md` must contain magic values only after they are verified from GitHub.
@@ -83,40 +90,52 @@ Use placeholders until then:
 | Project | ID | Source |
 |---------|----|--------|
 | Product | TODO | create or verify with gh / GraphQL |
-| Platform/Harness | TODO | create or verify with gh / GraphQL |
+| Platform / Harness | TODO | create or verify with gh / GraphQL |
 ```
 
 Never invent Project IDs, field IDs, option IDs, milestone node IDs, or label IDs.
-Issue titles and bodies are Japanese by default. Keep label names, code identifiers, package names, API names, and GitHub field names in their canonical spelling.
+Issue titles and bodies use the project language by default.
+Keep label names, code identifiers, package names, API names, and GitHub field names in their canonical spelling.
 
 ## 4. Product-Derived Taxonomy
 
 Start from this neutral taxonomy and specialize it from the product brief.
 
-### Issue Types
+### Required Issue Types
 
-- `type:feature`
-- `type:bug`
-- `type:docs`
-- `type:infra`
-- `type:security`
-- `type:research`
-- `type:refactor`
+| Type | Use when |
+|------|----------|
+| `infra` | provider config, environments, secrets, deploy, migrations, storage, queue, observability |
+| `web/ui` | UI screens, interaction, styling, design system, accessibility |
+| `core/domain` | domain model, business rules, data validation, core workflows |
+| `integration` | external API, webhook, SDK, import/export, third-party service |
+| `async/job/workflow` | queue, job, workflow, scheduler, long-running task, retry/DLQ |
+| `ci/cd` | CI workflow, required checks, release, branch deploy, runner operations |
+| `security` | auth, authorization, secrets, privacy, audit, dependency/security policy |
+| `docs` | docs, ADRs, runbooks, harness docs, public docs projection |
 
-### Harness Labels
+### Optional Cross-Cutting Labels
 
-- `harness:feature-flow` — full plan -> implementation -> evaluation flow
-- `harness:infra` — CI, deploy, env, dependency, provider operations
-- `harness:harness` — agent/skill/rules/docs-harness changes
-- `harness:docs-only` — docs-only changes
-- `harness:research` — research spike with no implementation
+Use only when useful for the target repo.
+
+- `kind:feature`
+- `kind:bug`
+- `kind:research`
+- `kind:refactor`
+- `harness:feature-flow`
+- `harness:infra`
+- `harness:harness`
+- `harness:docs-only`
+- `harness:research`
 
 ### Priority
 
-- `priority:critical` — launch blocker, security incident, data loss, production outage
-- `priority:high` — default for near-term roadmap work
-- `priority:medium` — useful but not on the immediate critical path
-- `priority:low` — cleanup, nice-to-have, low blast radius
+| Priority | Meaning |
+|----------|---------|
+| `priority:critical` | launch blocker, security incident, data loss, production outage |
+| `priority:high` | default for near-term roadmap work |
+| `priority:medium` | useful but not on the immediate critical path |
+| `priority:low` | cleanup, nice-to-have, low blast radius |
 
 ### Components
 
@@ -128,6 +147,7 @@ Derive component labels from product architecture:
 | API | `component:api` |
 | Database | `component:db` |
 | Worker/job/queue | `component:jobs`, `component:worker` |
+| Workflow | `component:workflow` |
 | SDK/client | `component:sdk` |
 | Infra/deploy | `component:infra` |
 | Docs | `component:docs` |
@@ -187,6 +207,7 @@ Remote GitHub mutation requires approval:
 - Creating issues
 - Adding issues to Projects
 - Setting dates/status/relationships
+- Commenting on existing issues because a technical decision changed their scope
 
 Before mutation, present:
 
@@ -196,6 +217,6 @@ Before mutation, present:
 - sample generated issue
 - commands or API operations to run
 
-Present the approval summary in Japanese unless the user explicitly requests another language.
+Present the approval summary in the project language unless the user explicitly requests another language.
 
 If approval is not granted, generate local docs and leave remote setup as tasks in `bootstrap-plan.md`.

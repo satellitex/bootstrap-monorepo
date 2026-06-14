@@ -1,45 +1,61 @@
 # Docs Operating Model
 
 Use this reference when `monorepo-bootstrap` generates the target monorepo's docs structure and freshness rules.
-The goal is to preserve this repository's docs discipline: clear placement, layered responsibility, current-state hygiene, public projection, and sync ownership.
+The goal is to keep agent entrypoints thin, place durable project operations under `docs/`, and preserve clear responsibility boundaries.
 
-## 1. Required Docs Map
+## 1. Placement Principles
+
+| Principle | Rule |
+|-----------|------|
+| Agent-only files | Put only files that agents directly load or execute under `.agents/` or `.claude/`. |
+| Thin adapters | Keep `AGENTS.md` and `CLAUDE.md` short pointers to shared docs and commands. Do not duplicate detailed procedures. |
+| Durable project docs | Put operating model, issue lifecycle, workflow procedures, runbooks, ADRs, and product docs under `docs/`. |
+| Bootstrap Issue 0 | Treat completed bootstrap artifacts as `docs/product/issues/000-bootstrap/`. |
+| No permanent `docs/bootstrap/` | Use `docs/bootstrap/` only as temporary scratch if needed; migrate durable content before completion. |
+| Index discipline | Directories that agents navigate should have `README.md` or `INDEX.md`, updated in the same change. |
+
+## 2. Required Docs Map
 
 Generate a docs knowledge hub first.
 
 | Path | Role | Notes |
 |------|------|-------|
 | `docs/README.md` | Docs knowledge hub | Placement map, naming, INDEX update rules |
+| `docs/harness/` | Agent/tool operating model | Tool-neutral workflow docs, roles, rules, project management, language policy |
+| `docs/harness/OPERATING_MODEL.md` | Shared operating model | Gates, quality standards, Codex/Claude handoff |
+| `docs/harness/LANGUAGE_POLICY.md` | Project language policy | Derived from intake, not fixed by template |
 | `docs/product/` | Product definition | Current-state docs such as ARCHITECTURE, TECH_STACK, INFRA, TERMS, API_FLOWS |
 | `docs/product/adr/` | Decision layer | Why, alternatives, supersession, deprecation |
-| `docs/product/issues/` | Implementation planning layer | Issue-specific inception, construction, infra plan, traceability |
-| `docs/product/templates/` | Planning templates | Inception, construction, infra-plan, traceability templates |
-| `docs/requirements/` | Requirements canonical source | Human-approved; AI auto-edit is out of scope |
+| `docs/product/issues/000-bootstrap/` | Bootstrap Issue 0 | Bootstrap artifacts, Gate A/B approvals, implementation report |
+| `docs/product/issues/<number>-<slug>/` | Issue planning layer | inception, plan, construction, verification, review notes |
+| `docs/product/templates/` | Planning templates | Inception, plan, construction, verification, traceability templates |
+| `docs/requirements/` | Requirements canonical source | Human-approved; AI auto-edit is out of scope unless explicitly allowed |
 | `docs/customer/originals/` | Customer originals | Original files only |
 | `docs/customer/summaries/` | Customer source summaries | Safe summaries of originals |
 | `docs/notes/research/` | Research layer | Comparisons, external standards, investigations |
 | `docs/notes/mtgs/` | Meeting logs | Time-sequenced meeting records |
-| `docs/runbooks/` | Operations procedures | Setup, secrets, deploy, incident, rollback |
+| `docs/runbooks/` | Operations procedures | Setup, secrets, deploy, rollback, incident, runner operations |
 | `docs/styles/` | Engineering rules | Coding, docs, security, testing, harness authoring |
 | `docs/operations/` | Operations data | Docs site metadata, changelog data, persistent generated ops data |
 
-Every directory that holds many docs should have an `INDEX.md` or README-like index if the target repo expects agents to navigate it.
-Adding, renaming, or deleting docs must update the relevant index in the same change.
+Scale this list to the target repo.
+Do not generate customer/public docs scaffolding unless the product needs it.
 
-## 2. Four-Layer Model
+## 3. Four-Layer Model
 
 Docs are separated by responsibility.
 
 | Layer | Typical path | Allowed | Not allowed |
 |-------|--------------|---------|-------------|
-| State-of-Now | `docs/product/**/*.md`, `docs/styles/**`, `docs/schedule/**`, root adapters/rules | Current system facts, current stack, current terms, global rules | History, migration story, rejected alternatives, future plans |
+| State-of-Now | `docs/product/**/*.md`, `docs/styles/**`, root adapters/rules | Current system facts, current stack, current terms, global rules | History, migration story, rejected alternatives, future plans |
 | Decision | `docs/product/adr/` | Why, alternatives, trade-offs, superseded/deprecated decisions | Detailed implementation plans |
 | Research | `docs/notes/research/` | Candidate comparison, investigation, external standard summaries | Declaring final adoption without ADR |
-| Implementation Plan | `docs/product/issues/<id>/` | Issue-specific inception, construction, plan, traceability | Cross-cutting current facts that belong in State-of-Now |
+| Implementation Plan | `docs/product/issues/<id>/` | Issue-specific inception, plan, construction, verification, traceability | Cross-cutting current facts that belong in State-of-Now |
+| Operations | `docs/runbooks/`, `docs/harness/` | Current operational procedures, workflow contracts, approvals | Product decision rationale that belongs in ADR |
 
 Generated target repos should include this model in `docs/styles/coding_guide/docs.md` or equivalent.
 
-## 3. State-of-Now Rules
+## 4. State-of-Now Rules
 
 State-of-Now docs must contain only "how the system is now".
 
@@ -59,10 +75,9 @@ Allowed exceptions:
 - Architectural invariants such as "the system does not store user private keys"
 - Code examples where the text is part of code
 
-## 4. README Responsibility
+## 5. README Responsibility
 
-README files are not owned by docs-sync.
-They are local maps for nearby code, setup, commands, and package/app-specific structure.
+README files are local maps for nearby code, setup, commands, and package/app-specific structure.
 
 Use `readme-sync` for:
 
@@ -80,7 +95,7 @@ Use `docs-sync` for:
 - `docs/styles/**`
 - global rules/adapters that describe current operation
 
-## 5. Customer And Public Docs
+## 6. Customer And Public Docs
 
 If the product has customer-facing docs, separate internal canonical docs from public projection.
 
@@ -102,7 +117,7 @@ Public/customer docs gate should detect:
 
 If no public docs exist, leave `public-docs-sync` out and record why in `harness-catalog.md`.
 
-## 6. Sync Ownership
+## 7. Sync Ownership
 
 Use separate sync workflows so each owns one freshness boundary.
 
@@ -115,15 +130,27 @@ Use separate sync workflows so each owns one freshness boundary.
 | `dependency-sync` | Dependency automation coverage | Product code behavior |
 | `env-sync` | env examples, secret docs, bindings | Secret values |
 | `api-schema-sync` | schema/generated client/docs/test alignment | Business implementation |
+| `security-sync` | secret scan policy, authz docs, audit controls, dependency alerts | Feature implementation |
 
 Each sync workflow must define source of truth, compared-against target, include/exclude paths, auto-edit scope, validation commands, and report format.
 
-## 7. Templates To Generate
+## 8. Templates To Generate
 
 Recommended docs/harness and docs/style files:
 
 ```text
 docs/README.md
+docs/harness/OPERATING_MODEL.md
+docs/harness/LANGUAGE_POLICY.md
+docs/harness/issue-lifecycle.md
+docs/harness/project-management.md
+docs/harness/references/project-fields.md
+docs/harness/skills/static-check.md
+docs/harness/skills/implement-feature.md
+docs/harness/skills/bootstrap-infra.md
+docs/harness/skills/create-issue.md
+docs/harness/roles/README.md
+docs/harness/rules/README.md
 docs/styles/coding_guide/docs.md
 docs/styles/coding_guide/code-comments.md
 docs/styles/harness_authoring_guide.md
@@ -131,15 +158,43 @@ docs/product/adr/README.md
 docs/product/adr/INDEX.md
 docs/product/adr/template.md
 docs/product/templates/inception.md
+docs/product/templates/plan.md
 docs/product/templates/construction.md
-docs/product/templates/infra-plan.md
-docs/harness/OPERATING_MODEL.md
-docs/harness/LANGUAGE_POLICY.md
+docs/product/templates/verification.md
+docs/product/templates/review-notes.md
+docs/product/issues/000-bootstrap/product-brief.md
+docs/product/issues/000-bootstrap/research.md
+docs/product/issues/000-bootstrap/decision-matrix.md
+docs/product/issues/000-bootstrap/harness-catalog.md
+docs/product/issues/000-bootstrap/bootstrap-plan.md
+docs/product/issues/000-bootstrap/implementation-report.md
+docs/runbooks/deploy.md
 ```
 
-Scale this list to the target repo. Do not generate customer/public docs scaffolding unless the product needs it.
+Generate only what the target repo needs for the first 1-2 iterations.
 
-## 8. Validation Gates
+## 9. Adapter Rules
+
+`AGENTS.md` and `CLAUDE.md` should include:
+
+- short repo purpose
+- pointer to `docs/harness/OPERATING_MODEL.md`
+- pointer to project language policy
+- local commands or pointer to command docs
+- approval gate reminders
+- secret and destructive-operation constraints
+
+They should not include:
+
+- full issue lifecycle procedure
+- full CI/CD runbook
+- provider-specific deploy instructions
+- duplicated workflow bodies
+- product-specific research summaries
+
+Claude slash commands or subagents may exist, but they should point to shared docs instead of becoming the only source of truth.
+
+## 10. Validation Gates
 
 Docs-related CI should include the subset relevant to the product:
 
