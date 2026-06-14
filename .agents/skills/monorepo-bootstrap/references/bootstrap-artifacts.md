@@ -396,6 +396,10 @@ Shared source of truth:
 
 | Item | Path/Provider | Notes |
 |------|---------------|-------|
+| tool/runtime version management | `mise.toml` or repo-local mise config | Pin runtime, package manager, and major CLI versions; setup starts with `mise install` |
+| local dev task entrypoints | `mise run <task>` and package scripts | Keep repeated dev/check/seed/migration commands callable through mise without hiding package-native scripts |
+| env examples | `.env.example` and docs/runbooks | Document required names and safe sample values only |
+| secrets | provider / secret manager | Document registration steps and naming convention, never secret values |
 
 ## 8. CI/CD
 

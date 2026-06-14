@@ -7,6 +7,7 @@
 - ユーザとの会話、Issue、PR、ADR、review コメント、sync レポート、運用 docs は日本語を既定とする。
 - コード識別子、API 名、package 名、commit type、標準エラー、外部仕様名は原文または英語のまま保持する。
 - 公式 docs の引用タイトルやリンクタイトルは原文を保持し、要約は日本語にする。
+- bootstrap 先の tool/runtime version 管理と local dev コマンド整備は `mise` を既定にする。
 - 課金、本番 deploy、破壊的 migration、外部公開を伴う判断は、必ず人間の明確な承認を得る。
 - secret、token、credential は commit しない。
 
