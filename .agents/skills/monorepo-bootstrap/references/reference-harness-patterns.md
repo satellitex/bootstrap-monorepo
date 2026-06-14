@@ -135,6 +135,9 @@ workflow は service user の non-interactive environment で検証する。
 
 bootstrap 時に作るもの:
 
+- repository-local `mise` config for runtime, package manager, and major CLI versions
+- `mise install` based setup path
+- `mise run <task>` entrypoints for repeated local dev/check/seed/migration commands where practical
 - `.env.example`
 - secret naming convention
 - local dev setup command
