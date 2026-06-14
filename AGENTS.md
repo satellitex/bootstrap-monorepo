@@ -28,5 +28,6 @@ Codex で bootstrap を実行するときは `.agents/skills/monorepo-bootstrap/
 
 - 既存変更を勝手に revert しない。
 - 変更前に repository 状態を確認し、関連ファイルだけを編集する。
+- 作業は常に `origin/main` を基点に branch を切り、`main` や detached HEAD で直接編集しない。
 - 実装変更では、影響範囲に応じて lint、typecheck、test、build、smoke test を実行する。
 - 最新仕様に依存する判断は一次情報を確認し、調査結果を成果物に残す。
