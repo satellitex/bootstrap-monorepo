@@ -1,6 +1,6 @@
 # 検証ゲートコマンド定義（一元管理）
 
-この文書は本リポジトリの検証ゲートコマンド 5 本と、用途別の組合せを一元定義する。各コマンドの実装（lint ツールの選定・設定）は書かない（root `package.json` の scripts と各ツール設定ファイルが正本）。
+この文書は本リポジトリの検証ゲートコマンド 6 本と、用途別の組合せを一元定義する。各コマンドの実装（lint ツールの選定・設定）は書かない（root `package.json` の scripts と各ツール設定ファイルが正本）。
 
 skill 文書・agent 定義・hook が検証コマンドを必要とするときは、本ファイルを参照する（各所に
 コマンド列を複製しない）。
@@ -8,11 +8,12 @@ skill 文書・agent 定義・hook が検証コマンドを必要とするとき
 ## コマンド定義
 
 root `package.json` の scripts として以下の名前で提供する。実装（背後のツール）は自由だが、
-**名前はこの 5 本 + `format` を契約として保つ**。
+**名前はこの 6 本を契約として保つ**。
 
 | コマンド | 役割 |
 |---|---|
-| `pnpm run format:check` | フォーマット差分の検査（書き換えない）。書き換えは `pnpm run format` |
+| `pnpm run format` | フォーマットの適用（書き換える）。hook（pre-format-check）が staged ファイルに対して使う |
+| `pnpm run format:check` | フォーマット差分の検査（書き換えない） |
 | `pnpm run lint` | 静的解析（lint） |
 | `pnpm run typecheck` | 型検査 |
 | `pnpm run test` | テスト実行 |

@@ -14,6 +14,9 @@ user_invocable: true
 bootstrap 先では vendor/tool 固有の手順を入口ファイルへ閉じ込めない。
 Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通の運用正本は `docs/harness/` と `docs/product/` 配下に置く。
 
+既存のスタック・コード・CI を維持したまま運用ハーネスだけを導入する場合は、本 Skill ではなく `harness-adopt` Skill（`../harness-adopt/SKILL.md`）を使う。
+本 Skill は、新規 repo または技術選定・基盤構築からやり直す repo を対象とする。
+
 ## 入力
 
 | 項目 | 必須 | 説明 | 例 |
