@@ -1,0 +1,71 @@
+name: CI
+
+# 基礎 CI: format:check / test / build の 3 job のみを最小構成で走らせる。
+# lint / typecheck はローカルの pre-push hook（.claude/hooks/pre-push-ci-check.sh）が
+# push 前に強制するため、ここでは重複させない（採否は末尾コメント参照）。
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Prettier (format:check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+
+  test:
+    name: Test (turbo + hooks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      # .claude/hooks/ の hermetic bash テスト（bash / git / jq のみで動く。実
+      # prettier / pnpm / gitleaks / eslint / tsc は使わずすべて stub 注入）。
+      # ここが唯一の実行経路であり、権威あるゲートは本 job（CI）側に置く
+      # （hooks 自身は best-effort なローカルガード。.claude/hooks/README.md 参照）。
+      - name: Run .claude/hooks tests
+        run: bash .claude/hooks/tests/run-all.sh
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+# --- 追加の検査 job はここに足す -------------------------------------------------
+# lint / typecheck は上記のとおりローカル pre-push hook が強制している。CI 側にも
+# 恒常ゲートとして足す場合は、この workflow への job 追加に加えて
+# docs/harness/skills/shared/verification-gates.md の検証ゲート定義と同期させる
+# （コマンド名や実行対象を変える場合は特に）。
+# スタック固有の追加検査（型付き言語のビルドチェック等）を足す場合も同様に、
+# 対応する pre-push hook の step および verification-gates.md と揃える。
+# ---------------------------------------------------------------------------------

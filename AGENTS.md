@@ -8,15 +8,18 @@
 - コード識別子、API 名、package 名、commit type、標準エラー、外部仕様名は原文または英語のまま保持する。
 - 公式 docs の引用タイトルやリンクタイトルは原文を保持し、要約は日本語にする。
 - bootstrap 先の tool/runtime version 管理と local dev コマンド整備は `mise` を既定にする。
-- 課金、本番 deploy、破壊的 migration、外部公開を伴う判断は、必ず人間の明確な承認を得る。
+- 既定は自律実行とし、明示的な指示がない限り、変更の実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
+- 人間の明示承認が必須なのは次の 2 つのみ: (1) 課金が発生する操作（有償リソースの作成・プラン変更・外部サービス契約）、(2) 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）。
+- bootstrap 先のブランチモデルは main = dev 環境 / release = prod 環境を既定とし、prod リリースのみ手順（main の安全性確認 → release への反映手順の確認）を踏む。
 - secret、token、credential は commit しない。
 
 ## Bootstrap skill
 
 - 正本: `.agents/skills/monorepo-bootstrap/SKILL.md`
 - Claude 側入口: `.claude/skills/monorepo-bootstrap/SKILL.md`
+- テンプレート資産の実体: `.agents/skills/monorepo-bootstrap/assets/`（台帳は `assets/MANIFEST.md`）
 
-Codex で bootstrap を実行するときは `.agents/skills/monorepo-bootstrap/SKILL.md` を読み、そこに定義された Intake、技術調査、承認ゲート、ハーネス整備、実装、検証、完了報告の順に進める。
+Codex で bootstrap を実行するときは `.agents/skills/monorepo-bootstrap/SKILL.md` を読み、そこに定義された Intake、技術調査、技術選定の確定、ハーネス整備、実装、検証、完了報告の順に進める。
 
 ## 両対応の保守ルール
 

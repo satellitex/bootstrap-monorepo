@@ -1,30 +1,17 @@
 # Generated Workflows
 
-Use this reference when `monorepo-bootstrap` needs to generate reusable workflows from a product brief: generic `*-sync` workflows, `create-issue`, and milestone / Project management.
+この文書は、bootstrap 先の workflow（`*-sync` 系、`create-issue`、milestone / Project 管理）を PJ 固有化・追加設計するときの参照である。
+収録済み workflow 資産の一覧はここに書かない（正本台帳は `../assets/MANIFEST.md`）。
 
-## 1. Product Brief To Workflow Inventory
+## 1. Workflow Inventory
 
-Derive workflows from product surfaces and operational needs.
+収録済み workflow の一覧と core / opt-in 区分は `../assets/MANIFEST.md` が正本である。
 
-| Product signal | Generate workflow | Purpose |
-|----------------|-------------------|---------|
-| Any repo with code | `static-check` | One command for format, lint, typecheck, test, build |
-| Any planned feature work | `implement-feature` | Issue/requirements to implementation, verification, PR |
-| CI, deploy, secrets, infra, migrations | `bootstrap-infra` or `operate-infra` | Plan-first environment and operations changes |
-| Multiple README files or package/app boundaries | `readme-sync` | README freshness against current code |
-| Product/architecture docs as current-state docs | `docs-sync` | Keep docs aligned with code and prevent stale prose |
-| Public API comments, SDK docs, generated docs | `code-sync` | Keep source comments publishable and current |
-| Public/customer/shared docs derived from internal docs | `public-docs-sync` | Project internal docs into a safe external version |
-| Dependency automation via Renovate/Dependabot | `dependency-sync` | Detect untracked pins and cross-manager version drift |
-| Environment bindings, `.env.example`, secrets, deploy targets | `env-sync` | Keep env examples, secret docs, and deploy bindings aligned |
-| OpenAPI/GraphQL/protobuf/schema-driven SDK | `api-schema-sync` | Keep schema, generated client, docs, and tests aligned |
-| Security/compliance-sensitive product | `security-sync` | Secret scan policy, authz docs, audit controls, dependency alerts |
-| Long-running tasks, queues, workflows, schedulers | `async-ops-sync` or product-specific workflow | Keep async runbooks, retries, DLQ, and visibility aligned |
-| Self-hosted runner | `runner-sync` or runner runbook check | Keep runner service, credentials, logs, and CLI versions documented |
+- core 区分の skill doc は既定で bootstrap 先へ copy する。
+- opt-in グループ（`opt-in:renovate` / `opt-in:public-site` / `opt-in:submodule` / `opt-in:traceability`）は product brief と制約から採否を判断し、採用グループのみ copy する。
+- MANIFEST にない鮮度境界（env examples、API schema、security policy、async runbook、runner 運用など）が product に必要な場合のみ、新しい sync workflow を §2 の契約に従って `docs/harness/skills/<name>.md` として追加設計する。
 
-Do not generate every workflow by default.
-Generate `static-check`, `implement-feature`, `bootstrap-infra`, and `create-issue` unless the user opts out.
-Add `*-sync` workflows only when the product has the corresponding surface.
+不要な workflow を先回りで作らない。追加は「対応する surface が product に実在する」ことを条件にする。
 
 ## 2. Generic `*-sync` Shape
 
@@ -43,25 +30,28 @@ Every generated sync workflow should follow the same contract:
 | Report shape | PR body or local report sections |
 | Language | Reports, PR bodies, and review notes use the project language from intake |
 
-Recommended generated files:
+生成先はすべて `docs/harness/skills/<name>.md` とする。収録済みの例:
 
 ```text
 docs/harness/skills/readme-sync.md
 docs/harness/skills/docs-sync.md
 docs/harness/skills/code-sync.md
-docs/harness/skills/public-docs-sync.md
-docs/harness/skills/dependency-sync.md
-docs/harness/skills/env-sync.md
-docs/harness/skills/api-schema-sync.md
-docs/harness/skills/security-sync.md
+docs/harness/skills/refactor-guide-sync.md
+docs/harness/skills/gc-scan.md
+docs/harness/skills/adr-compress.md
+docs/harness/skills/renovate-sync.md      (opt-in:renovate)
+docs/harness/skills/public-arch-sync.md   (opt-in:public-site)
 ```
 
+共通後段（origin/main 基準、0 件終了、open PR ガード、fail-closed 照会、1 スキャン 1 PR）は `docs/harness/skills/shared/` の共通契約を参照し、各 skill doc 本文に複製しない。
+
 Each workflow should be tool-neutral.
-If Claude slash commands or Codex Skills are installed later, they should point to these shared docs instead of duplicating the procedure.
+Claude 側は `.claude/skills/<name>/SKILL.md` を薄い adapter とし、正本の手順を複製しない。
 
-## 3. `create-issue` Generation
+## 3. `create-issue` Specialization
 
-Generate `docs/harness/skills/create-issue.md` from the product brief, roadmap, and `references/issue-lifecycle.md`.
+`create-issue` の手順正本は copy 済みの `docs/harness/skills/create-issue.md` である。
+product brief、roadmap、`references/issue-lifecycle.md` に従い、taxonomy・milestone・Project の対応を PJ 固有化する。
 
 Required behavior:
 
@@ -72,25 +62,25 @@ Required behavior:
 - Set default status to Todo or the target repo's equivalent.
 - Set a target/expired date only if the team uses date fields.
 - Support parent/sub-issue or blocked-by relationships when GitHub supports them in the target org.
-- Create or reference the issue-local docs directory `docs/product/issues/<number>-<slug>/`.
-- Ask for human confirmation before creating or mutating remote GitHub state.
+- Create or reference the issue-local docs directory `docs/issues/<number>_<scope>/`.
+- Issue の作成・更新は自律実行してよい。作成後は読み戻して検証する。人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ。
 
-Required generated references:
+PJ 固有値の置き場所:
 
 ```text
-docs/harness/project-management.md
-docs/harness/references/project-fields.md
-docs/harness/issue-lifecycle.md
+docs/harness/skills/create-issue.md
+.claude/skills/create-issue/references/project-fields.md
+docs/issues/README.md
 ```
 
 `project-fields.md` must contain magic values only after they are verified from GitHub.
-Use placeholders until then:
+Until verified, keep them in `TODO(取得方法: ...)` form:
 
 ```markdown
 | Project | ID | Source |
 |---------|----|--------|
-| Product | TODO | create or verify with gh / GraphQL |
-| Platform / Harness | TODO | create or verify with gh / GraphQL |
+| Product | TODO(取得方法: gh / GraphQL で作成または照会) | create or verify with gh / GraphQL |
+| Platform / Harness | TODO(取得方法: gh / GraphQL で作成または照会) | create or verify with gh / GraphQL |
 ```
 
 Never invent Project IDs, field IDs, option IDs, milestone node IDs, or label IDs.
@@ -173,7 +163,8 @@ If the product has regulatory or customer milestones, replace these with the use
 
 ## 6. Project Model
 
-Create a Project model only after human approval.
+Project board の作成・変更は自律実行してよい（人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ）。
+作成・変更後は実値を読み戻して検証し、magic value を profile に記録する。
 
 Default boards:
 
@@ -194,29 +185,27 @@ Default fields:
 | Component | label or single-select | Recommended |
 | Owner | assignee or person field | Optional |
 
-Record the final IDs in `docs/harness/references/project-fields.md`.
+Record the final IDs in `.claude/skills/create-issue/references/project-fields.md`.
 
-## 7. Approval Gates
+## 7. Approval Model
 
-Remote GitHub mutation requires approval:
+既定は自律実行とする。remote GitHub mutation のうち次は承認なしに実行してよい:
 
-- Creating labels
-- Creating milestones
-- Creating or editing Project boards
-- Creating Project fields/options
-- Creating issues
-- Adding issues to Projects
-- Setting dates/status/relationships
-- Commenting on existing issues because a technical decision changed their scope
+- label / milestone / Project board / Project fields・options の作成・編集
+- issue / PR の作成、issue の Project への追加
+- dates / status / relationships の設定
+- 技術判断変更に伴う既存 issue への comment
 
-Before mutation, present:
+人間の明示承認が必須なのは次の 2 つのみ:
 
-- proposed labels and descriptions
-- proposed milestones with entry/exit criteria
-- proposed Projects and fields
+- 課金が発生する操作（有償リソースの作成、プラン変更、外部サービス契約）
+- 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）
+
+自律実行した mutation は判断材料を成果物に残す:
+
+- 採用した labels / milestones / Projects / fields とその理由（`harness-catalog.md` または issue-local docs）
+- 実行した commands / API operations と読み戻し検証の結果
 - sample generated issue
-- commands or API operations to run
 
-Present the approval summary in the project language unless the user explicitly requests another language.
-
-If approval is not granted, generate local docs and leave remote setup as tasks in `bootstrap-plan.md`.
+成果物とレポートは project language で書く（ユーザが明示的に別言語を指定した場合を除く）。
+実行できなかった remote setup は `bootstrap-plan.md` に残タスクとして残す。

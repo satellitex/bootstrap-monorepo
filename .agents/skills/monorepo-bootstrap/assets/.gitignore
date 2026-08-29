@@ -1,0 +1,19 @@
+# 依存関係・ビルド成果物
+node_modules/
+dist/
+build/
+out/
+.turbo/
+
+# Claude Code ハーネスのローカル専用状態（コミットしない）
+.claude/settings.local.json
+.claude/state/
+.claude/worktrees/
+.claude/logs/
+
+# OS / エディタ
+.DS_Store
+
+# ローカル環境変数（秘密値を含みうるため常に除外する）
+.env
+.env.local

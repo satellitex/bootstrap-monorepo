@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh",
+            "timeout": 900,
+            "statusMessage": "Installing mise toolchain / workspace deps..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-format-check.sh",
+            "if": "Bash(git commit *)",
+            "timeout": 120,
+            "statusMessage": "Formatting staged files before commit..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-push-ci-check.sh",
+            "if": "Bash(git push *)",
+            "timeout": 900,
+            "statusMessage": "Running pre-push CI check (secret scan / format:check / lint / typecheck / build)..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-edit-check.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
