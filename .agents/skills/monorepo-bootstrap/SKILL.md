@@ -1,13 +1,15 @@
 ---
 name: monorepo-bootstrap
-description: Codex/Claude両対応で任意のモノレポをbootstrapする。技術選定調査、人間承認、docs運用正本、ハーネス/環境/CI/CD整備、初期実装、deploy検証までを段階実行する
+description: Codex/Claude両対応で任意のモノレポをbootstrapする。技術選定調査、docs運用正本、ハーネス/環境/CI/CD整備、初期実装、deploy検証までを自律実行する。人間承認が必須なのは課金と秘密値のみ
 user_invocable: true
 ---
 
 # Monorepo Bootstrap Skill (Codex / Claude)
 
 任意のプロダクト概要から、実装可能なモノレポを立ち上げる上位オーケストレーション Skill。
-特定 project、業務ドメイン、cloud provider、runtime、CSS framework に固定せず、技術選定、docs 正本、Codex/Claude 両対応ハーネス、環境整備、CI/CD、初期実装、deploy 検証までを人間承認 gate 付きで進める。
+特定 project、業務ドメイン、cloud provider、runtime、CSS framework に固定せず、技術選定、docs 正本、Codex/Claude 両対応ハーネス、環境整備、CI/CD、初期実装、deploy 検証までを自律実行で進める。
+人間の明示承認が必須なのは、課金が発生する操作と秘密値の挿入・変更の 2 つのみとする。
+ハーネス・docs・CI の実体はスクラッチ生成せず、`assets/`（台帳: `assets/MANIFEST.md`）からの copy + placeholder 置換で展開する。
 
 bootstrap 先では vendor/tool 固有の手順を入口ファイルへ閉じ込めない。
 Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通の運用正本は `docs/harness/` と `docs/product/` 配下に置く。
@@ -23,7 +25,8 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 | Project language | No | Issue / PR / ADR / docs / review comment の既定言語 | `日本語`, `English` |
 
 入力が足りない場合は、作業を止めずに仮定を明示して Discovery を始める。
-ただし課金 resource 作成、本番 deploy、破壊的 migration、外部公開、remote GitHub mutation は、必ず人間の明確な承認を得る。
+既定は自律実行とし、変更の実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
+人間の明示承認が必須なのは次の 2 つのみ: (1) 課金が発生する操作（有償リソースの作成・プラン変更・外部サービス契約）、(2) 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）。
 
 ## 基本方針
 
@@ -32,7 +35,7 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 - template は特定 provider、runtime model、database、storage、queue/workflow、auth、observability、CI/CD provider を既定採用として書かない。
 - user が provider や既存技術の制約を指定した場合だけ、その選択肢を優先候補として比較する。
 - user が指定していない場合は、複数 provider / runtime option を比較し、Gate A で推奨案と代替案を提示する。
-- provider 固有の CLI、binding、secret、deploy 手順は、template 本体へ直書きせず、target repo の `docs/runbooks/`、`docs/harness/skills/bootstrap-infra.md`、または provider-specific reference へ分離する。
+- provider 固有の CLI、binding、secret、deploy 手順は、template 本体へ直書きせず、target repo の `docs/runbooks/` または provider-specific reference へ分離する。
 - 最新仕様、価格、制限、deploy behavior、CLI option、CI/CD syntax に依存する判断は一次情報を確認し、URL と確認日を `research.md` に残す。
 
 ### Codex / Claude 対応
@@ -48,7 +51,7 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 ### Language Policy
 
 template 側で言語を固定しない。
-Intake で project language を確認し、`product-brief.md`、`docs/harness/LANGUAGE_POLICY.md`、Issue / PR / ADR / review comment / docs / sync report の既定言語へ反映する。
+Intake で project language を確認し、`product-brief.md` と `docs/harness/OPERATING_MODEL.md` の言語ポリシー節、Issue / PR / ADR / review comment / docs / sync report の既定言語へ反映する。
 
 言語に関係なく、次は原文または canonical spelling を保持する。
 
@@ -63,31 +66,32 @@ Intake で project language を確認し、`product-brief.md`、`docs/harness/LA
 
 ## 成果物
 
-bootstrap の成果物は、継続運用に入ったら `docs/product/issues/000-bootstrap/` を "Issue 0" として扱う。
-一時調査を `docs/bootstrap/<project-slug>/` に置いた場合でも、Gate B までに `docs/product/issues/000-bootstrap/` へ統合し、`docs/bootstrap/` を恒久的な正本として残し続けない。
+bootstrap の成果物は、継続運用に入ったら `docs/issues/000_bootstrap/` を "Issue 0" として扱う。
+一時調査を `docs/bootstrap/<project-slug>/` に置いた場合でも、Gate B までに `docs/issues/000_bootstrap/` へ統合し、`docs/bootstrap/` を恒久的な正本として残し続けない。
 既存 repo の規約がある場合は、その規約を優先し、配置理由を `bootstrap-plan.md` に残す。
 
 | 成果物 | 既定配置 | 内容 |
 |--------|----------|------|
-| `product-brief.md` | `docs/product/issues/000-bootstrap/` | product overview、user、core flows、non-goals、language policy、constraints |
-| `research.md` | `docs/product/issues/000-bootstrap/` and/or `docs/notes/research/` | 技術調査、一次情報 URL、比較観点、未確定事項 |
-| `decision-matrix.md` | `docs/product/issues/000-bootstrap/` | 技術選定候補、採否、理由、運用リスク、cost/limits、local dev 影響 |
-| `harness-catalog.md` | `docs/product/issues/000-bootstrap/` | docs 運用、workflow、Issue/Project 運用、adapter 方針 |
-| `bootstrap-plan.md` | `docs/product/issues/000-bootstrap/` | 実装計画、docs/ハーネス/環境/CI/CD/deploy/初期機能の Task |
-| `implementation-report.md` | `docs/product/issues/000-bootstrap/` | 実装結果、検証、deploy URL、残タスク |
+| `product-brief.md` | `docs/issues/000_bootstrap/` | product overview、user、core flows、non-goals、language policy、constraints |
+| `research.md` | `docs/issues/000_bootstrap/` and/or `docs/notes/research/` | 技術調査、一次情報 URL、比較観点、未確定事項 |
+| `decision-matrix.md` | `docs/issues/000_bootstrap/` | 技術選定候補、採否、理由、運用リスク、cost/limits、local dev 影響 |
+| `harness-catalog.md` | `docs/issues/000_bootstrap/` | docs 運用、workflow、Issue/Project 運用、adapter 方針 |
+| `bootstrap-plan.md` | `docs/issues/000_bootstrap/` | 実装計画、docs/ハーネス/環境/CI/CD/deploy/初期機能の Task |
+| `implementation-report.md` | `docs/issues/000_bootstrap/` | 実装結果、検証、deploy URL、残タスク |
 
 必要に応じて以下を読む。
 Skill 本体は orchestration に限定し、詳細 checklist と template は references を正本にする。
 
 | 参照 | 使う場面 |
 |------|----------|
+| `assets/MANIFEST.md` | ハーネス/docs/CI 資産を copy・置換・削除するとき（資産台帳の正本） |
 | `references/bootstrap-artifacts.md` | 成果物テンプレートが必要なとき |
 | `references/technology-selection.md` | Gate A の比較範囲、infrastructure service selection、app topology、CSS/UI stack 選定を作るとき |
-| `references/docs-operating-model.md` | docs 配下の層分離、Issue 0、adapter 配置、公開射影を生成するとき |
-| `references/issue-lifecycle.md` | issue taxonomy、issue-local docs、ADR 要否、draft PR approval gate を作るとき |
-| `references/generated-workflows.md` | `*-sync` 系、`create-issue`、milestone / Project 管理を生成するとき |
+| `references/docs-operating-model.md` | docs 配下の層分離、Issue 0、adapter 配置、公開射影を設計するとき |
+| `references/issue-lifecycle.md` | issue taxonomy、issue-local docs、ADR 要否、承認要否の判定を作るとき |
+| `references/generated-workflows.md` | `*-sync` 系、`create-issue`、milestone / Project 管理を PJ 固有化するとき |
 | `references/ci-cd-runner-deploy.md` | CI/CD、self-hosted runner、deploy strategy、runbook を設計するとき |
-| `references/reference-harness-patterns.md` | この repo 由来のハーネス責務分離を target repo に写像するとき |
+| `references/reference-harness-patterns.md` | assets/ 収録資産の設計根拠と縮約判断が必要なとき |
 
 ## フロー図
 
@@ -95,11 +99,11 @@ Skill 本体は orchestration に限定し、詳細 checklist と template は r
 monorepo-bootstrap <product overview>
   +-- 1. Intake と repo 観察
   +-- 2. 技術調査と候補比較
-  +-- Gate A: 技術選定、人間承認
+  +-- Gate A: 技術選定の確定（decision-matrix.md。課金・秘密値が絡む項目のみ人間承認）
   +-- 3. harness-catalog.md と bootstrap-plan.md 作成
-  +-- Gate B: 実装計画、人間承認
+  +-- Gate B: 実装計画の確定（bootstrap-plan.md。課金・秘密値が絡む項目のみ人間承認）
   +-- 4. モノレポ基盤作成
-  +-- 5. docs 運用正本、ハーネス、issue lifecycle 整備
+  +-- 5. docs 運用正本、ハーネス、issue lifecycle 整備（assets からの copy + 置換）
   +-- 6. 環境、secret、deploy 下準備
   +-- 7. CI/CD と runner 運用整備
   +-- 8. 初期実装と品質 gate
@@ -171,33 +175,33 @@ UI がある project では CSS / styling strategy の採用判断を ADR 化す
 - tenant/workspace ごとの domain route の自然さ
 - long-running / async 処理の責務分離
 
-## Gate A: 技術選定の人間承認
+## Gate A: 技術選定の確定
 
-`decision-matrix.md` を作成したら、依存追加、scaffold、infra 作成の前にユーザへ提示する。
+`decision-matrix.md` を作成したら、依存追加、scaffold、infra 作成の前に選定を確定する。
+Gate A は「人間を待つ関門」ではなく「判断材料を成果物として固定する関門」とする。
+
+- 課金が発生する選定（有償リソースの作成、有償プラン、外部サービス契約）、または秘密値の投入を伴う選定が含まれる場合は、その項目だけ人間の明示承認を得る。承認が得られるまで当該項目に依存する作業へ進まない。
+- それ以外の選定は承認を待たず、自律続行する。判断材料は `decision-matrix.md` に残し、最終的に PR で提示する。
+
+`decision-matrix.md` には最低限、次を含める。
 
 ```text
-技術選定案を作成しました。
-
-Path: <bootstrap-dir>/decision-matrix.md
 - 推奨 stack:
 - Infrastructure service selection:
 - App topology:
 - CSS/UI strategy:
 - 代替案:
 - 主なリスク:
-- 先に決める必要がある事項:
-
-承認 / 修正指示 / 追加調査 のどれで進めるか確認してください。
+- 人間承認が必要な項目（課金 / 秘密値）とその状態:
 ```
 
 Gate A は、infrastructure service selection と app topology selection を必ず含む。
-user が provider を指定していない場合は、複数 provider / runtime option を比較した上で推奨案を提示する。
-承認なしに依存追加、テンプレート生成、infra 作成へ進まない。
-修正指示または追加調査があれば Step 2 に戻り、`research.md` と `decision-matrix.md` を更新する。
+user が provider を指定していない場合は、複数 provider / runtime option を比較した上で推奨案と代替案を `decision-matrix.md` に残す。
+ユーザから修正指示または追加調査の指示があった場合は Step 2 に戻り、`research.md` と `decision-matrix.md` を更新する。
 
 ## Step 3: harness-catalog.md と bootstrap-plan.md 作成
 
-承認された技術選定をもとに、`harness-catalog.md` と `bootstrap-plan.md` を作る。
+Gate A で確定した技術選定をもとに、`harness-catalog.md` と `bootstrap-plan.md` を作る。
 
 参照順:
 
@@ -213,10 +217,10 @@ user が provider を指定していない場合は、複数 provider / runtime 
 | セクション | 内容 |
 |------------|------|
 | Docs operating model | `docs/harness/` と `docs/product/` の層分離、INDEX、README、公開射影、Issue 0 |
-| Workflow inventory | `implement-feature`, `bootstrap-infra`, `static-check`, `create-issue`, `*-sync` 系の採否 |
-| Sync scope | README/docs/code/API/public docs/dependency/env/security など、鮮度維持対象 |
+| Workflow inventory | `assets/MANIFEST.md` の core 資産一覧と opt-in グループ（`opt-in:renovate` / `opt-in:public-site` / `opt-in:submodule` / `opt-in:traceability`）の採否 |
+| Sync scope | README/docs/code/public docs/dependency など、鮮度維持対象 |
 | Issue taxonomy | infra, web/ui, core/domain, integration, async/job/workflow, ci/cd, security, docs |
-| Issue lifecycle | inception / plan / construction / verification / review notes の置き場所と承認 gate |
+| Issue lifecycle | issue-local docs の置き場所と承認要否（必須は課金・秘密値のみ） |
 | Milestones | product roadmap から導いた milestone 一覧と対象範囲 |
 | Project model | Project board、fields、status、date field、owner field、magic value の保管先 |
 | Tool adapters | Codex と Claude から各 workflow をどう呼ぶか |
@@ -233,43 +237,30 @@ user が provider を指定していない場合は、複数 provider / runtime 
 | Docs | docs 正本、Issue 0、4 層モデル、INDEX 更新、公開 docs gate |
 | Harness | AGENTS/CLAUDE、workflow、role、rules、hooks、sync 系、issue 管理 |
 | Environment | `mise` による tool/runtime version 管理、Node/package manager、env files、secret 管理、local dev |
-| CI/CD | YAML parse、diff check、lint/typecheck/test/build/docs/secret scan/deploy/smoke |
+| CI/CD | 既定は基礎 CI 1 本（format:check / test / build、hooks テスト込み）。拡張候補の採否と理由 |
 | Runner operations | self-hosted runner を使う場合の service manager、user、credentials、logs、restart |
 | Implementation | 最初の vertical slice、API/UI/DB/worker 等の単位 |
-| Deploy | branch deploy、preview/staging/production、承認 gate、rollback、smoke |
+| Deploy | branch deploy（main=dev / release=prod）、prod リリース手順、rollback、smoke |
 | Risks | 技術/運用/セキュリティ/cost/limits のリスクと緩和 |
 | Tasks | 1 session で完了可能な issue 粒度、検証コマンド、完了条件 |
 
-## Gate B: 実装計画の人間承認
+## Gate B: 実装計画の確定
 
-`harness-catalog.md` と `bootstrap-plan.md` を提示し、承認を得る。
+`harness-catalog.md` と `bootstrap-plan.md` を成果物として確定する。
 
-```text
-bootstrap-plan.md を生成しました。
+- 計画に課金が発生する操作、または秘密値の挿入・変更が含まれる場合は、その項目だけ人間の明示承認を得る。承認前に当該操作を実行しない。
+- それ以外は承認を待たず、plan を固定して実装へ自律続行する。計画の全体像（作成予定 / docs 運用正本 / issue lifecycle / 採用 workflow / CI/CD と runner 運用 / deploy strategy / 実装順序）は `bootstrap-plan.md` に残し、PR で提示する。
 
-Path: <bootstrap-dir>/bootstrap-plan.md
-- 作成予定:
-- docs 運用正本:
-- issue lifecycle:
-- 生成する汎用 workflow:
-- CI/CD と runner 運用:
-- deploy strategy:
-- 実装順序:
-
-この計画で実装に進んでよいですか？
-```
-
-承認後は plan を固定する。
-実装中の進捗は Todo と PR checklist で管理し、計画変更が必要な場合だけ plan を更新して再承認を取る。
+実装中の進捗は Todo と PR checklist で管理し、計画変更が必要な場合だけ plan を更新して差分を PR に明示する。課金・秘密値に関わる変更が新たに生じた場合のみ、その時点で承認を取る。
 
 ## Step 4: モノレポ基盤作成
 
-承認済み plan の Task 順に実装する。
+確定済み plan の Task 順に実装する。
 
 基本方針:
 
 - package manager、workspace、task runner、TypeScript/config、formatter/linter を先に固定する
-- tool/runtime version 管理は `mise` を既定にし、runtime、package manager、主要 CLI version、local dev task を repository-local な `mise.toml` などへ記録する
+- tool/runtime version 管理は `mise` を既定にし、runtime、package manager、主要 CLI version、local dev task を repository-local な `.mise.toml` などへ記録する
 - `apps/`, `packages/`, `infra/`, `docs/`, `scripts/` の境界を app topology decision に沿って明確にする
 - 最初から full-stack を広げすぎず、deploy 可能な vertical slice を 1 本作る
 - 共有設定は `packages/config` などに集約し、各 app/package の差分を小さくする
@@ -277,40 +268,50 @@ Path: <bootstrap-dir>/bootstrap-plan.md
 
 ## Step 5: docs 運用正本、ハーネス、issue lifecycle 整備
 
-`references/docs-operating-model.md`、`references/issue-lifecycle.md`、`references/reference-harness-patterns.md` を読み、先に docs の置き場所・鮮度維持ルールを作り、その上に Codex/Claude adapter と workflow を載せる。
+ハーネス・docs・CI の実体はスクラッチ生成しない。
+`assets/MANIFEST.md` を台帳として、次の手順で展開する。
 
-### 5.1 Docs 正本を作る
+1. core 資産を bootstrap 先へ同一相対パスで copy する。
+2. opt-in グループ（`opt-in:renovate` / `opt-in:public-site` / `opt-in:submodule` / `opt-in:traceability`）は Intake / 計画の採否判断に従い、採用グループのみ copy する。不採用グループの資産は copy しない。
+3. 明示 token `{{PRODUCT_NAME}}` `{{GITHUB_ORG}}` `{{REPO_NAME}}` `{{PROJECT_LANGUAGE}}` を一括置換する。
+4. `TODO(取得方法: ...)` 形式の値は、実環境で検証した値のみ埋める。未検証のまま実値を書かない。
+5. product docs の骨格（ARCHITECTURE / TECH_STACK / TERMS / TEST_STRATEGY）と各 skill の profile 類を PJ 固有の内容で充填する。
+
+設計判断の背景が必要な場合のみ `references/docs-operating-model.md`、`references/issue-lifecycle.md`、`references/reference-harness-patterns.md` を読む。
+
+### 5.1 Docs 正本の配置規約
 
 - agent が直接読むものだけ `.agents/` または `.claude/` に置く。
-- project 運用 docs、issue lifecycle、workflow 手順、harness docs は原則 `docs/harness/` または `docs/product/` に置く。
-- bootstrap 成果物は `docs/product/issues/000-bootstrap/` を Issue 0 として扱う。
+- ハーネス運用の neutral 正本は `docs/harness/OPERATING_MODEL.md`、skill 手順の正本は `docs/harness/skills/<name>.md`、sync 系共通契約は `docs/harness/skills/shared/` に置く。
+- ADR は `docs/adr/` の 1 箇所のみ。Issue 成果物は `docs/issues/<number>_<scope>/` に置く。
+- bootstrap 成果物は `docs/issues/000_bootstrap/` を Issue 0 として扱う。
 - `docs/bootstrap/` は一時作業場所に限定し、継続運用の正本として残し続けない。
 - `AGENTS.md` と `CLAUDE.md` は thin adapter とし、詳細手順を二重管理しない。
 
-### 5.2 Docs 鮮度維持 workflow を作る
+### 5.2 Docs 鮮度維持 workflow
 
-product brief と `harness-catalog.md` に従い、必要な `*-sync` だけを生成する。
-各 sync は source of truth、比較対象、auto-edit 範囲、report/PR 方針を明示する。
+sync 系 skill（readme-sync / docs-sync / code-sync など）は `assets/MANIFEST.md` の core に含まれており、copy で導入される。
+product 固有の鮮度維持対象を追加する場合のみ、`references/generated-workflows.md` §2 の 10 項目契約に従って新しい sync doc を設計する。
 
-### 5.3 Issue lifecycle を作る
+### 5.3 Issue lifecycle
 
-issue ごとの inception / plan / construction / verification / review notes は `docs/product/issues/<number>-<slug>/` 配下に Markdown として置く。
-issue 作成時点で実装方針が十分に厳密なら、issue-local approval gate を省略できる。
-実装方針が未確定なら、inception 完了時に draft PR を出し、実装前に人間承認 gate を置く。
+issue ごとの計画・記録は `docs/issues/<number>_<scope>/` 配下に Markdown として置く（テンプレートは `docs/issues/templates/`）。
+issue-local の人間承認は既定では置かない。実装方針が未確定でも、open questions を成果物に残して open PR まで自律続行する。
+draft PR を承認 gate として使うのは、人間から明示的に指示があった場合のみとする。
 
-### 5.4 Codex / Claude adapter を作る
+### 5.4 Codex / Claude adapter
+
+copy 済み資産のうち、adapter と magic value の位置は次のとおり。
 
 | ファイル/領域 | 目的 |
 |---------------|------|
-| `AGENTS.md` | Codex 用 thin adapter。docs 正本、主要 workflow、ブランチ/PR 運用への pointer |
+| `AGENTS.md` | Codex 用 thin adapter。`docs/harness/OPERATING_MODEL.md` への pointer |
 | `CLAUDE.md` | Claude 用 thin adapter。`AGENTS.md` と同じ共通正本への pointer |
-| `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認 gate、品質基準 |
-| `docs/harness/LANGUAGE_POLICY.md` | project language と例外規則 |
-| `docs/harness/skills/*.md` | tool-neutral な workflow 手順 |
-| `docs/harness/roles/*.md` | generator/evaluator/mapper/sync などの role 定義 |
-| `docs/harness/rules/` | security、comments、dependency direction、docs freshness |
-| `docs/harness/project-management.md` | milestone、Project、fields、status、date、relationship の運用正本 |
-| `docs/harness/references/project-fields.md` | GitHub Project ID / field ID など推論不能な magic value |
+| `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認モデル、言語ポリシー、品質基準 |
+| `docs/harness/skills/*.md` | tool-neutral な workflow 手順の正本 |
+| `.claude/skills/<name>/SKILL.md` | 各正本への薄い adapter（1:1 対応） |
+| `.claude/rules/*.md` | 常時ロード / paths スコープの rule 層 |
+| `.claude/skills/create-issue/references/project-fields.md` | GitHub Project ID / field ID など推論不能な magic value（TODO 形式） |
 
 ## Step 6: 環境、secret、deploy 下準備
 
@@ -319,35 +320,32 @@ secret 値そのものは repo に書かない。
 provider bindings、environment variables、rollback、smoke test は `docs/runbooks/` に残す。
 
 tool/runtime version 管理と local dev command は `mise` を既定にする。
-runtime、package manager、主要 CLI は `mise.toml` など repository-local な設定に固定し、setup 手順は `mise install` から始める。
+runtime、package manager、主要 CLI は `.mise.toml` など repository-local な設定に固定し、setup 手順は `mise install` から始める。
 反復的な local dev / check / seed / migration command は、project の package scripts と矛盾しない範囲で `mise run <task>` から呼べるようにする。
 既存 repo に別の標準がある場合は、移行するか併存するかを `bootstrap-plan.md` に明記する。
 
-deploy は段階を分ける。
+ブランチモデルの既定は main = dev 環境 / release = prod 環境とする。
+main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
 
-| 段階 | 条件 |
+| 環境 | 条件 |
 |------|------|
-| preview | CI と build が通り、公開してもよい dummy data だけを使う |
-| staging | secrets と外部サービスが設定済みで、smoke test が自動実行できる |
-| production | ユーザの明示承認、rollback 手順、監視、alert がある |
+| dev (main) | CI と build が通る。壊れても復旧可能な前提で自律 deploy してよい |
+| prod (release) | prod リリース手順を踏む: main の安全性確認 → release への反映手順の確認 |
 
-production deploy、課金 resource 作成、破壊的 migration、外部公開は明示承認 gate 必須にする。
+秘密値の挿入・変更（secret 登録、credential 投入）と課金が発生する操作（有償リソース作成、プラン変更、外部サービス契約）は人間の明示承認を得てから行う。
 
 ## Step 7: CI/CD と runner 運用整備
 
 `references/ci-cd-runner-deploy.md` を読み、CI/CD provider、deployment strategy、runner 運用を設計する。
 
-CI workflow には project に応じて以下を含める。
+CI の既定は基礎 CI 1 本（`assets/.github/workflows/ci.yml` を copy）とする。
 
-- YAML parse / workflow lint
-- base branch diff check
-- format / lint / typecheck
-- unit / integration / e2e / contract / migration test
-- build
-- docs gate
-- secret scan
-- preview/staging deploy
-- smoke test
+- format:check / test / build
+- test job 内で `.claude/hooks/tests/run-all.sh`（hooks の bash テスト）を実行
+
+これを超える check（workflow lint、diff check、e2e、docs gate、deploy、smoke など）は拡張候補であり、`references/ci-cd-runner-deploy.md` の拡張候補リストから必要なものだけ選び、採否と理由を `bootstrap-plan.md` に残す。
+秘密検知は CI ではなく pre-push hook（`.claude/hooks/pre-push-ci-check.sh`）が既定の担い手になる。
+定期実行 workflow は既定では収録しない。追加する場合は bootstrap 先の `docs/harness/scheduled-operations.md` の設計ガイドに従う。
 
 GitHub Actions 等を使う場合は repo setting checklist も plan に含める。
 
@@ -368,16 +366,17 @@ self-hosted runner を使う場合は、foreground の `run.sh` 常用ではな�
 実装の完了条件:
 
 - local で `format:check`, `lint`, `typecheck`, `test`, `build` 相当が通る
-- docs gate と secret scan が CI に入っている、または未導入理由が issue 化されている
-- CI が同じ品質 gate を実行する
+- 秘密検知が pre-push hook に入っており、`.claude/hooks/tests/run-all.sh` が green
+- 基礎 CI（format:check / test / build、hooks テスト込み）が通る
 - smoke test が deploy 先で通る
 - README または docs に local dev と deploy 手順がある
 - ハーネスが次の issue 実装を自律実行できる入力/出力を持つ
 
 ## Step 9: deploy と smoke test
 
-承認済み deploy 目標に従い、preview または staging へ deploy する。
-branch-based deploy を採用する場合、main/dev/release/prod 等の branch と environment の対応を docs と issue に残す。
+Intake で確認した deploy 目標に従い、dev 環境（main）へ deploy する。
+branch と environment の対応は既定で main = dev / release = prod とし、変更する場合は対応表を docs と issue に残す。
+prod（release）への反映は、main の安全性確認 → release への反映手順の確認を経てから行う。
 deploy URL、commit SHA、environment、smoke 結果を `implementation-report.md` に記録する。
 
 失敗時は原因を分類する。
@@ -396,22 +395,23 @@ deploy URL、commit SHA、environment、smoke 結果を `implementation-report.m
 1. `implementation-report.md` を更新
 2. 変更ファイルと検証結果を要約
 3. Conventional Commits 形式で commit
-4. ユーザまたは repo 規約が要求する場合のみ branch を push
-5. push 済みなら PR を作成し、bootstrap artifacts、検証、deploy URL、残リスクを body に記載
+4. branch を push し、open PR を作成する（既定の完了形）。PR body に bootstrap artifacts、検証、deploy URL、残リスクを記載
+5. マージは人間の操作とする。ただし明示的に指示された場合はマージまで行ってよい
 
 既存 repo に PR 作成規約があればそれに従う。
-remote GitHub mutation、GitHub Project / Milestone / Label / Issue 作成は、人間承認後に行う。
+GitHub Project / Milestone / Label / Issue の作成・更新・comment は自律実行してよい。人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ。
 product completion までの task は、1 session で完了可能な issue 粒度に分ける。
 技術判断変更が既存 issue に影響する場合、関連 issue に comment する。
 
 ## 制約
 
-- 技術選定と実装計画は、それぞれ人間承認を得てから次段階へ進む
+- 既定は自律実行。変更の実装から open PR の提出までを自律的に行い、マージは明示指示があった場合のみ行う
+- 人間の明示承認が必須なのは、課金が発生する操作と秘密値の挿入・変更の 2 つのみ
+- 技術選定と実装計画は成果物（`decision-matrix.md` / `bootstrap-plan.md`）に残し、PR で提示する
 - 最新仕様、価格、制限、deploy 手順、CLI option は推測しない。一次情報を確認する
 - secrets、tokens、本番データ、個人情報を repo に書かない
-- production deploy、課金 resource 作成、破壊的 migration、外部公開は明示承認なしに実行しない
-- GitHub Project / Milestone / Label / Issue 作成は明示承認なしに実行しない
-- ハーネスは過剰に作らない。最初の 1-2 個の反復で使う workflow/role から始める
+- prod リリースは main の安全性確認 → release への反映手順の確認を経てから行う
+- ハーネスは `assets/MANIFEST.md` の core を基準にし、不要な opt-in グループを持ち込まない
 - target repo の既存規約がある場合は、この Skill より repo 規約を優先する
 
 ## Self-check
@@ -421,12 +421,13 @@ product completion までの task は、1 session で完了可能な issue 粒�
 - [ ] `decision-matrix.md` に採用案、代替案、棄却理由、運用リスク、cost/limits、local dev 影響がある
 - [ ] Gate A に infrastructure service selection と app topology selection がある
 - [ ] UI がある場合、CSS / UI styling strategy の比較と ADR がある
-- [ ] `harness-catalog.md` に docs 層分離、Issue 0、issue taxonomy、issue lifecycle、sync 系、Project 管理の採否がある
-- [ ] Gate A/B の承認ログがある
+- [ ] `harness-catalog.md` に docs 層分離、Issue 0、issue taxonomy、issue lifecycle、opt-in グループの採否がある
+- [ ] 課金・秘密値が絡む項目の人間承認ログが成果物にある（該当なしの場合はその旨を明記）
 - [ ] `bootstrap-plan.md` が docs、環境、CI/CD、runner、deploy、ハーネス、初期実装を含む
+- [ ] `assets/MANIFEST.md` の Self-check（token 置換、opt-in 採否、skill 1:1 対応、hooks 外部契約、hooks テスト green、routine 登録 TODO）を実施した
 - [ ] tool/runtime version 管理と local dev command が `mise` を入口にしている
 - [ ] `AGENTS.md` / `CLAUDE.md` は thin adapter で、詳細手順を二重管理していない
-- [ ] local 品質 gate と CI が同じ主要 check を実行する
+- [ ] local 品質 gate と基礎 CI（format:check / test / build）が同じ主要 check を実行する
 - [ ] self-hosted runner を使う場合、service manager、user/credentials、CLI version、logs/status/restart runbook がある
 - [ ] deploy URL と smoke test 結果が `implementation-report.md` にある
 - [ ] PR body に artifacts、検証結果、残リスクがある

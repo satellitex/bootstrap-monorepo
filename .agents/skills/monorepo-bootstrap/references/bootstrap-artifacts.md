@@ -6,11 +6,11 @@ target repo に既存テンプレートがある場合は、そちらを優先�
 Durable bootstrap artifacts belong under:
 
 ```text
-docs/product/issues/000-bootstrap/
+docs/issues/000_bootstrap/
 ```
 
 Do not keep `docs/bootstrap/` as the long-lived source of truth.
-If temporary scratch files are created there, migrate durable content into Issue 0, `docs/notes/research/`, `docs/product/adr/`, `docs/harness/`, or `docs/runbooks/` before completion.
+If temporary scratch files are created there, migrate durable content into Issue 0, `docs/notes/research/`, `docs/adr/`, `docs/harness/`, or `docs/runbooks/` before completion.
 
 ## product-brief.md
 
@@ -181,12 +181,14 @@ ADR:
 | ID | Decision | Default | Needs human input because |
 |----|----------|---------|---------------------------|
 
-## Gate A Approval
+## Billing / Secret Approvals
 
-- Status: Pending / Approved / Revision requested
-- Approved by:
-- Date:
-- Notes:
+課金または秘密値に該当する項目とその承認状態のみを記録する。該当なしの場合は「該当なし」と明記する。
+
+| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
+|------|-----------------------------|-----------------------------|-------------|------|
+
+> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。それ以外の選定は承認を待たず自律続行する。
 ```
 
 Decision criteria:
@@ -213,31 +215,18 @@ Decision criteria:
 | Knowledge hub | `docs/README.md` | Placement rules and INDEX discipline | docs-sync |
 | Harness docs | `docs/harness/` | Tool-neutral workflows, roles, rules, adapters | docs-sync |
 | State-of-now | `docs/product/`, `docs/styles/` | Current facts only | docs-sync |
-| Bootstrap Issue 0 | `docs/product/issues/000-bootstrap/` | Bootstrap artifacts and approval history | bootstrap workflow |
-| Decisions | `docs/product/adr/` | Why, alternatives, supersession history | create-adr |
+| Bootstrap Issue 0 | `docs/issues/000_bootstrap/` | Bootstrap artifacts and approval history | bootstrap workflow |
+| Decisions | `docs/adr/` | Why, alternatives, supersession history | create-adr |
 | Research | `docs/notes/research/` | Investigation and comparisons | research workflow |
-| Issue plans | `docs/product/issues/<number>-<slug>/` | Issue-specific lifecycle docs | implement-feature/bootstrap-infra |
+| Issue plans | `docs/issues/<number>_<scope>/` | Issue-specific lifecycle docs | multi-issue / メインエージェント判断 |
 | Requirements | `docs/requirements/` | Human-approved requirements | manual approval |
-| Customer docs | `docs/customer/` | Originals and summaries | customer-docs workflow |
-| Runbooks | `docs/runbooks/` | Operations procedures | env-sync / infra workflow |
-| Public projection | `docs/product/PUBLIC_*.md` or equivalent | External/customer-safe docs | public-docs-sync |
+| Customer docs | `docs/customer/` | Originals and summaries | customer-doc-review (opt-in:public-site) |
+| Runbooks | `docs/runbooks/` | Operations procedures | infra workflow |
+| Public projection | `docs/product/PUBLIC_*.md` or equivalent | External/customer-safe docs | public-arch-sync (opt-in:public-site) |
 
 ## Product-Derived Workflow Inventory
 
-| Workflow | Generate? | Why this product needs it | Output path | Codex invocation | Claude invocation |
-|----------|-----------|---------------------------|-------------|------------------|-------------------|
-| static-check | Yes | | `docs/harness/skills/static-check.md` | | |
-| implement-feature | Yes | | `docs/harness/skills/implement-feature.md` | | |
-| bootstrap-infra | Yes | | `docs/harness/skills/bootstrap-infra.md` | | |
-| create-issue | Yes | | `docs/harness/skills/create-issue.md` | | |
-| readme-sync | | | `docs/harness/skills/readme-sync.md` | | |
-| docs-sync | | | `docs/harness/skills/docs-sync.md` | | |
-| code-sync | | | `docs/harness/skills/code-sync.md` | | |
-| public-docs-sync | | | `docs/harness/skills/public-docs-sync.md` | | |
-| dependency-sync | | | `docs/harness/skills/dependency-sync.md` | | |
-| env-sync | | | `docs/harness/skills/env-sync.md` | | |
-| api-schema-sync | | | `docs/harness/skills/api-schema-sync.md` | | |
-| security-sync | | | `docs/harness/skills/security-sync.md` | | |
+収録 skill と採否は `assets/MANIFEST.md` を正本とする（本節に一覧を複製せず、MANIFEST にない workflow を追加した場合のみその理由をここに書く）。
 
 ## Issue Taxonomy
 
@@ -254,13 +243,15 @@ Decision criteria:
 
 ## Issue Lifecycle
 
-| Phase | File | Approval behavior |
-|-------|------|-------------------|
-| Inception | `docs/product/issues/<number>-<slug>/inception.md` | Required when issue body is not precise |
-| Plan | `docs/product/issues/<number>-<slug>/plan.md` | Approval required when approach is unsettled/high impact |
-| Construction | `docs/product/issues/<number>-<slug>/construction.md` | Record deviations |
-| Verification | `docs/product/issues/<number>-<slug>/verification.md` | Required before review |
-| Review notes | `docs/product/issues/<number>-<slug>/review-notes.md` | Required for non-trivial changes |
+| Phase | File | Notes |
+|-------|------|-------|
+| Inception | `docs/issues/<number>_<scope>/inception.md` | Write when the issue body is not precise |
+| Plan | `docs/issues/<number>_<scope>/plan.md` | Write when the approach is unsettled/high impact |
+| Construction | `docs/issues/<number>_<scope>/construction.md` | Record deviations |
+| Verification | `docs/issues/<number>_<scope>/verification.md` | Required before review |
+| Review notes | `docs/issues/<number>_<scope>/review-notes.md` | Required for non-trivial changes |
+
+小さな issue は `docs/issues/<number>_<scope>/task-note.md` 1 枚に収めてよい（運用の正本は `docs/issues/README.md`）。
 
 ## Language Policy
 
@@ -284,16 +275,19 @@ Decision criteria:
 
 ## Project Field Constants
 
-Path: `docs/harness/references/project-fields.md`
+Path: `.claude/skills/create-issue/references/project-fields.md`
 
 | Constant | Value | How it was obtained | Last verified |
 |----------|-------|---------------------|---------------|
 
-## Human Approvals
+## Billing / Secret Approvals
 
-- Taxonomy approved by:
-- Project/milestone creation approved by:
-- Date:
+課金または秘密値に該当する項目とその承認状態のみを記録する（taxonomy / Project / milestone の作成は自律実行のため記入対象外）。該当なしの場合は「該当なし」と明記する。
+
+| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
+|------|-----------------------------|-----------------------------|-------------|------|
+
+> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。
 ```
 
 Rules:
@@ -301,8 +295,8 @@ Rules:
 - Generate taxonomy from the product brief and roadmap, not from this repository's domain labels.
 - Do not invent GitHub Project IDs, field IDs, option IDs, or milestone node IDs.
 - If the Project or fields do not exist yet, write placeholders and a creation task in `bootstrap-plan.md`.
-- Keep Codex and Claude invocation columns thin; workflow details live in shared docs.
-- Remote GitHub mutation requires human approval.
+- Keep the Codex / Claude invocation notes thin; workflow details live in shared docs.
+- issue / PR / ラベル / milestone / Project 等の GitHub mutation は自律実行してよい（人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ）。
 
 ## bootstrap-plan.md
 
@@ -388,15 +382,14 @@ Shared source of truth:
 | Artifact | Path | Purpose |
 |----------|------|---------|
 | create-issue workflow | `docs/harness/skills/create-issue.md` | |
-| project field constants | `docs/harness/references/project-fields.md` | |
-| project management guide | `docs/harness/project-management.md` | |
-| issue lifecycle guide | `docs/harness/issue-lifecycle.md` or equivalent | |
+| project field constants | `.claude/skills/create-issue/references/project-fields.md` | |
+| issue 成果物の運用 | `docs/issues/README.md` | |
 
 ## 7. Environment
 
 | Item | Path/Provider | Notes |
 |------|---------------|-------|
-| tool/runtime version management | `mise.toml` or repo-local mise config | Pin runtime, package manager, and major CLI versions; setup starts with `mise install` |
+| tool/runtime version management | `.mise.toml` or repo-local mise config | Pin runtime, package manager, and major CLI versions; setup starts with `mise install` |
 | local dev task entrypoints | `mise run <task>` and package scripts | Keep repeated dev/check/seed/migration commands callable through mise without hiding package-native scripts |
 | env examples | `.env.example` and docs/runbooks | Document required names and safe sample values only |
 | secrets | provider / secret manager | Document registration steps and naming convention, never secret values |
@@ -439,12 +432,14 @@ Required if self-hosted runner is used.
 | Risk | Impact | Mitigation | Owner |
 |------|--------|------------|-------|
 
-## 13. Gate B Approval
+## 13. Billing / Secret Approvals
 
-- Status: Pending / Approved / Revision requested
-- Approved by:
-- Date:
-- Notes:
+課金または秘密値に該当する項目とその承認状態のみを記録する。該当なしの場合は「該当なし」と明記する。
+
+| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
+|------|-----------------------------|-----------------------------|-------------|------|
+
+> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。それ以外の計画項目は承認を待たず実装へ自律続行する。
 ```
 
 ## implementation-report.md

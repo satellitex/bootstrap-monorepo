@@ -1,17 +1,19 @@
 # Issue Lifecycle Reference
 
-Use this reference when `monorepo-bootstrap` creates `harness-catalog.md`, `bootstrap-plan.md`, `docs/harness/skills/create-issue.md`, and issue-local planning templates.
-The goal is to make every issue small enough for one focused implementation session while preserving decision history and approval gates.
+この文書は、`monorepo-bootstrap` が issue 単位の計画・記録・承認要否の運用を bootstrap 先に設計するときの参照である。
+issue 資産の実体（README・テンプレート）は書かない（正本台帳は `../assets/MANIFEST.md`）。
+The goal is to make every issue small enough for one focused implementation session while preserving decision history and the approval model.
 
 ## 1. Issue Docs Location
 
 Each implementation issue owns a directory:
 
 ```text
-docs/product/issues/<number>-<slug>/
+docs/issues/<number>_<scope>/
 ```
 
-Recommended files:
+起点テンプレートは copy 済みの `docs/issues/templates/task-note.md` を使う。
+小さな issue は task-note 1 枚に計画から検証まで収めてよい。大きな issue は次のように分割する。
 
 | File | Purpose |
 |------|---------|
@@ -20,12 +22,12 @@ Recommended files:
 | `construction.md` | Execution notes, commands run, deviations from plan |
 | `verification.md` | Local/CI/deploy checks, evidence, residual risk |
 | `review-notes.md` | Review feedback, evaluator notes, follow-up tasks |
-| `traceability.md` | Acceptance criteria to tests/docs/implementation mapping, if needed |
+| `traceability.md` | Acceptance criteria to tests/docs/implementation mapping (opt-in:traceability) |
 
 Bootstrap itself is Issue 0:
 
 ```text
-docs/product/issues/000-bootstrap/
+docs/issues/000_bootstrap/
 ```
 
 Do not keep long-lived bootstrap artifacts in `docs/bootstrap/`.
@@ -55,38 +57,43 @@ Keep canonical product terms, package names, API names, and GitHub field names i
 | Phase | Required output | Gate |
 |-------|-----------------|------|
 | Inception | `inception.md` with problem, scope, AC, constraints, dependencies | Optional if issue body is already precise |
-| Plan | `plan.md` with approach, topology impact, tests, docs, rollout | Human approval required when approach is uncertain or high-impact |
+| Plan | `plan.md` with approach, topology impact, tests, docs, rollout | 既定で人間 gate なし。未確定点は open questions として記録し PR で提示 |
 | Construction | Code/docs diff and `construction.md` notes for deviations | No new scope without updating plan |
 | Verification | `verification.md` with commands, CI, deploy/smoke, skipped checks | Required before review |
 | Review notes | `review-notes.md` or PR review summary | Required for non-trivial changes |
 
-Issue creation-time implementation detail may be strict enough to skip the inception approval gate.
-If the plan is not strict, finish inception first, open or update a draft PR, and ask for human confirmation before implementation.
+実装方針が未確定でも作業を止めない。inception を先に仕上げ、未確定点を明記した上で open PR まで自律続行する。
+実装前の人間確認（draft PR gate）を置くのは、人間から明示的に指示があった場合のみとする。
 
-## 4. Approval Gate Rules
+## 4. Approval Rules
 
-An issue-local approval gate is required when any of these are true:
+既定は自律実行とする。エージェントは明示的な指示がない限り、変更の実装から open PR の提出までを自律的に行う。
+PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
+
+人間の明示承認が必須なのは次の 2 つのみ:
+
+- 課金が発生する操作（有償リソースの作成、プラン変更、外部サービス契約）
+- 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）
+
+次の条件に当たる issue は承認の対象ではないが、判断材料を issue-local docs（または ADR）に残し、PR で提示する:
 
 - technology choice is unsettled
 - provider/runtime/database/storage/queue/auth/observability selection may change
-- production deploy, paid resource, destructive migration, or external publication is involved
 - security, privacy, auth, or tenant boundary changes
 - app topology or package boundaries change
 - implementation spans multiple deploy/scaling units
 - long-running or async workflow durability is not yet designed
 - issue has unclear acceptance criteria
 
-Approval gate may be skipped when all are true:
+ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
+prod（release）への反映のみ手順を踏む: main の安全性確認 → release への反映手順の確認。
 
-- issue body already contains precise acceptance criteria
-- implementation approach and affected modules are clear
-- no cross-cutting architecture decision is being made
-- no remote mutation, billing, production deploy, destructive migration, or external publication occurs
-- verification commands and docs impact are known
+## 5. Draft PR Gate（明示指示があった場合のみ）
 
-## 5. Draft PR Gate
+draft PR を実装前の承認 gate として使うのは、人間から明示的に指示があった場合のみとする。
+既定では inception / plan を issue-local docs に残し、実装へ自律続行する。
 
-When the plan needs confirmation before implementation:
+指示があった場合の手順:
 
 1. Create `inception.md` and `plan.md`.
 2. Open a draft PR or update an existing draft PR with links to the issue docs.
@@ -111,18 +118,18 @@ ADR is not required for narrow implementation details that are fully local to on
 
 ## 7. Remote GitHub Mutation
 
-Creating or mutating GitHub labels, milestones, Projects, fields, issues, or issue relationships is remote mutation.
-Do it only after human approval.
+GitHub labels / milestones / Projects / fields / issues / issue relationships の作成・変更は自律実行してよい。
+人間承認が必要なのは、課金が発生する操作と秘密値の挿入・変更のみ。
 
-Before mutation, present:
+自律実行した mutation は、判断材料と結果を成果物に残す:
 
-- proposed labels and descriptions
-- proposed milestones with entry/exit criteria
-- proposed Projects and fields
+- adopted labels and descriptions
+- milestones with entry/exit criteria
+- Projects and fields
 - sample issue body
-- commands/API operations to run
+- 実行した commands / API operations と読み戻し検証の結果
 
-If approval is not granted, write local docs and leave remote setup as tasks in `bootstrap-plan.md`.
+実行できなかった remote setup は `bootstrap-plan.md` に残タスクとして残す。
 
 ## 8. Issue Size
 
@@ -139,7 +146,7 @@ Split issues when:
 
 - infrastructure choice and feature implementation are both unsettled
 - UI, API, DB, and async workflow all need independent verification
-- production deploy or remote migration approval is required
+- prod（release）への反映手順、課金操作、または秘密値の投入が独立の確認を必要とする
 - a changed technical decision invalidates existing issue plans
 
-When a technical decision changes existing issues, comment on or update the affected issue docs and GitHub issues after approval.
+When a technical decision changes existing issues, comment on or update the affected issue docs and GitHub issues autonomously.
