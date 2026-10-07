@@ -8,9 +8,9 @@
 
 > 設計原則: 高能力モデルは分解・設計判断・検収のみに使い、実装とレビューは安価なモデルへ委譲する。Planner は実装に潜らないため、コンテキストを計画・競合裁定・検収に最後まで温存できる。
 
-## 承認モデル（要旨）
+## 承認モデル
 
-既定は自律実行とする。計画の提示は報告のみで承認を待たず、実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ（`docs/styles/team-feedback/autonomous-flow.md`）。
+承認モデル（→ `docs/harness/OPERATING_MODEL.md`「承認モデル」）に従う。計画の提示は報告のみで、承認を待たない。
 
 ## 役割分担
 
@@ -22,7 +22,7 @@
 | Reviewer: 当該 worktree の diff を独立してレビューする review pass            | subagent（subagent 機構が無い実行環境では同一セッション内の独立した review pass） | 実装モデル                  |
 | マージ                                                                        | 人間（merge が完了シグナル）                                                      | —                           |
 
-実行基盤ごとのモデル指定（上位モデル・実装モデルに当たるモデル名）の構文と subagent 起動パラメータは、adapter（`.claude/skills/multi-issue/SKILL.md`）の注記に置く。本文は「上位モデル」「実装モデル」と書く。
+実行基盤ごとのモデル指定（上位モデル・実装モデルに当たるモデル名）と subagent 起動パラメータは、profile（`.claude/skills/multi-issue/references/model-profile.md`）に置く。本文は「上位モデル」「実装モデル」と書く。
 
 ## PJ 固有の追加検証ゲート（placeholder）
 
@@ -48,7 +48,7 @@ Planner は Issue ごとに任意の凍結パスを計画で指定できる（�
 
 ## Step 0: セットアップ
 
-1. モデル確認: 現在のセッションモデルが adapter の注記で指定された上位モデルに当たらない場合は警告する（根拠は冒頭の設計原則）。対話 run では、モデル変更後の再実行を提案し、続行の意思が示された場合のみ進む。無人 run では、警告を完了報告とタスクリストに記録して続行する。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
+1. モデル確認: 現在のセッションモデルが profile で指定された上位モデルに当たらない場合は警告する（根拠は冒頭の設計原則）。対話 run では、モデル変更後の再実行を提案し、続行の意思が示された場合のみ進む。無人 run では、警告を完了報告とタスクリストに記録して続行する。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
 2. `git fetch origin main` し、セッションブランチを `agent/multi-issue-YYYY-MM-DD` に整える（同日重複は `-2`）。オーケストレーター自身はコードを変更しない。成果物はすべて各 Issue の worktree 側に置く。
 3. タスク管理ツール（TodoWrite 等）で Issue 単位のタスクリストを作成する。
 
@@ -73,7 +73,7 @@ Planner は以下を確定してユーザーへ報告のみ行い、入力を待
 - 対象外とする Issue（外部依存待ち等）とその根拠
 - in-flight 上限（既定 3。人間レビュー負荷に直結）
 
-以降も自律実行し、停止してよいのは人間の merge 待ちと、承認モデルで人間承認必須と定めた操作（課金・秘密値）のみ。実行中にユーザーから訂正が入った場合は方針へ反映して継続する。
+以降も自律実行し、停止してよいのは人間の merge 待ちと、承認モデルで人間承認が必須と定めた操作のみ。実行中にユーザーから訂正が入った場合は方針へ反映して継続する。
 
 ## Step 3: 実装ループ（wave 単位）
 
@@ -128,7 +128,7 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
    同 Agent は `.claude/` 配下を同期対象外にするため、ハーネスのみの diff では実質 no-op になり、毎回 README が変わるわけではない。公開射影区画（opt-in）を採用している PJ で同 Agent が `docs/product/ARCHITECTURE.md` を更新した場合は、`docs/harness/skills/public-arch-sync.md` の射影を同一 PR に含める。
 
 4. 衝突検査: PR を open する前に、`docs/harness/skills/shared/pr-creation.md` の open 前衝突検査（`git merge-tree`、git 2.38 以上）で他の open PR との衝突を予測する。衝突が予測される場合は PR を open せず保留し、先行 PR のマージ後に rebase してから open する。保留した PR と相手の PR は完了報告に載せる。
-5. push → `gh pr create`: PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）で書き、`Closes #<N>` を注入する。背景と方針は Step 1 の実装計画から、検証結果・分岐で決めた点・未検証の範囲は worker の最終報告から取り込む。PR は draft にしない。dev 環境が必要な実走検証を残した Issue は検証結果に委譲先（`/deploy-verify` 等）を明記する。
+5. push → `gh pr create`: PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節で書き、`Closes #<N>` を注入する。背景と方針は Step 1 の実装計画から、検証結果・分岐で決めた点・未検証の範囲は worker の最終報告から取り込む。PR は draft にしない。dev 環境が必要な実走検証を残した Issue は検証結果に委譲先（`/deploy-verify` 等）を明記する。
 
 ## Step 5: /review-cycle と完了処理
 

@@ -18,10 +18,17 @@
 // 終了コード: 0 = 全判定を通過 / 1 = 判定に失敗（証明できない場合を含む）/ 2 = 引数・読み込みエラー。
 // 無人実行では前後を読み比べる人がいないため、無損失を証明できない要約は失敗として扱う。
 //
-// node:test からも `verifyCompression()` を import して呼べる。依存は Node 標準だけ。
+// node:test からも `verifyCompression()` を import して呼べる。依存は Node 標準と support/markdown.mjs
+// （検査対象のルートを解決しない純粋なヘルパ）だけ。
 
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import {
+  PATH_PREFIXES,
+  countLines,
+  escapeRegExp,
+  fenceMask,
+} from "./support/markdown.mjs";
 
 /** 要約済みを示す注記行の marker。この marker を含む行は比較から除く。 */
 export const SUMMARIZED_MARKER = "adr-compress:summarized";
@@ -51,7 +58,10 @@ export const REFERENCE_RULES = [
   },
   {
     name: "repo-path",
-    re: /(?<![\w./-])(?:\.agents|\.claude|\.github|apps|docs|infra|packages|scripts|tests)\/[^\s`)\]"'<>|,;]+/g,
+    re: new RegExp(
+      `(?<![\\w./-])(?:${PATH_PREFIXES.map((p) => escapeRegExp(p)).join("|")})[^\\s\`)\\]"'<>|,;]+`,
+      "g",
+    ),
     normalize: (s) =>
       s
         .replace(/#.*$/, "")
@@ -62,27 +72,7 @@ export const REFERENCE_RULES = [
 
 const STATUS_KEYWORDS = ["proposed", "accepted", "deprecated", "superseded"];
 
-// ---- markdown の簡易解析 ------------------------------------------------------
-
-function fenceMask(lines) {
-  const mask = new Array(lines.length).fill(false);
-  let open = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (open === null) {
-      const m = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-      if (m && !(m[1][0] === "`" && m[2].includes("`"))) {
-        open = { char: m[1][0], len: m[1].length };
-        mask[i] = true;
-      }
-    } else {
-      mask[i] = true;
-      const m = /^\s*(`{3,}|~{3,})\s*$/.exec(line);
-      if (m && m[1][0] === open.char && m[1].length >= open.len) open = null;
-    }
-  }
-  return mask;
-}
+// ---- 節と Status の読み取り -----------------------------------------------------
 
 function normalizeSpace(s) {
   return s.replace(/\s+/g, " ").trim();
@@ -185,7 +175,10 @@ export function classifyStatus(value) {
 
 // ---- 相互参照 -----------------------------------------------------------------
 
-/** 本文から相互参照を集める。返り値は `{ rule, ref }` の重複なし配列。 */
+/**
+ * 本文から相互参照を集める。返り値は `<規則名>\0<参照>` をキーとする `{ rule, ref }` の Map
+ * （同じ参照は 1 つにまとまる）。
+ */
 export function collectReferences(text, rules = REFERENCE_RULES) {
   const out = new Map();
   for (const rule of rules) {
@@ -195,19 +188,13 @@ export function collectReferences(text, rules = REFERENCE_RULES) {
         out.set(`${rule.name}\u0000${ref}`, { rule: rule.name, ref });
     }
   }
-  return [...out.values()];
+  return out;
 }
 
 // ---- 検証 ---------------------------------------------------------------------
 
 function byteLength(text) {
   return Buffer.byteLength(text, "utf8");
-}
-
-function lineCount(text) {
-  if (text === "") return 0;
-  const n = text.split("\n").length;
-  return text.endsWith("\n") ? n - 1 : n;
 }
 
 /**
@@ -223,72 +210,41 @@ export function verifyCompression(beforeRaw, afterRaw, options = {}) {
   const checks = [];
   const add = (id, ok, detail) => checks.push({ id, ok, detail });
 
+  // 節の逐語一致。`optional` の節は、要約前に無ければ対象外とする。
+  const compareSection = (id, heading, { optional = false } = {}) => {
+    const b = findSection(before, heading);
+    if (optional && b.count === 0) {
+      return add(id, true, `要約前に ## ${heading} 節が無いため対象外`);
+    }
+    if (b.count !== 1) {
+      return add(
+        id,
+        false,
+        `要約前の ## ${heading} 節が ${b.count} 個。ちょうど 1 個でないと無損失を証明できない`,
+      );
+    }
+    const a = findSection(after, heading);
+    if (a.count !== 1) {
+      return add(id, false, `要約後の ## ${heading} 節が ${a.count} 個`);
+    }
+    if (b.body !== a.body) {
+      return add(id, false, `## ${heading} 節が要約前後で一致しない`);
+    }
+    return add(id, true, `## ${heading} 節が一致（${b.body.length} 文字）`);
+  };
+
   // 1. 決定節の逐語一致
-  const dBefore = findSection(before, decisionHeading);
-  const dAfter = findSection(after, decisionHeading);
-  if (dBefore.count !== 1) {
-    add(
-      "decision",
-      false,
-      `要約前の ## ${decisionHeading} 節が ${dBefore.count} 個。ちょうど 1 個でないと無損失を証明できない`,
-    );
-  } else if (dAfter.count !== 1) {
-    add(
-      "decision",
-      false,
-      `要約後の ## ${decisionHeading} 節が ${dAfter.count} 個`,
-    );
-  } else if (dBefore.body !== dAfter.body) {
-    add("decision", false, `## ${decisionHeading} 節が要約前後で一致しない`);
-  } else {
-    add(
-      "decision",
-      true,
-      `## ${decisionHeading} 節が一致（${dBefore.body.length} 文字）`,
-    );
-  }
+  compareSection("decision", decisionHeading);
 
   // 2. 関連 Issue 節（要約前にあれば）
-  const rBefore = findSection(before, relatedHeading);
-  if (rBefore.count === 0) {
-    add(
-      "related-issues",
-      true,
-      `要約前に ## ${relatedHeading} 節が無いため対象外`,
-    );
-  } else if (rBefore.count > 1) {
-    add(
-      "related-issues",
-      false,
-      `要約前の ## ${relatedHeading} 節が ${rBefore.count} 個`,
-    );
-  } else {
-    const rAfter = findSection(after, relatedHeading);
-    if (rAfter.count !== 1) {
-      add(
-        "related-issues",
-        false,
-        `要約後の ## ${relatedHeading} 節が ${rAfter.count} 個`,
-      );
-    } else if (rBefore.body !== rAfter.body) {
-      add(
-        "related-issues",
-        false,
-        `## ${relatedHeading} 節が要約前後で一致しない`,
-      );
-    } else {
-      add("related-issues", true, `## ${relatedHeading} 節が一致`);
-    }
-  }
+  compareSection("related-issues", relatedHeading, { optional: true });
 
   // 3. 相互参照の保存
   const refsBefore = collectReferences(before, rules);
-  const refsAfter = new Set(
-    collectReferences(after, rules).map((r) => `${r.rule}\u0000${r.ref}`),
-  );
-  const lost = refsBefore.filter(
-    (r) => !refsAfter.has(`${r.rule}\u0000${r.ref}`),
-  );
+  const refsAfter = collectReferences(after, rules);
+  const lost = [...refsBefore]
+    .filter(([key]) => !refsAfter.has(key))
+    .map(([, r]) => r);
   if (lost.length > 0) {
     add(
       "references",
@@ -299,11 +255,7 @@ export function verifyCompression(beforeRaw, afterRaw, options = {}) {
         .join(", ")}${lost.length > 10 ? " ほか" : ""}`,
     );
   } else {
-    add(
-      "references",
-      true,
-      `相互参照 ${refsBefore.length} 件がすべて残っている`,
-    );
+    add("references", true, `相互参照 ${refsBefore.size} 件がすべて残っている`);
   }
 
   // 4. Status の不変
@@ -327,8 +279,8 @@ export function verifyCompression(beforeRaw, afterRaw, options = {}) {
 
   // 5. サイズの純減
   const stats = {
-    before: { lines: lineCount(before), bytes: byteLength(before) },
-    after: { lines: lineCount(after), bytes: byteLength(after) },
+    before: { lines: countLines(before), bytes: byteLength(before) },
+    after: { lines: countLines(after), bytes: byteLength(after) },
   };
   if (stats.after.bytes < stats.before.bytes) {
     add(

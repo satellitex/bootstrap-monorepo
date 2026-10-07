@@ -16,7 +16,7 @@ skill の手順は tool-neutral な正本と、AI ツールごとの薄い adapt
 | 層               | 配置                             | 内容                                                         |
 | ---------------- | -------------------------------- | ------------------------------------------------------------ |
 | **neutral 正本** | `docs/harness/skills/<name>.md`  | 手順・判断基準・制約の全文。特定の AI ツールに依存しない記述 |
-| **薄い adapter** | `.claude/skills/<name>/SKILL.md` | frontmatter + 正本へのポインタのみ（≤20 行）                 |
+| **薄い adapter** | `.claude/skills/<name>/SKILL.md` | frontmatter + 正本へのポインタのみ（上限 →「サイズ制約」）   |
 
 - 正本と adapter は **同名で 1:1 対応** させる。片方だけの追加・削除・リネームを禁止する
 - 手順の実体は必ず正本側に書く。adapter に手順を書き足さない（二重管理の温床になる）
@@ -37,11 +37,15 @@ description: <〜の場合に使う。結果物。隣接 skill との境界（pr
 
 正本は `docs/harness/skills/<skill-name>.md`。これを読み、記載の手順どおり実行する。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。
+
+実行基盤の注記（<実行基盤名>）: <実行基盤固有の事実だけを 1 行で書く。任意>
 ```
+
+注記は任意で、実行基盤に固有の事実（subagent の `subagent_type` の値、モデル指定と起動パラメータを置く profile の場所など）だけを 1 行で書く。手順・判断基準は正本に、プロジェクト固有値は profile に置く。注記を持つ adapter も、サイズ制約を満たす。
 
 ### description の書式
 
-description は skill を選ぶときにモデルが読むメタデータである。「<状況> の場合に使う。<何をして何を出すか>。<隣接 skill との境界（X は /Y の担当）>」の 3 文で、250 文字以内に書く。
+description は skill を選ぶときにモデルが読むメタデータである。「<状況> の場合に使う。<何をして何を出すか>。<隣接 skill との境界（X は /Y の担当）>」の 3 文で、上限（「サイズ制約」の表）以内に書く。
 
 | 要素                | 書く内容                                                                                                                                                                               |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,11 +79,11 @@ agent 定義は、本文の先頭（H1 の直後）を `> 役割: <担当と担�
 
 ### 超過時の対処
 
-1. **skill 正本が 500 行を超える場合**: 詳細仕様・ポリシー・参照テーブルを `docs/harness/skills/<name>/<topic>.md`（skill 固有・tool-neutral）、`docs/harness/skills/shared/`（skill 横断の共通契約）、`.claude/skills/<name>/references/`（プロジェクト固有値）のいずれかに分離する
+1. **skill 正本が上限を超える場合**: 詳細仕様・ポリシー・参照テーブルを `docs/harness/skills/<name>/<topic>.md`（skill 固有・tool-neutral）、`docs/harness/skills/shared/`（skill 横断の共通契約）、`.claude/skills/<name>/references/`（プロジェクト固有値）のいずれかに分離する
    - コアの正本にはフロー定義・ステップ手順・判断基準のみを残す
-2. **Agent が 250 行を超える場合**: 責務の分割を検討する（例: 生成役と評価役の分離）
+2. **Agent 定義が上限を超える場合**: 責務の分割を検討する（例: 生成役と評価役の分離）
    - もしくは詳細を `.claude/agents/references/` に分離する（下記「Agent 定義の references/ 分離パターン」参照）
-3. **OPERATING_MODEL.md / CLAUDE.md が 200 行を超える場合**: 詳細をリンク先に移動し、ポインタのみを残す
+3. **OPERATING_MODEL.md / CLAUDE.md / AGENTS.md が上限を超える場合**: 詳細をリンク先に移動し、ポインタのみを残す
 
 #### Agent 定義の references/ 分離パターン
 
@@ -305,19 +309,21 @@ matcher group レベルに置くとパーサに無視され、全マッチで発
 
 ### グローバルオプションを挟む形
 
-`if` は `git -C <dir> push` のようにグローバルオプションを挟んだ形を `Bash(git push *)` と照合しない。`git -C` 形式も対象にする hook は、`Bash(git -C *)` の `if` を併記し、script 側で push かどうかを判定する。
+`if` は `git -C <dir> push` のようにグローバルオプションを挟んだ形を `Bash(git push *)` と照合しない。`git -C` 形式も対象にする hook は、`Bash(git -C *)` の `if` を併記し、script 側で対象のサブコマンド（push / commit など）かどうかを判定する。対象の作業ツリーの決定は `.claude/bin/hook-utils.sh` の `resolve_git_target` を使える。
 
 ### 防御的二段構え
 
-`if` フィルタが仕様変更やパーサのバグで失効した場合に備え、
-シェルスクリプト側にも冒頭ガードを入れる二段構えを推奨する。
+`if` フィルタが仕様変更やパーサのバグで失効した場合に備え、シェルスクリプト側でも対象の操作かどうかを判定する二段構えを推奨する。判定は hooks 共通の resolver（`.claude/bin/hook-utils.sh` の `resolve_git_target`）で行う。コマンド文字列の先頭一致では、`cd <dir> && git commit` や `git -C <dir> commit` のようにコマンドが先頭にない形を取りこぼし、対象の作業ツリーも決められないため、操作の種類と作業ツリーの判定を resolver の 1 か所に集める。
 
 ```bash
 input="$(cat)"
-cmd="$(jq -r '.tool_input.command // ""' <<< "$input")"
-if [[ "$cmd" != git\ commit* ]]; then
-  exit 0
-fi
+source "$CLAUDE_PROJECT_DIR/.claude/bin/hook-utils.sh"
+read_bash_input "$input"
+# 引数と結果の変数は .claude/bin/hook-utils.sh の resolve_git_target の定義に従う
+resolve_git_target commit "$HOOK_CMD" "$HOOK_BASE_DIR"
+# 対象のサブコマンドを含まない command は通す。作業ツリーを決められない形（GIT_TARGET_UNRESOLVED）は、
+# hook の役割に応じて止めるか通すかを選ぶ
+[ -n "${GIT_TARGET_ROOT}${GIT_TARGET_UNRESOLVED}" ] || exit 0
 ```
 
 ## チェックリスト

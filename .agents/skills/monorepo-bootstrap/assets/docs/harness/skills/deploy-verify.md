@@ -6,13 +6,13 @@
 
 最新取り込みから deploy・検証までを単一フローに集約し、各ステップの成否を明示的に判定（失敗を握り潰さない）する運用 skill。各ステップは PJ の既存タスクランナー・runbook（`docs/runbooks/INDEX.md` から辿る）をラップするだけで、実行ロジックは再実装しない。prod への反映は、main を release へ反映する PR（release 反映 PR）の作成から、マージ後の step 単位の確認までを含む。
 
-## 承認モデル（要旨）
+## 承認モデルの適用
 
-- main = dev 環境 / release = prod 環境のブランチモデルを前提とする。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
-- dev（main）への deploy は自律実行する（人間承認を待たない）。
-- prod（release）への deploy のみ手順を踏む: 「release 反映（prod）」節の前提ゲート（main の安全性確認）を満たし、release 反映 PR を作成する。反映の確認は release 反映 PR のマージ 1 か所に置く。マージは人間の操作だが、`--merge` で明示的に指示された場合はマージとマージ後の確認まで行ってよい。
+承認モデル（→ `docs/harness/OPERATING_MODEL.md`「承認モデル」）に従う。本 skill に固有の扱いは次のとおり。
+
+- prod（release）への反映の確認は、release 反映 PR のマージ 1 か所に置く。マージは人間の操作だが、`--merge` で明示的に指示された場合は、マージとマージ後の確認まで行ってよい。
 - prod 反映の job に別の承認者（deployment environment の required reviewers 等）を重ねて置かない。承認が二重になり、自己承認を禁じる設定では承認者が不在になりうるため。
-- 人間の明示承認が必須なのは次の 2 つのみ: 課金が発生する操作（有償リソースの新規作成・プラン変更）と、秘密値の挿入・変更。deploy フロー中にこれらが必要になった場合は、その操作の直前で停止して承認を得る。無人 run では、その操作を行わず、実施する場合の内容・根拠・影響を成果物に残して人間へ渡し、依存しないステップは続ける。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
+- 承認が必須な操作が deploy フロー中に必要になった場合は、その操作の直前で停止して承認を得る。無人 run では、その操作を行わず、実施する場合の内容・根拠・影響を成果物に残して人間へ渡し、依存しないステップは続ける。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
 
 ## 入力
 
@@ -60,7 +60,7 @@ prod では、`deploy` 以降のステップは release 反映のマージ後（
 
 ## release 反映（prod）
 
-main の最新内容を release へ反映する手順。release 反映 PR を作る経路はこの手順に限る（`docs/harness/skills/shared/pr-creation.md` の base 判定は既定ブランチ固定で、release を base にしないため）。
+main の最新内容を release へ反映する手順。release 反映 PR を作る経路はこの手順に限る（`docs/harness/skills/shared/pr-creation.md`「PR の base」は既定ブランチ固定で、release を base にしないため）。
 
 不変条件:
 
@@ -185,7 +185,7 @@ PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節に、反�
 - 各ステップの実行ロジックは再実装せず、PJ のタスクランナー / runbook を呼ぶだけにする（実行ロジックが二重にあると、どちらかが古くなるため）
 - 失敗は握り潰さず、終了コードが 0 以外なら即停止して起票する（壊れた状態の上で後続のステップを進めないため）
 - 前提が未充足なら推測で進めず停止し、runbook 参照の設定手順を提示する（誤った環境へ変更を加えないため）
-- 課金を伴う新規リソース作成・秘密値挿入は、人間承認の後に実行する（それ以外の deploy 操作は承認モデルに従い自律実行する）
+- 承認モデルで承認が必須な操作は、人間承認の後に実行する（それ以外の deploy 操作は自律実行する）
 - release へは直接 push せず、release 反映 PR を作る。マージ方式は merge commit のみとする（squash や rebase では release の履歴が main から分岐し、次回の反映 PR が conflict になるため）
 - 失敗 Issue・ログ抜粋の秘匿値はマスクする（起票先に資格情報が残らないようにするため）
 - `--dry-run` は計画の提示までにとどめ、副作用のあるコマンドを実行しない（環境を変えずに結果を確認できるようにするため）

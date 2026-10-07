@@ -36,10 +36,8 @@ opt-in の行は、採用したグループの分だけを置く。
 
 正本と adapter の 2 層で管理する:
 
-- **neutral 正本**: 手順・判断基準は tool-neutral に `docs/harness/` へ置く。skill 手順は `docs/harness/skills/<name>.md`、skill 固有の詳細（圧縮規則・出力形式など）は同名ディレクトリの `docs/harness/skills/<name>/<topic>.md`、skill 横断の共通契約は `docs/harness/skills/shared/<topic>.md`（sync 系専用は `sync-` 接頭辞）。
+- **neutral 正本**: 手順・判断基準は tool-neutral に `docs/harness/` へ置く。skill 手順は `docs/harness/skills/<name>.md`、skill 固有の詳細（圧縮規則・出力形式など）は同名ディレクトリの `docs/harness/skills/<name>/<topic>.md`、skill 横断の共通契約は `docs/harness/skills/shared/<topic>.md`（sync 系専用は `sync-` 接頭辞。一覧は同ディレクトリ）。
 - **thin adapter**: `AGENTS.md` / `CLAUDE.md` / `.claude/skills/<name>/SKILL.md` は正本への参照だけを持つ薄い入口とし、詳細手順を二重管理しない。
-
-`docs/harness/skills/shared/` の共通契約: `pr-creation.md`（PR 作成・標準節）/ `verification-gates.md`（検証ゲートと `gate:*`）/ `unattended-contract.md`（無人 run）/ `index-writer-policy.md`（INDEX の更新主体）/ `implementation-consistency.md`（記述と実装の矛盾）/ `gh-query-fail-closed.md`（`gh` 照会）/ `notification-contract.md`（通知）/ `sync-prelude.md` `sync-pr-flow.md` `sync-noise-filter.md`（sync 系）。
 
 `.claude/` 配下:
 
@@ -50,7 +48,7 @@ opt-in の行は、採用したグループの分だけを置く。
 - `bin/` — hooks 共通ユーティリティ
 - `settings.json` — hook 配線の正本
 
-機械検査は `tests/harness/` に置く。サイズ上限・skill の 1:1・参照の実在・未置換 token などを `pnpm harness:test` で検査し、CI が全 PR に対して実行する（一覧と追加手順は `tests/harness/README.md`）。
+機械検査は `tests/harness/` に置く。`pnpm harness:test` で実行し、CI が全 PR に対して実行する（検査の範囲と追加手順 → `tests/harness/README.md`「検査一覧」）。
 
 ## 領域別 rule の読み場面
 
@@ -78,7 +76,7 @@ rule を追加・削除したら、本表を同一 PR で更新する。
 | hooks（`.claude/hooks/`）      | commit 前の整形・push 前の秘密検知と `gate:push`・編集後検査が自動で走る                                                                 | 発火しない。commit / push の前に `gate:commit` と秘密検知（`.claude/hooks/pre-push-ci-check.sh` が実行する gitleaks の検査）を手動で実行する。全経路に効く最終ゲートは CI       |
 | MCP tool                       | 登録済みの tool を使う                                                                                                                   | 使えなければ `gh` CLI など同等の手段で代替する（経路の切替 → `docs/harness/skills/shared/gh-query-fail-closed.md`）                                                             |
 
-skill を経由しない作業でも、次の規定は変わらない: PR 本文の closing keyword（→ `docs/styles/team-feedback/pr-closing-keyword.md`）、commit 前の format（→ `docs/styles/team-feedback/format-check.md`）、PR 前の簡素化パス（→ `docs/styles/team-feedback/refactor-before-pr.md`）、検証ゲート通過後の push（→ `docs/harness/skills/shared/verification-gates.md`）、既存 INDEX を実装 PR で編集しない（→ `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。
+skill を経由しない作業でも、次の規定は変わらない: commit 前の format（→ `docs/styles/team-feedback/format-check.md`）、PR 前の簡素化パス（→ `docs/styles/team-feedback/refactor-before-pr.md`）、検証ゲート通過後の push（→ `docs/harness/skills/shared/verification-gates.md`）。
 
 ## エージェントフロー
 
@@ -90,17 +88,11 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 
 ### Issue 番号の直接指示時のトリアージ
 
-`#<issue> 対応して` のように Issue 番号で直接指示された場合（`/multi-issue` の明示呼び出しでない場合）、即座に skill を起動せず次の順で判断する:
-
-1. Issue を読む（照会規約 → `docs/harness/skills/shared/gh-query-fail-closed.md`）
-2. 実装 Issue（新規機能・仕様変更・ハーネス整備・環境整備）は `/multi-issue`
-3. それ以外（バグ修正・リファクタ・小規模変更）はメインエージェント判断
-
-判定の単位と標準手順の正本は `docs/styles/team-feedback/implementation-flow-switch.md`。`/multi-issue` を明示的に呼んだ場合は、判定を経ずに当該 skill に従う。
+`#<issue> 対応して` のように Issue 番号で直接指示された場合は、Issue を読んでから実装フローを振り分ける（→ `docs/styles/team-feedback/implementation-flow-switch.md`「判定」）。
 
 ### 実装 PR の作法
 
-- 計画・判断・検証結果は、PR 本文の標準 5 節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）、commit メッセージ、設計判断の ADR に残す。Issue 単位の別成果物は作らない（→ `docs/harness/skills/shared/pr-creation.md`）
+- 計画・判断・検証結果は、PR 本文の標準節、commit メッセージ、設計判断の ADR に残す。Issue 単位の別成果物は作らない（標準節 → `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）
 - 解決策は 1 案に確定して書く（→ `docs/styles/team-feedback/single-solution.md`）
 - 既存の `INDEX.md` は実装 PR で編集しない。更新主体は割当表に従う（→ `docs/harness/skills/shared/index-writer-policy.md`）
 
@@ -123,7 +115,7 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 | `/code-sync`                  | ソースコメントを 3 原則・内部参照排除・実装整合の 3 検査にかけ、コメントのみの修正 PR を作成                                   |
 | `/refactor-guide-sync`        | コーディング規約正本とリファクタガイドの検出基準を突合し PR を作成                                                             |
 | `/refactor-sync`              | リファクタ観点を検出し、観点ごとの提案 Issue を最大 3 件起票（コードは変更しない）                                             |
-| `/gc-scan`                    | ハーネス全体の重複・孤児・デッド参照を検出し、修正を PR で提案（サイズ・1:1 対応・パス実在は CI の機械検査）                   |
+| `/gc-scan`                    | ハーネス全体の重複・孤児・デッド参照を検出し、修正を PR で提案（機械検査で判定できる項目は対象外）                             |
 | `/adr-compress`               | ADR の Status 追従・INDEX 再構築・stub 化・要約を 1 PR にまとめる                                                              |
 | `/runbook-alignment [手順書]` | 手順書の未確定事項を実装と照合し、差異評価表を PR 本文に出して本文を修正                                                       |
 | `/deploy-verify [env]`        | デプロイ一気通貫と release 反映（prod は release 反映 PR の作成からマージ後の確認まで）。手順は bootstrap 時に具体化           |

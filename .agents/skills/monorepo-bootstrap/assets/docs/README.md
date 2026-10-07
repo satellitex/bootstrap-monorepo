@@ -32,9 +32,7 @@
 
 ## 運用ルール
 
-- `INDEX.md` はすべて共有集約ファイルとして扱う。更新主体の割当と経過措置は `docs/harness/skills/shared/index-writer-policy.md`、並列 PR の衝突を避ける理由と実装 PR の作法は `docs/styles/team-feedback/shared-aggregate-single-writer.md` に従う。
-- 実装 PR は既存の `INDEX.md` を変更せず、追加・改名する文書の冒頭に `#` 見出しとリード文（1〜3 行）を書く。更新主体がこの 2 つから INDEX の行を起こす。新規ディレクトリの `INDEX.md` の新規作成は可。
-- 経過措置（routine の登録前）→ `docs/harness/skills/shared/index-writer-policy.md`。
+- `INDEX.md` はすべて共有集約ファイルとして扱う。更新主体の割当・経過措置・leaf 文書の要件は `docs/harness/skills/shared/index-writer-policy.md`、並列 PR の衝突を避ける理由と実装 PR の作法は `docs/styles/team-feedback/shared-aggregate-single-writer.md` に従う。
 - 本マップの行は、ディレクトリの追加・削除と同一 PR で更新する。
 - 確定仕様は `docs/requirements/`、設計判断は `docs/adr/` に置き、`docs/notes/` には残さない。
 - 受領した原本ファイルは `docs/customer/originals/` にのみ置く（採用している場合）。
@@ -42,7 +40,7 @@
 
 ## 命名規約
 
-- ADR: `ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md`
+- ADR: → `docs/adr/README.md`「書き方」
 - 調査ノート: `<topic>.md`
 - 会議ディレクトリ: `YYYY_MM_DD_mtg/`
 - 顧客原本要約: `<topic>_summary.md`

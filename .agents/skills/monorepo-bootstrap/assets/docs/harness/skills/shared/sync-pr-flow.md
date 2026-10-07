@@ -87,16 +87,16 @@ skill 規定ブランチを切る。同一セッションで複数の sync 系 s
 
 ## 4. PR 作成
 
-`gh pr create` で**通常 PR** を作成する。base の判定・open 前の衝突検査・draft にしない指定・PR 本文の標準節は
+`gh pr create` で**通常 PR** を作成する。base・open 前の衝突検査・draft にしない指定・PR 本文の標準節は
 `docs/harness/skills/shared/pr-creation.md` に従う。衝突が予測されて open を保留した場合も、見送った検出は
 次回実行で origin/main から再導出される。`gh` が使えない run の作成経路は
-`docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5 に従う。
+`docs/harness/skills/shared/pr-creation.md`「書き込みの経路」に従う。
 
 title / body は呼び出し側 skill 文書の差分テーブルに従い、標準節に検出結果の節を加えた構成にする。
 実装疑い・判定不能・`needs_new_doc` は、本文の「実装側判断要」区分に根拠付きで列挙する
 （形式 → `docs/harness/skills/shared/implementation-consistency.md`）。
-起票元 Issue が無い保守 PR のため closing keyword は不要（特定 Issue 起点で実行した場合は
-body に `関連: #<番号>` を記載する）。PR 作成後、PR URL を console に報告する。
+起票元 Issue が無い保守 PR のため closing keyword は不要である（特定 Issue 起点で実行した場合の記載を含め
+→ `docs/harness/skills/shared/pr-creation.md`「closing keyword の注入」）。PR 作成後、PR URL を console に報告する。
 
 **1 スキャン = 1 PR**。1 回の実行で検出した全候補を 1 つの PR にまとめ、候補ごとに PR を分けない。
 
@@ -113,7 +113,7 @@ PR 作成後、別コマンドで次のラベルを付与する。
 
 - **`gh pr create --label` で同時に指定しない**。ラベル名が解決できないと `gh pr create` 自体が失敗し、
   検出済みの変更が PR 化されないまま run が終わるため。PR を先に確定させてから、`gh pr edit --add-label`
-  （REST 経路では `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5 の対応表）で付与する。
+  （REST 経路では `docs/harness/skills/shared/pr-creation.md`「書き込みの経路」）で付与する。
 - 付与に失敗しても run は失敗にしない。PR URL と、付与できなかったラベル名を報告する。
 - ラベル定義の作成・削除は行わない。ラベルは `docs/harness/scheduled-operations.md` の
   「事前作成が必要な外部リソース」に従い、人間または bootstrap 時に作成する。

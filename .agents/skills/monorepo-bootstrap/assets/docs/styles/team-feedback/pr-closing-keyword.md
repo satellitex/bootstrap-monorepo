@@ -26,6 +26,7 @@ closing keyword は PR 作成時にハーネスが注入して担保する（pro
 
 - 起票元 Issue を完了させる PR は body に必ず記載する: `Closes #<num>` / `Fixes #<num>` / `Resolves #<num>`（case insensitive。過去形・現在形・三人称単数いずれも有効）
 - cross-repo は `Closes owner/repo#<num>` の形式で認識される
+- PR の base は既定ブランチにする。既定ブランチ以外が base の PR は、closing keyword を書いても auto-close が発火しない（→「Why」）
 - 複数 Issue を close する場合は `Closes #101, Closes #102` のように closing keyword を個別に付ける（`Closes #101 #102` は 1 個目しか auto-close されない）
 - **partial PR**（大きな親 Issue の一部のみを対応し、親をまだ close すべきでない）は `Closes #<親>` を使わず `関連: #<親>` で linkage のみ残す。body 冒頭で親 Issue のどの部分を対応したかを明示する
 - **保守 PR**（起票元 Issue が無い release / sync / hotfix、および bot 自動 PR）は closing keyword を省略する。

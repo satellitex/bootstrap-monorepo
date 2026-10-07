@@ -42,15 +42,16 @@ ADR の起票は `/create-adr`、ハーネス文書の整理は gc-agent の担�
 
 III は既定で無効である。`/adr-compress` が `consolidate` 引数付きで起動された場合だけ有効にする（「1 ADR = 1 決定」規約の変更を伴うため、明示 opt-in とする）。
 
-## 横断安全ガードレール（全カテゴリ共通。違反候補は除外する）
+## 候補除外ゲート（全カテゴリ共通）
 
-1. Proposed の ADR は II / III / IV の対象にしない（レビュー進行中のため）。I は全 status を分類するだけで、本体を変更しない。カテゴリ 0 だけが例外で、Proposed を Accepted に追従させる。Status を分類できない ADR は Proposed 相当として 0 / II / III / IV から除外し、`status-unparseable` で記録する（読み取り手順は compression-rules.md）
-2. 有効な Decision を残す。III / IV は元 ADR の各 Decision（D1〜DN）とその根拠を保持する。II-a でも、一部の Decision だけが後継に置換され残りが有効な場合（partial-supersede）は full stub にしない。有効な Decision が 1 つでも落ちる圧縮は候補から外す
-3. durable-decision ガード: プロセス記録らしく見えても、本文に恒久的な設計判断（採用方針の選定・代替案棄却理由・継続的に効くスコープ/原則）を含む ADR は stub 化しない。IV の閾値を満たせば IV を適用し、満たさなければ無変更として `durable-decision` で記録する
-4. in-place 維持 = 参照保全: II / III はファイルを移動せず、同パスで本文だけを書き換える。ADR への参照は markdown link に限らず、docs・コード・Issue 本文に bare-id（ファイル名の直書き）で広く存在しうる。パスを変えないことで相互リンクと外部参照を構造的に保つ
-5. lossless 優先 / git 履歴が究極の正本: 0 / I / II は lossless である。IV（lossy）は冗長な叙述・レビュー round 履歴・重複 Context の削減に限り、機械検証で無損失を証明できた要約だけを残す。削除した詳細を git 履歴で追えることを ADR 本文と PR body に明記する
-6. status model 準拠: 統合（III）時の原本 stub は `docs/adr/README.md` の status 遷移に従い、`Superseded by ADR-<consolidated-id>` にする
-7. カテゴリ単一所有 + 実行順: 実行順とカテゴリの所有の規則は `docs/harness/skills/adr-compress/compression-rules.md` の「圧縮の実行順とカテゴリの所有」に従う
+規則と理由は `docs/harness/skills/adr-compress/compression-rules.md` が正本である。各候補に次のゲートを順に適用し、該当した候補は除外して、記録キーを PR 本文の「スキップした候補」に残す。
+
+1. Status を読み取る。Proposed の ADR は II / III / IV から、分類できない ADR は 0 / II / III / IV から除外する（キー `status-unparseable`。Proposed は記録しない）
+2. 有効な Decision が 1 つでも落ちる圧縮を除外する（キー `decision-at-risk`。II-a の partial-supersede を含む）
+3. 恒久的な設計判断を含むプロセス記録らしい ADR を、stub 化から除外する（キー `durable-decision`）
+4. marker を持つ圧縮済みの ADR を II / IV から除外する（キー `already-compressed`）
+5. 機械検証で無損失を証明できない IV の要約を破棄する（キー `cannot-prove-lossless`）
+6. 検出根拠の実測値がない候補は、候補にしない
 
 ## プロセス
 

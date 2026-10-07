@@ -19,10 +19,11 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
-  IS_TEMPLATE_ROOT,
+  IS_TEMPLATE_MODE,
   REPO_SCAN_TEST_TIMEOUT_MS,
   ROOT,
   assertNoViolations,
+  escapeRegExp,
   fencedLines,
   inlineCodeSpans,
   linesOutsideFences,
@@ -171,8 +172,7 @@ function ownerFromRemoteUrl(url) {
 
 /** テキストの中で、期待 owner のリテラルが `owner/<name>` の形で現れる行を返す。 */
 function findLiteralOwner(text, owner) {
-  const escaped = owner.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`(?<![\\w.-])${escaped}/[\\w.-]+`, "i");
+  const re = new RegExp(`(?<![\\w.-])${escapeRegExp(owner)}/[\\w.-]+`, "i");
   const out = [];
   text.split("\n").forEach((line, i) => {
     if (re.test(line)) out.push(i + 1);
@@ -243,7 +243,7 @@ describe("gh 使用 gate: list の limit・search フィルタ・owner 直書き
     "リポジトリ owner のリテラルがハーネス文書・設定・workflow に無い（bootstrap 先のみ）",
     {
       timeout: REPO_SCAN_TEST_TIMEOUT_MS,
-      skip: IS_TEMPLATE_ROOT
+      skip: IS_TEMPLATE_MODE
         ? "テンプレート資産には owner の実値が無い（token で表現する）"
         : false,
     },

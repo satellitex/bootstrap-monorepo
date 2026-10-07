@@ -25,6 +25,13 @@
           },
           {
             "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-format-check.sh",
+            "if": "Bash(git -C *)",
+            "timeout": 120,
+            "statusMessage": "Formatting staged files before commit..."
+          },
+          {
+            "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-push-ci-check.sh",
             "if": "Bash(git push *)",
             "timeout": 900,

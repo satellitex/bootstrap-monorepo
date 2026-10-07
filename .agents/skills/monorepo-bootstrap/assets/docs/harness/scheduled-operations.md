@@ -177,17 +177,16 @@ GitHub Actions の `schedule` に限った規約である（routine の schedule
 
 ### (g) 追加時チェックリスト
 
-- [ ] 失敗を人に届ける経路（marker Issue の作成・更新・close）を同一 PR に同梱し、報告 step を `if: ${{ !cancelled() }}`（別 job の場合は `needs` + `always()`）で起動する
-- [ ] 失敗判定方式（JSON report 件数 / job.status / ハイブリッド / 別 job）を選定し、setup 失敗が無言にならないこと、取り消し・timeout を拾うか許容するかを確認して一覧表に記した
-- [ ] 判定不能（検査が途中で止まった）を close の根拠にしていない
-- [ ] 定期 run は検査対象の ref を既定ブランチに固定し、Issue 本文に実際に検査した SHA を載せる
-- [ ] preflight tripwire を実装した（schedule は fail-loud / workflow_dispatch は graceful skip で、Issue を触らない）
+(a)〜(f) の各項目を満たしたことを、項目名で確認する。
+
+- [ ] (a) 失敗を人に届ける経路（marker Issue、報告 step の起動条件、失敗判定方式、検査対象 ref の固定、判定不能の扱い）
+- [ ] (b) preflight tripwire
+- [ ] (c) secret の到達境界（Environment secret と ref ガード）
+- [ ] (d) exit code 3 状態設計
+- [ ] (e) secret と同居する送信先を repo variable で補間していない
+- [ ] (f) cron の分と、一覧表の他 workflow との重なり
 - [ ] 必須 variable / secret を足した変更を、各環境の構築 runbook に同一 PR で追記した
-- [ ] secret を扱う場合、secret を Environment secret に置いて deployment branch policy を設定し、ref ガードは backstop として付けた
-- [ ] 検査 script は exit code 3 状態設計（0 / 1 / 2）に従い、検知不能を検知ゼロとして扱っていない
-- [ ] secret と同居する送信先を repo variable で補間していない（定数固定 + step-level env）
-- [ ] cron の分が 0 でなく、一覧表の他 workflow と時・分が重ならない
-- [ ] `permissions` は job ごとの最小権限にした（`issues: write` を持つ job の checkout は `persist-credentials: false`）
+- [ ] `permissions` は job ごとの最小権限にした
 - [ ] 下表「schedule workflow 一覧」に追記した（削除時も同様に更新する）
 
 ### schedule workflow 一覧

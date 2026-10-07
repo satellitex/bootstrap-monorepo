@@ -8,101 +8,33 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../post-edit-check.sh"
 
-if [[ ! -f "$HOOK" ]]; then
-  echo "FAIL: hook not found: $HOOK" >&2
-  exit 1
-fi
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+require_hook
 
-fail() {
-  echo "FAIL: $1" >&2
-  exit 1
-}
-
-# 隔離した一時 repo を作る。hook が resolve_tsconfig / resolve_package / has_test_script を
-# 通過するために apps/api の package.json（scripts.test あり）と tsconfig.json が要る。
-make_repo() {
-  local tmp
-  tmp="$(mktemp -d)"
-  (
-    cd "$tmp"
-    git init -q
-    git config user.email "test@example.com"
-    git config user.name "Test"
-    git config commit.gpgsign false
-    mkdir -p apps/api/src
-    printf '%s\n' '{"name":"@example/api","scripts":{"test":"vitest"}}' > apps/api/package.json
-    printf '%s\n' '{}' > apps/api/tsconfig.json
-    printf '%s\n' 'export const sample = 1;' > apps/api/src/sample.ts
-    printf '%s\n' '# sample' > NOTES.md
-    git add -A
-    git commit -q -m "init"
-  )
-  printf '%s' "$tmp"
-}
-
-# stub 群を置く一時ディレクトリを作る。
-make_stub_dir() {
-  mktemp -d
-}
-
-# 実行可能な stub コマンドを作る。
-# $1 stub_dir / $2 コマンド名 / $3 exit code / $4 標準出力に出すメッセージ /
-# $5 終了前の sleep 秒（既定 0、タイムアウト検証用）
-#
-# stub は受領した argv を "<stub>.args"、実行時の cwd（物理パス）を "<stub>.cwd" に記録する。
-# 出力だけを見ていると seam 化で引数が落ちる退行（eslint の --no-warn-ignored 欠落など）に
-# 気付けないため、引数も pin する。cwd は、検査が編集対象の作業ツリーで走ったことの確認に使う。
-# argv ゼロでも .args を作れるようリダイレクトはループの外に置く（呼び出し有無の判定に使う）。
-write_stub() {
-  local dir="$1" name="$2" code="$3" msg="$4" sleep_sec="${5:-0}"
-  cat > "$dir/$name" <<STUB
-#!/usr/bin/env bash
-{ for a in "\$@"; do printf '%s\n' "\$a"; done; } >> "$dir/$name.args"
-pwd -P >> "$dir/$name.cwd"
-if [ "$sleep_sec" -gt 0 ]; then
-  sleep $sleep_sec
-fi
-if [ -n "$msg" ]; then
-  printf '%s\n' "$msg"
-fi
-exit $code
-STUB
-  chmod +x "$dir/$name"
-}
-
-# stub が受領した argv を空白区切りの 1 行に平坦化して返す（未呼び出しなら FAIL）。
-args_of() {
-  local args_file="$1" label="$2"
-  [[ -f "$args_file" ]] || fail "$label: stub was not invoked ($args_file missing)"
-  tr '\n' ' ' < "$args_file"
-}
-
-# hook を隔離 repo の中で実行して stdout を返す。
-# compact_file が cwd 直下に .claude/state/hook-logs を作るため、必ず repo 内で実行する。
-# stub の注入（PROJ_*_CMD）は呼び出し側が本関数の前置環境変数として渡す。
-# PATH 前置ではなく環境変数注入を使うのは、hook が mise shims / /opt/homebrew/bin を
-# PATH 先頭に足すため PATH 上の stub が実コマンドに shadow され得るため。
+# hook を DIR を cwd にして実行し、stdout を返す。$1 DIR / $2 編集したファイル。
+# compact_file が cwd 直下に .claude/state/hook-logs を作るため、DIR は書き込める場所にする。
+# DIR が作業ツリーと異なる場合は、別 worktree からの起動など、hook の cwd と編集対象の
+# 作業ツリーが一致しない起動の再現になる。
 run_hook_in() {
-  local repo="$1" file="$2"
+  local dir="$1" file="$2"
   (
-    cd "$repo"
+    cd "$dir"
     printf '{"tool_input":{"file_path":"%s"}}' "$file" | bash "$HOOK"
   )
 }
 
-# hook を作業ツリーとは別のディレクトリから実行して stdout を返す。
-# hook の cwd と編集対象の作業ツリーが一致しない起動（別 worktree からの起動など）の再現に使う。
-run_hook_from() {
-  local from="$1" file="$2"
-  (
-    cd "$from"
-    printf '{"tool_input":{"file_path":"%s"}}' "$file" | bash "$HOOK"
-  )
-}
-
-# additionalContext を取り出す（無ければ空文字）。
-ctx_of() {
-  printf '%s' "$1" | jq -r '.hookSpecificOutput.additionalContext // empty'
+# eslint / tsc / pnpm の stub（$1 の dir に置いたもの）を PROJ_*_CMD で注入して run_hook_in を実行する。
+# 残りの引数は run_hook_in に渡す。PATH 前置ではなく環境変数注入を使うのは、hook が mise shims /
+# /opt/homebrew/bin を PATH 先頭に足すため PATH 上の stub が実コマンドに shadow され得るため。
+run_stubbed() {
+  local stub_dir="$1"
+  shift
+  HOME="$stub_dir" \
+    PROJ_ESLINT_CMD="$stub_dir/eslint" \
+    PROJ_TSC_CMD="$stub_dir/tsc" \
+    PROJ_PNPM_CMD="$stub_dir/pnpm" \
+    run_hook_in "$@"
 }
 
 # --------------------------------------------------------------------------
@@ -111,16 +43,12 @@ ctx_of() {
 # --------------------------------------------------------------------------
 test1_non_target_extension() {
   local repo stub_dir out f
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   write_stub "$stub_dir" eslint 1 "eslint-stub: should not run"
   write_stub "$stub_dir" tsc 1 "tsc-stub: should not run"
   write_stub "$stub_dir" pnpm 1 "pnpm-stub: should not run"
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_in "$repo" "NOTES.md")"
+  out="$(run_stubbed "$stub_dir" "$repo" "NOTES.md")"
   [[ -z "$out" ]] || fail "test1: non-target extension must pass through with no output (out=$out)"
   for f in eslint tsc pnpm; do
     [[ ! -f "$stub_dir/$f.args" ]] \
@@ -135,34 +63,27 @@ test1_non_target_extension() {
 # 各チェックが受領した argv も pin し、seam 化で引数が落ちる退行を検出する。
 # --------------------------------------------------------------------------
 test2_ts_all_checks_combined() {
-  local repo stub_dir out ctx marker eslint_args tsc_args pnpm_args
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  local repo stub_dir out ctx marker
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   write_stub "$stub_dir" eslint 1 "eslint-stub: lint error"
   write_stub "$stub_dir" tsc 1 "tsc-stub: type error"
   write_stub "$stub_dir" pnpm 1 "pnpm-stub: test failed"
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_in "$repo" "apps/api/src/sample.ts")"
-  ctx="$(ctx_of "$out")"
+  out="$(run_stubbed "$stub_dir" "$repo" "apps/api/src/index.ts")"
+  ctx="$(hook_ctx "$out")"
   [[ -n "$ctx" ]] || fail "test2: check failures must return additionalContext (out=$out)"
   for marker in '[eslint]' '[typecheck]' '[test]' \
     'eslint-stub: lint error' 'tsc-stub: type error' 'pnpm-stub: test failed'; do
-    printf '%s' "$ctx" | grep -qF "$marker" \
+    grep -qF "$marker" <<< "$ctx" \
       || fail "test2: additionalContext should contain '$marker' (ctx=$ctx)"
   done
 
-  eslint_args="$(args_of "$stub_dir/eslint.args" test2)"
-  printf '%s' "$eslint_args" | grep -qF -- '--no-warn-ignored apps/api/src/sample.ts' \
-    || fail "test2: eslint argv should be '--no-warn-ignored <file>' (args=$eslint_args)"
-  tsc_args="$(args_of "$stub_dir/tsc.args" test2)"
-  printf '%s' "$tsc_args" | grep -qF -- '--noEmit -p apps/api/tsconfig.json' \
-    || fail "test2: tsc argv should be '--noEmit -p <tsconfig>' (args=$tsc_args)"
-  pnpm_args="$(args_of "$stub_dir/pnpm.args" test2)"
-  printf '%s' "$pnpm_args" | grep -qF -- '--filter @example/api test' \
-    || fail "test2: pnpm argv should be '--filter <pkg> test' (args=$pnpm_args)"
+  grep -qF -- '--no-warn-ignored apps/api/src/index.ts' <<< "$(args_of "$stub_dir/eslint.args" test2)" \
+    || fail "test2: eslint argv should be '--no-warn-ignored <file>' (args=$(args_of "$stub_dir/eslint.args" test2))"
+  grep -qF -- '--noEmit -p apps/api/tsconfig.json' <<< "$(args_of "$stub_dir/tsc.args" test2)" \
+    || fail "test2: tsc argv should be '--noEmit -p <tsconfig>' (args=$(args_of "$stub_dir/tsc.args" test2))"
+  grep -qF -- '--filter @example/api test' <<< "$(args_of "$stub_dir/pnpm.args" test2)" \
+    || fail "test2: pnpm argv should be '--filter <pkg> test' (args=$(args_of "$stub_dir/pnpm.args" test2))"
   rm -rf "$repo" "$stub_dir"
   echo "PASS test2: ts eslint/typecheck/test failures are combined with expected argv"
 }
@@ -174,16 +95,12 @@ test2_ts_all_checks_combined() {
 # --------------------------------------------------------------------------
 test3_ts_all_pass_no_output() {
   local repo stub_dir out f
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   write_stub "$stub_dir" eslint 0 ""
   write_stub "$stub_dir" tsc 0 ""
   write_stub "$stub_dir" pnpm 0 ""
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_in "$repo" "apps/api/src/sample.ts")"
+  out="$(run_stubbed "$stub_dir" "$repo" "apps/api/src/index.ts")"
   [[ -z "$out" ]] || fail "test3: all-pass must produce no output (out=$out)"
   for f in eslint tsc pnpm; do
     [[ -f "$stub_dir/$f.args" ]] \
@@ -197,26 +114,20 @@ test3_ts_all_pass_no_output() {
 # Test 4: タイムアウトしたチェックは timeout 表示になり、後続チェックは継続する。
 # PROJ_POST_EDIT_TIMEOUT_SEC は全チェックに一括適用されるため、eslint 以外は上限内に
 # 必ず終わる即時終了 stub にする（typecheck が実出力を返すことで継続を確認する）。
-# hook-utils の polling fallback（timeout / gtimeout 不在環境）は 1 秒粒度で状態を見るため、
-# 即時終了 stub が誤って timeout 扱いにならない上限として 2 秒を使う。
+# 上限は 1 秒。即時に終わる stub は上限の前に完了するため、timeout 扱いにならない。
 # --------------------------------------------------------------------------
 test4_timeout_continues() {
   local repo stub_dir out ctx
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   write_stub "$stub_dir" eslint 0 "eslint-stub: should not be reported" 10
   write_stub "$stub_dir" tsc 1 "tsc-stub: type error"
   write_stub "$stub_dir" pnpm 0 ""
-  out="$(HOME="$repo" \
-    PROJ_POST_EDIT_TIMEOUT_SEC=2 \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_in "$repo" "apps/api/src/sample.ts")"
-  ctx="$(ctx_of "$out")"
-  printf '%s' "$ctx" | grep -qF '[eslint] timed out after 2s' \
+  out="$(PROJ_POST_EDIT_TIMEOUT_SEC=1 run_stubbed "$stub_dir" "$repo" "apps/api/src/index.ts")"
+  ctx="$(hook_ctx "$out")"
+  grep -qF '[eslint] timed out after 1s' <<< "$ctx" \
     || fail "test4: eslint timeout should be reported (ctx=$ctx)"
-  printf '%s' "$ctx" | grep -qF 'tsc-stub: type error' \
+  grep -qF 'tsc-stub: type error' <<< "$ctx" \
     || fail "test4: checks after a timeout must still run and report output (ctx=$ctx)"
   rm -rf "$repo" "$stub_dir"
   echo "PASS test4: timeout is reported and later checks continue"
@@ -230,14 +141,15 @@ test4_timeout_continues() {
 #
 # 方式: hook 本体を一時レイアウトへ copy し、隣に hook-utils の shim を置いて
 # run_limited_check だけを argv 記録に差し替える。外部コマンドは一切実行されず
-# （記録して return 0 するだけ）、resolve_tsconfig / resolve_package / has_test_script は
-# 実物を使うため、本番コードパスが実際に組み立てた argv を assert できる。
+# （記録して return 0 するだけ）、パッケージの解決（tsconfig.json の有無と package.json の
+# name / scripts.test の読み取り）は実物を使うため、本番コードパスが実際に組み立てた argv を
+# assert できる。
 # 本テストは hook が utils を "$(dirname "$0")/../bin/hook-utils.sh" で解決する前提に
 # 依存する。hook 側の解決ロジックを変えた場合は一時レイアウトも追随させること。
 # --------------------------------------------------------------------------
 test5_default_commands_and_timeouts() {
   local repo work log expected actual
-  repo="$(make_repo)"
+  repo="$(make_workspace_repo)"
   work="$(mktemp -d)"
   mkdir -p "$work/hooks" "$work/bin"
   log="$work/calls.log"
@@ -258,14 +170,14 @@ SHIM
   # 全 seam を env -u で外して既定分岐を通す。
   (
     cd "$repo"
-    printf '{"tool_input":{"file_path":"apps/api/src/sample.ts"}}' \
+    printf '{"tool_input":{"file_path":"apps/api/src/index.ts"}}' \
       | env -u PROJ_ESLINT_CMD -u PROJ_TSC_CMD -u PROJ_PNPM_CMD \
           -u PROJ_POST_EDIT_TIMEOUT_SEC HOME="$repo" \
           bash "$work/hooks/post-edit-check.sh" > /dev/null
   )
 
   expected="$(printf '%s\n' \
-    '30 npx eslint --no-warn-ignored apps/api/src/sample.ts' \
+    '30 npx eslint --no-warn-ignored apps/api/src/index.ts' \
     '30 npx tsc --noEmit -p apps/api/tsconfig.json' \
     '60 pnpm --filter @example/api test')"
   actual="$(cat "$log")"
@@ -285,28 +197,24 @@ $actual"
 # --------------------------------------------------------------------------
 test6_absolute_path_runs_all_checks_in_file_worktree() {
   local repo stub_dir other out ctx root f marker
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   other="$(mktemp -d)"
   root="$(cd -P "$repo" && pwd -P)"
   write_stub "$stub_dir" eslint 1 "eslint-stub: lint error"
   write_stub "$stub_dir" tsc 1 "tsc-stub: type error"
   write_stub "$stub_dir" pnpm 1 "pnpm-stub: test failed"
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_from "$other" "$repo/apps/api/src/sample.ts")"
-  ctx="$(ctx_of "$out")"
+  out="$(run_stubbed "$stub_dir" "$other" "$repo/apps/api/src/index.ts")"
+  ctx="$(hook_ctx "$out")"
   for marker in '[eslint]' '[typecheck]' '[test]'; do
-    printf '%s' "$ctx" | grep -qF "$marker" \
+    grep -qF "$marker" <<< "$ctx" \
       || fail "test6: absolute path input must run all three checks (missing '$marker', ctx=$ctx)"
   done
-  printf '%s' "$(args_of "$stub_dir/eslint.args" test6)" | grep -qF -- '--no-warn-ignored apps/api/src/sample.ts' \
+  grep -qF -- '--no-warn-ignored apps/api/src/index.ts' <<< "$(args_of "$stub_dir/eslint.args" test6)" \
     || fail "test6: eslint should receive the root-relative path"
-  printf '%s' "$(args_of "$stub_dir/tsc.args" test6)" | grep -qF -- '--noEmit -p apps/api/tsconfig.json' \
+  grep -qF -- '--noEmit -p apps/api/tsconfig.json' <<< "$(args_of "$stub_dir/tsc.args" test6)" \
     || fail "test6: tsc should receive the root-relative tsconfig"
-  printf '%s' "$(args_of "$stub_dir/pnpm.args" test6)" | grep -qF -- '--filter @example/api test' \
+  grep -qF -- '--filter @example/api test' <<< "$(args_of "$stub_dir/pnpm.args" test6)" \
     || fail "test6: pnpm should receive the package filter"
   for f in eslint tsc pnpm; do
     [[ "$(head -n 1 "$stub_dir/$f.cwd")" == "$root" ]] \
@@ -322,19 +230,15 @@ test6_absolute_path_runs_all_checks_in_file_worktree() {
 # --------------------------------------------------------------------------
 test7_symlinked_worktree_path() {
   local repo stub_dir link_parent link out f
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   link_parent="$(mktemp -d)"
   link="$link_parent/via-link"
   ln -s "$repo" "$link"
   write_stub "$stub_dir" eslint 0 ""
   write_stub "$stub_dir" tsc 0 ""
   write_stub "$stub_dir" pnpm 0 ""
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_from "$link_parent" "$link/apps/api/src/sample.ts")"
+  out="$(run_stubbed "$stub_dir" "$link_parent" "$link/apps/api/src/index.ts")"
   [[ -z "$out" ]] || fail "test7: all-pass must produce no output (out=$out)"
   for f in eslint tsc pnpm; do
     [[ -f "$stub_dir/$f.args" ]] \
@@ -349,18 +253,14 @@ test7_symlinked_worktree_path() {
 # --------------------------------------------------------------------------
 test8_outside_worktree_passes_through() {
   local repo stub_dir other out f
-  repo="$(make_repo)"
-  stub_dir="$(make_stub_dir)"
+  repo="$(make_workspace_repo)"
+  stub_dir="$(mktemp -d)"
   other="$(mktemp -d)"
   printf 'export const x = 1;\n' > "$other/outside.ts"
   write_stub "$stub_dir" eslint 1 "eslint-stub: should not run"
   write_stub "$stub_dir" tsc 1 "tsc-stub: should not run"
   write_stub "$stub_dir" pnpm 1 "pnpm-stub: should not run"
-  out="$(HOME="$repo" \
-    PROJ_ESLINT_CMD="$stub_dir/eslint" \
-    PROJ_TSC_CMD="$stub_dir/tsc" \
-    PROJ_PNPM_CMD="$stub_dir/pnpm" \
-    run_hook_in "$repo" "$other/outside.ts")"
+  out="$(run_stubbed "$stub_dir" "$repo" "$other/outside.ts")"
   [[ -z "$out" ]] || fail "test8: file outside the worktree must pass through (out=$out)"
   for f in eslint tsc pnpm; do
     [[ ! -f "$stub_dir/$f.args" ]] \
@@ -368,6 +268,37 @@ test8_outside_worktree_passes_through() {
   done
   rm -rf "$repo" "$stub_dir" "$other"
   echo "PASS test8: file outside the worktree passes through"
+}
+
+# --------------------------------------------------------------------------
+# Test 9: パッケージの外のファイルは eslint だけを実行する（typecheck と test は package 単位）。
+# tsconfig.json の無いパッケージでは typecheck を、scripts.test の無いパッケージでは test を省く。
+# --------------------------------------------------------------------------
+test9_package_scoped_checks() {
+  local repo stub_dir_outside stub_dir_bare
+  repo="$(make_workspace_repo)"
+  stub_dir_outside="$(mktemp -d)"
+  stub_dir_bare="$(mktemp -d)"
+  mkdir -p "$repo/scripts"
+  printf 'export const s = 1;\n' > "$repo/scripts/tool.ts"
+  write_stub "$stub_dir_outside" eslint 0 ""
+  write_stub "$stub_dir_outside" tsc 0 ""
+  write_stub "$stub_dir_outside" pnpm 0 ""
+  write_stub "$stub_dir_bare" eslint 0 ""
+  write_stub "$stub_dir_bare" tsc 0 ""
+  write_stub "$stub_dir_bare" pnpm 0 ""
+
+  run_stubbed "$stub_dir_outside" "$repo" "scripts/tool.ts" > /dev/null
+  [[ -f "$stub_dir_outside/eslint.args" ]] || fail "test9: eslint should run for a file outside any package"
+  [[ ! -f "$stub_dir_outside/tsc.args" && ! -f "$stub_dir_outside/pnpm.args" ]] \
+    || fail "test9: typecheck and test are per package and must not run outside a package"
+
+  run_stubbed "$stub_dir_bare" "$repo" "packages/lib/src/index.ts" > /dev/null
+  [[ -f "$stub_dir_bare/eslint.args" ]] || fail "test9: eslint should run for packages/*"
+  [[ ! -f "$stub_dir_bare/tsc.args" ]] || fail "test9: typecheck must not run for a package without tsconfig.json"
+  [[ ! -f "$stub_dir_bare/pnpm.args" ]] || fail "test9: test must not run for a package without scripts.test"
+  rm -rf "$repo" "$stub_dir_outside" "$stub_dir_bare"
+  echo "PASS test9: typecheck and test run only for packages that define them"
 }
 
 test1_non_target_extension
@@ -378,5 +309,6 @@ test5_default_commands_and_timeouts
 test6_absolute_path_runs_all_checks_in_file_worktree
 test7_symlinked_worktree_path
 test8_outside_worktree_passes_through
+test9_package_scoped_checks
 
 echo "ALL PASS"

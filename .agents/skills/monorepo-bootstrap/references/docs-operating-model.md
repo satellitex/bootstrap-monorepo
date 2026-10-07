@@ -131,7 +131,7 @@ Use separate sync workflows so each owns one freshness boundary.
 | `refactor-guide-sync` (core) | Coding guide vs refactoring guide alignment | Coding guide content decisions |
 | `refactor-sync` (core) | Code issues against the coding rules (violations, ineffective / deprecated / redundant code), proposed as Issues by the refactorer agent | Code changes, guide alignment |
 | `runbook-alignment` (core) | Unresolved items in runbooks vs implementation (resolves what the code settles, records the rest as undecided) | Implementation, requirements, general freshness of current-state docs |
-| `gc-scan` (core) | Harness duplication and orphans (all proposed via PR) | Size limits, 1:1 correspondence, path existence (checked mechanically by `tests/harness`); product docs freshness |
+| `gc-scan` (core) | Harness duplication and orphans (all proposed via PR) | Items the mechanical checks cover (`pnpm harness:test`); product docs freshness |
 | `adr-compress` (core) | ADR Status follow-up, INDEX rebuild, stubbing, summarization; the only writer of the ADR INDEX | ADR content decisions |
 | `public-arch-sync` (opt-in:public-site) | Public projection from internal docs | Internal canonical docs |
 | `customer-doc-review` (opt-in:public-site) | Customer-facing doc quality and leakage review | Internal canonical docs |
@@ -144,7 +144,7 @@ Each sync workflow must define source of truth, compared-against target, include
 ## 8. Templates To Copy
 
 docs / harness / styles / CI のテンプレート資産一覧は `../assets/MANIFEST.md` が正本であり、この文書では一覧を重複管理しない。
-bootstrap 時は MANIFEST の「使い方」に従い、core 資産の copy → 明示 token 置換 → TODO の充填（`TODO(取得方法: ...)` は実環境で検証した値、`TODO(記入方法: ...)` はチームの判断で書く内容。正本表は MANIFEST） → 不要な opt-in グループの除外 → PJ 固有化、の順で適用する。
+bootstrap 時は MANIFEST の「使い方」に従い、core 資産の copy → 明示 token 置換 → TODO の充填（MANIFEST「TODO 記法」に従う） → 不要な opt-in グループの除外 → PJ 固有化、の順で適用する。
 `docs/README.md` のディレクトリマップは、opt-in と付記した行のうち不採用グループの行を削除し、表の直前の HTML コメントも削除する（所属グループは MANIFEST のグループ節で確認する）。
 
 MANIFEST に含まれない bootstrap 固有の成果物は、専用ファイルとして作らない。PR 本文の節に書き、確定した内容を既存の層へ移す。節構成と移管先文書のテンプレートは `references/bootstrap-artifacts.md` にある。
@@ -158,7 +158,7 @@ MANIFEST に含まれない bootstrap 固有の成果物は、専用ファイル
 - pointer to the table of area-specific rules in `docs/harness/OPERATING_MODEL.md` (which rule to read for which work; environments without path-scoped auto-loading reach the rules through it)
 - pointer to project language policy
 - local commands or pointer to command docs
-- approval model summary（人間承認が必須なのは課金と秘密値のみ。既定は open PR までの自律実行）
+- approval model summary（1 行の要旨と `docs/harness/OPERATING_MODEL.md`「承認モデル」への pointer）
 - secret constraints（secret 値を commit しない）
 
 They should not include:
@@ -177,7 +177,7 @@ Claude slash commands or subagents may exist, but they should point to shared do
 ## 10. Validation Gates
 
 CI の既定は基礎 CI 1 本（format:check / test / build。`gate:ci`）であり、test job の中でハーネスの機械検査（`tests/harness/`、依存ゼロの `node:test`）と hooks の bash テストを実行する。
-決定論的に判定できる規約（サイズ上限、skill 正本と adapter の 1:1、参照パスの実在、未置換 token、hook とテストの対応）はこの機械検査が担い、意味判定が要る検査（重複・孤児・鮮度・実装整合）は sync 系 skill が担う。
+決定論的に判定できる規約はこの機械検査が担い（範囲 → `../assets/tests/harness/README.md`「検査一覧」）、意味判定が要る検査（重複・孤児・鮮度・実装整合）は sync 系 skill が担う。
 CI に docs 検査を追加するのは拡張であり、product に応じて次の候補から選ぶ。
 
 - markdown format/lint if present

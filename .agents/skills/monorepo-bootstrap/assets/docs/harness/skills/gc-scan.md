@@ -1,6 +1,6 @@
 # gc-scan（ハーネス GC: 重複・孤児）
 
-この文書は `/gc-scan` の手順正本である。ハーネス文書全体を `gc-agent` でスキャンし、Cross-File 重複と孤児（参照されない references・起動経路の無い agent・機械検査に現れないデッド参照）を意味判定で検出して、**すべて 1 つの PR で提案**する。検出・抽出の詳細ロジックは `.claude/agents/gc-agent.md` と `.claude/agents/references/gc-agent-detection.md` を正本とする（本文書には複製しない）。サイズ上限・skill 正本と adapter の 1:1 対応・参照パスの実在は決定論的に判定できるため CI の機械検査（`pnpm harness:test`）が担当し、本 skill は検出しない。docs の内容鮮度（`/docs-sync` 担当）・ADR の圧縮（`/adr-compress` 担当）は扱わない。
+この文書は `/gc-scan` の手順正本である。ハーネス文書全体を `gc-agent` でスキャンし、Cross-File 重複と孤児（参照されない references・起動経路の無い agent・機械検査に現れないデッド参照）を意味判定で検出して、**すべて 1 つの PR で提案**する。検出・抽出の詳細ロジックは `.claude/agents/gc-agent.md` と `.claude/agents/references/gc-agent-detection.md` を正本とする（本文書には複製しない）。機械検査（`pnpm harness:test`）が判定できる項目は CI が担当し、本 skill は検出しない（範囲 → `tests/harness/README.md`「検査一覧」）。docs の内容鮮度（`/docs-sync` 担当）・ADR の圧縮（`/adr-compress` 担当）は扱わない。
 
 ## Purpose
 
@@ -44,17 +44,7 @@ gc-agent（`.claude/agents/gc-agent.md`）を起動する（引数なし。渡�
 - **孤児**: inbound 参照の無い references、起動経路の無い agent、機械検査の対象にならない形式（Markdown リンク・
   節名への参照・説明文中の言及）のデッド参照 → 削除・修正の変更を同一 PR に含めて提案する
 
-機械検査との分界:
-
-| 検査                                                                    | 担当                                 |
-| ----------------------------------------------------------------------- | ------------------------------------ |
-| サイズ上限・description の文字数                                        | CI の機械検査（`pnpm harness:test`） |
-| skill 正本と adapter の 1:1 対応・`SKILL.md` の欠け                     | 同上                                 |
-| 実在しないパスを指す参照（バッククォート内のパス）                      | 同上                                 |
-| agent 定義の起動指定（`subagent_type`）または `orphan-allow` 宣言の有無 | 同上                                 |
-| 重複、機械検査に現れない起動経路・デッド参照                            | 本 skill                             |
-
-機械検査の失敗は、その変更を含む PR の CI で検出される。本 skill では扱わない。
+機械検査との分界: 機械検査（`pnpm harness:test`）が判定できる項目は検出しない（範囲 → `tests/harness/README.md`「検査一覧」）。機械検査の失敗は、その変更を含む PR の CI で検出される。本 skill が扱うのは、重複と、機械検査に現れない起動経路・デッド参照である。
 
 ## Auto-edit policy
 
@@ -93,7 +83,7 @@ gc-agent（`.claude/agents/gc-agent.md`）を起動する（引数なし。渡�
 - 各抽出元のポインタが正しい配置先を参照している
 - 孤児の削除対象を参照している箇所が PR 内で同時に修正されている（削除だけして
   デッド参照を新たに作らない）
-- 抽出で増減したファイルが機械検査（サイズ上限・1:1 対応・パス実在）を通る
+- 抽出で増減したファイルが機械検査（`pnpm harness:test`）を通る
 
 ## Report shape
 

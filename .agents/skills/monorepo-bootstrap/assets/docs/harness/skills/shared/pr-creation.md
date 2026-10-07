@@ -1,6 +1,6 @@
-# PR 作成共通手順（base 判定 + 衝突検査 + closing keyword 注入 + 本文の標準節）
+# PR 作成共通手順（base + 衝突検査 + closing keyword 注入 + 本文の標準節）
 
-この文書は PR 自動作成の共通手順（検証 → commit → push → base 判定 → open 前の衝突検査 → 本文の組み立て → `gh pr create`）と、PR 本文の標準節を定める。skill 固有の差分（commit type 候補、標準節に加える skill 固有の節）は書かない（呼び出し側の skill 文書が指定する）。検証ゲートの組合せの定義は `docs/harness/skills/shared/verification-gates.md` が担当する。
+この文書は PR 自動作成の共通手順（検証 → commit → push → base の確認 → open 前の衝突検査 → 本文の組み立て → `gh pr create`）と、PR 本文の標準節、`gh` が使えない run の書き込み経路を定める。skill 固有の差分（commit type 候補、標準節に加える skill 固有の節）は書かない（呼び出し側の skill 文書が指定する）。検証ゲートの組合せの定義は `docs/harness/skills/shared/verification-gates.md` が担当する。
 
 各 skill / フロー本体は最終 Step で本ファイルを Read し、その手順に従う。
 
@@ -11,18 +11,16 @@
 1. 検証ゲートを実行する（`gate:commit`。`*.md` の編集だけの変更は `gate:docs`。組合せの定義 → `docs/harness/skills/shared/verification-gates.md`）。`format:check` が NG なら整形を適用してから再検査する
 2. `git add`（更新したファイルのみ個別指定）+ `git commit`（Conventional Commits 形式。type は呼び出し側指定）
 3. `git push -u origin <current-branch>`（`--no-verify` を付けない。hook が失敗したら原因を直して再実行する。hook が担う検査を迂回すると、CI で初めて赤くなり往復が増えるため）
-4. **base ブランチを判定する**（「## base ブランチの判定」に従う）。`$BASE_BRANCH` を得る。
+4. **base を確認する**（「## PR の base」に従う）。
 5. **open 前の衝突検査**を行う（「## open 前の衝突検査」に従う）。
 6. PR 本文を組み立てる。構成は「## PR 本文の標準節」に呼び出し側が指定する節を加えたものとし、Issue との linkage は「## closing keyword の注入」に従って**決定的に**埋める（placeholder のまま残さない）。
-7. `gh pr create --base "$BASE_BRANCH"` で PR を作成する（通常 PR。「## draft にしない」に従う）。直前に「## closing keyword の注入」の self-check を通す。
+7. `gh pr create --base main` で PR を作成する（通常 PR。「## draft にしない」に従う）。直前に「## closing keyword の注入」の self-check を通す。
 
-## base ブランチの判定
+## PR の base
 
-このリポジトリの長期統合ブランチは `main` のみである（`main` = dev 環境、`release` = prod 環境。`release` へは prod リリース手順でのみ反映するため、自動 PR の base にはしない）。したがって `$BASE_BRANCH` は常に既定ブランチ（`main`）に固定する。
+PR の base は常に既定ブランチ（`main`）である。`release` には prod リリース手順（→ `docs/harness/skills/deploy-verify.md`「release 反映（prod）」）でのみ反映するため、自動 PR の base にしない。
 
-`gh pr create` は `--base` 未指定でもリポジトリのデフォルトブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `origin/main` を fetch し、HEAD との merge-base を計算できることを確認してから `$BASE_BRANCH` を `main` に固定する。計算できなければ PR を作らず、失敗として報告する。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）の場合は `git fetch --unshallow` を案内し、それ以外は origin への fetch 権限とネットワーク接続の確認を案内する。
-
-本手順は各フローが共通で参照するため、この 1 ファイルの修正のみで横断的に base 追従が有効になる。base は PR 作成時点のコミットグラフから再計算できるため、各 skill 文書側に起点ブランチ情報をリレーする口は不要。
+`gh pr create` は `--base` 未指定でも既定ブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `origin/main` を fetch し、HEAD との merge-base を計算できることを確認する。計算できなければ PR を作らず、失敗として報告する。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）の場合は `git fetch --unshallow` を案内し、それ以外は origin への fetch 権限とネットワーク接続の確認を案内する。
 
 ### 積み上げ PR を作らない
 
@@ -45,11 +43,11 @@ open 中の他 PR の head ブランチ一覧は `docs/harness/skills/shared/gh-
 
 PR は通常 PR（ready for review）で作る。draft の PR は CI 上のレビュー自動化や自動マージ判定の対象外になりやすく、後から ready にする操作が実行環境の権限判定で止められることがある。止められた PR は、人が ready にするまで draft のまま残る。作成経路ごとに次のとおり明示し、ツールの既定値や実行環境の指示に任せない。
 
-| 経路                           | 指定                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `gh pr create`                 | `--draft` を付けない                                                                       |
-| REST（`gh api`）               | `-F draft=false` を付ける（→ `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5） |
-| MCP（PR 作成 API を持つ tool） | `draft: false` を引数に明示する                                                            |
+| 経路                           | 指定                                                  |
+| ------------------------------ | ----------------------------------------------------- |
+| `gh pr create`                 | `--draft` を付けない                                  |
+| REST（`gh api`）               | `-F draft=false` を付ける（→ 本書「書き込みの経路」） |
+| MCP（PR 作成 API を持つ tool） | `draft: false` を引数に明示する                       |
 
 人間が draft での作成を明示的に指示した場合だけ、その指示に従って draft にしてよい（draft PR を承認 gate として使うのは、人間の明示指示がある場合に限る）。
 
@@ -90,36 +88,28 @@ repository の立ち上げ（bootstrap）と既存 repository への導入（ado
 
 ## closing keyword の注入
 
-PR merge 時の Issue auto-close / Projects Status 自動更新は **PR body の closing keyword
-（`Closes` / `Fixes` / `Resolves` + `#<num>`）で発火する**。PR title 内の `#<num>` 言及は
-GitHub 上のリンク表示はされるが auto-close は発火しない。したがって linkage は title ではなく
-body へ確実に注入する。
+PR merge 時の Issue auto-close と Projects の Status 自動更新は、PR body の closing keyword で発火する。PR title の `#<num>` では発火しないため、linkage は title ではなく body へ確実に注入する。PR の base は常に既定ブランチなので、発火の条件は満たされる。keyword の文法・複数 Issue の書き方・NG / OK は `docs/styles/team-feedback/pr-closing-keyword.md`「How to apply」に従う。
 
-**前提: closing keyword はリポジトリのデフォルトブランチ（`main`）向け PR でのみ発火する**
-（GitHub Docs "Linking a pull request to an issue"）。`$BASE_BRANCH` が `main` 以外になった場合、
-body に `Closes #<num>` を含めても merge 時の auto-close は発火しない。この場合は起票元 Issue を
-完了させる意図の PR でもケース3 に従う。
+- **通常 PR（起票元 Issue を完了させる）**: 着手時に取得した起票元 Issue 番号から、body に `Closes #<issue_number>` を記載する。
+- **partial PR（大きな親 Issue の一部のみを対応し、親をまだ close すべきでない）**: `関連: #<parent>` で linkage のみ残す（`Closes` は使わない。記載の作法 → 同「How to apply」）。
+- **起票元 Issue が無い保守 PR**（sync 系の定期実行等）: closing keyword は不要。特定 Issue 起点で実行した場合のみ `関連: #<番号>` を記載する。
+- **self-check（`gh pr create` の直前に実施）**: 通常 PR なら body に `Closes #<num>`、partial PR なら `関連: #<num>` が含まれることを確認する。placeholder（番号未記入）の状態で PR を作成しない。
 
-- **ケース1（`$BASE_BRANCH=main` かつ起票元 Issue を完了させる通常 PR）**: 着手時に取得した起票元
-  issue 番号を使い、body に `Closes #<issue_number>` を記載する。複数 Issue を close する
-  場合は `Closes #1, Closes #2` と closing keyword を個別に付ける（`Closes #1 #2` は 1 個目しか
-  発火しない）。
-- **ケース2（partial PR: 大きな親 Issue の一部のみを対応し、親をまだ close すべきでない）**:
-  `Closes #<parent>` は使わず `関連: #<parent>` で linkage のみ残す（auto-close を発火させない）。
-  body 冒頭で親 Issue のどの部分を対応したかを明示する。
-- **ケース3（`$BASE_BRANCH` が `main` 以外）**: base は常に既定ブランチへ固定されるため、このケースは
-  通常発生しない。別の長期統合ブランチ運用を導入した場合に備えた一般手順として残す。その場合 closing
-  keyword は発火しないため、起票元 Issue を完了させる意図でも `関連: #<num>` を使い、body 冒頭に
-  「auto-close 対象外。Issue close は `main` 統合時または手動で行う」旨を明記する。
-- **起票元 Issue が無い保守 PR**（sync 系の定期実行等）: closing keyword は不要。特定 Issue 起点で
-  実行した場合のみ `関連: #<番号>` を記載する。
-- **self-check（`gh pr create` の直前に実施）**: ケース1 なら body に `Closes #<num>`、
-  ケース2 / ケース3 なら `関連: #<num>` が含まれることを確認する。placeholder（番号未記入）の
-  状態で PR を作成しない。
+## 書き込みの経路
+
+GraphQL が使えない run や `gh` が無い run では、読み取りの経路切替（判定表と canary → `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5）に合わせて、PR 作成・ラベル付与・コメント投稿も同じ run で REST（`gh api`）または MCP に揃える。読み取りだけを切り替えると、最後の書き込みが GraphQL 前提で失敗し、検出済みの成果が PR 化されない。REST に相当する操作がないもの（Projects V2 への追加など）は切り替えず、省いたことを完了報告に書く。
+
+REST は次の API で行う。
+
+- PR 作成は `POST /repos/{owner}/{repo}/pulls` に title・head・base・body を渡し、`draft` に偽を明示する。`gh api` の `-F` は `true` / `false` / 整数を JSON の型に変換し、`@<ファイル>` でファイルの内容を値にするため、`draft` と本文のファイルには `-F` を使う（`-f` は常に文字列になる）。応答の `html_url` が PR の URL である。
+- ラベル付与は、`GET /repos/{owner}/{repo}/labels/<名前>` で実在を確かめてから `POST /repos/{owner}/{repo}/issues/<N>/labels` に渡す。未作成なら付与せず、名前を報告する。
+- コメント投稿は `POST /repos/{owner}/{repo}/issues/<N>/comments` に本文を渡す。
+
+MCP は、PR を作成できる tool（`create_pull_request` 等。tool 名の接頭辞は実行環境が決める）で `draft: false` を明示し、通常 PR で作成する。tool の仕様は版により変わり得るため、使う前に実際のスキーマを確認する。owner / repo は `git remote get-url origin` から解決し、リテラルを埋めない（→ `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 4）。
 
 ## 呼び出し側で指定すべき差分
 
 | 項目             | 内容                                                                                                                                                                                                      |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | commit type 候補 | 各 skill の性質に合った Conventional Commits の type（例: 実装は `feat` / `fix` / `refactor`、ハーネス変更は `feat(skill)` / `refactor(harness)` / `docs(harness)`、環境整備は `chore` / `ci` / `build`） |
-| 標準節に加える節 | 検出サマリ、受入条件チェックリスト、設計判断 → ADR リンクなど、skill ごとに必要な節。標準 5 節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）は全 skill 共通で、呼び出し側は節を足すだけにする   |
+| 標準節に加える節 | 検出サマリ、受入条件チェックリスト、設計判断 → ADR リンクなど、skill ごとに必要な節。標準節（「PR 本文の標準節」）は全 skill 共通で、呼び出し側は節を足すだけにする                                       |

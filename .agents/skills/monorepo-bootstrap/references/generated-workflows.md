@@ -63,7 +63,7 @@ Required behavior:
 - Set a target/expired date only if the team uses date fields.
 - Support blocked-by and parent/sub-issue relationships as separate inputs and separate mutations when GitHub supports them in the target org.
 - Keep labels, milestones, and trailing machine-readable markers that the caller specified; read them back to verify.
-- Issue の作成・更新は自律実行してよい。作成後は読み戻して検証する。人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ。
+- Issue の作成・更新は自律実行してよい。作成後は読み戻して検証する。
 
 PJ 固有値の置き場所:
 
@@ -92,16 +92,7 @@ Start from this neutral taxonomy and specialize it from the Intake summary (the 
 
 ### Required Issue Types
 
-| Type | Use when |
-|------|----------|
-| `infra` | provider config, environments, secrets, deploy, migrations, storage, queue, observability |
-| `web/ui` | UI screens, interaction, styling, design system, accessibility |
-| `core/domain` | domain model, business rules, data validation, core workflows |
-| `integration` | external API, webhook, SDK, import/export, third-party service |
-| `async/job/workflow` | queue, job, workflow, scheduler, long-running task, retry/DLQ |
-| `ci/cd` | CI workflow, required checks, release, branch deploy, runner operations |
-| `security` | auth, authorization, secrets, privacy, audit, dependency/security policy |
-| `docs` | docs, ADRs, runbooks, harness docs, public docs projection |
+8 区分の種別は `issue-lifecycle.md`「Issue Taxonomy」が正本である。ここでは、その区分を Intake の概要から product 固有の語に特化する。
 
 ### Optional Cross-Cutting Labels
 
@@ -162,7 +153,7 @@ If the product has regulatory or customer milestones, replace these with the use
 
 ## 6. Project Model
 
-Project board の作成・変更は自律実行してよい（人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ）。
+Project board の作成・変更は自律実行してよい（§7）。
 作成・変更後は実値を読み戻して検証し、magic value を profile に記録する。
 
 Default boards:
@@ -188,26 +179,7 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 
 ## 7. Approval Model
 
-既定は自律実行とする。remote GitHub mutation のうち次は承認なしに実行してよい:
-
-- label / milestone / Project board / Project fields・options の作成・編集
-- issue / PR の作成、issue の Project への追加
-- dates / status / relationships の設定
-- 技術判断変更に伴う既存 issue への comment
-
-人間の明示承認が必須なのは次の 2 つのみ:
-
-- 課金が発生する操作（有償リソースの作成、プラン変更、外部サービス契約）
-- 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）
-
-自律実行した mutation は判断材料を成果物に残す:
-
-- 採用した labels / milestones / Projects / fields とその理由（PR 本文）
-- 実行した commands / API operations と読み戻し検証の結果
-- sample generated issue
-
-成果物とレポートは project language で書く（ユーザが明示的に別言語を指定した場合を除く）。
-実行できなかった remote setup は、GitHub Issue の残タスクとして起票する。
+承認モデルは `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」に従う。remote GitHub mutation の自律実行の範囲と、実行した mutation の記録、実行できなかった remote setup の起票は `issue-lifecycle.md`「Remote GitHub Mutation」に従う。
 
 ## 8. 実行系 routine のレシピ（資産として収録しないもの）
 
@@ -217,7 +189,7 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 
 ### 8.1 共通前提
 
-- 無人 run の契約: 起動プロンプトの冒頭 1 行で `docs/harness/skills/shared/unattended-contract.md` を読ませる。人間へ渡すのは、承認必須 2 種（課金・秘密値）と、`docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」に定めた区分に限る。
+- 無人 run の契約: 起動プロンプトの冒頭 1 行で `docs/harness/skills/shared/unattended-contract.md` を読ませる。人間へ渡すのは、承認モデルで承認が必須な操作と、`docs/harness/OPERATING_MODEL.md`「承認モデル」の「人間引き渡し境界」に定めた区分に限る。
 - routine の登録: `docs/harness/scheduled-operations.md` の起動プロンプトの正準形と登録チェックリストに従う。
 - routine ラベル: 作った PR / Issue に `routine:<skill-name>` を、起動経路を問わず付ける（付与の手順は `docs/harness/skills/shared/sync-pr-flow.md`、ラベルの一覧は `.claude/skills/create-issue/references/project-fields.md`）。
 - 照会: `docs/harness/skills/shared/gh-query-fail-closed.md` に従う。0 件を「対象なし」と取り違えないよう、疎通 canary を通してから候補を数える。

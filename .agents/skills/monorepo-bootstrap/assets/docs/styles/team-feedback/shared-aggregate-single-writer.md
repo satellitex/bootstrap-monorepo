@@ -2,7 +2,7 @@
 
 > この文書は team-shared rule の 1 つ。INDEX.md の更新主体と実装 PR の作法のみを定め、INDEX ごとの更新主体の割当表と経過措置の詳細は `docs/harness/skills/shared/index-writer-policy.md` に書く（本書には複製しない）。
 
-実装 PR は、既存の `INDEX.md` を変更しない。INDEX の行は、割り当てられた更新主体（routine / skill / 人間）が更新する。新規ディレクトリのための INDEX の新規作成は、既存の表と衝突しないため実装 PR で行ってよい。
+実装 PR は、既存の `INDEX.md` を変更しない。INDEX の行は、割り当てられた更新主体（routine / skill / 人間）が更新する。新規ディレクトリの INDEX の新規作成は実装 PR で行ってよい（→ `docs/harness/skills/shared/index-writer-policy.md`「leaf 文書の要件」）。
 
 ## Why
 
@@ -10,7 +10,7 @@ INDEX.md は、複数の Issue の成果が同じ表・同じ件数表記に集�
 
 ## How to apply
 
-- **leaf ファイルを自己記述にする** — INDEX に載せたい行を PR 内の別の場所へ持ち回らず、追加するファイルの冒頭 `#` 見出し（INDEX 行のタイトルになる）と、見出し直後に置く 1〜3 行のリード文で、何のドキュメントかを読み取れる形に書く。ADR は Status 表も読み取れる形にする。更新主体は実体ファイルを読んで行を起こす
+- **leaf ファイルを自己記述にする** — INDEX に載せたい行を PR 内の別の場所へ持ち回らず、追加・改名するファイルが冒頭見出しとリード文を満たす形に書く（要件 → `docs/harness/skills/shared/index-writer-policy.md`「leaf 文書の要件」）。更新主体は実体ファイルを読んで行を起こす
 - **更新主体を割当表で確認する** — INDEX ごとの更新主体は `index-writer-policy.md` の割当表が正本である。人間が更新主体の INDEX（要件一覧など）は、実装 PR からも変更しない
 - **枠組みの変更は実装 PR で行える** — 枠組み（リード文・節構成・分類方針）の変更は、行の追記・削除を含めず、既存行の文言を変えない範囲で実装 PR が行ってよい。未反映の実体ファイルがある場合は、PR 本文に列挙して更新主体に委ねる
 - **経過措置と強制の範囲** — routine の登録前の扱い、並列実装フローの検収、フロー外の PR への強制の範囲は `docs/harness/skills/shared/index-writer-policy.md` の「経過措置」「強制の範囲」に従う

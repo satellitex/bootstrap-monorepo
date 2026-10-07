@@ -2,63 +2,66 @@
 set -euo pipefail
 
 # post-edit-projection-reminder.sh（opt-in:public-site）の hermetic テスト。
-# bash / jq のみで動く（git 不要）。stdin に PostToolUse の JSON を渡し、出力の JSON を jq で検証する。
-# 対象ドキュメントなどの設定値は hook 冒頭の定義（TARGET_DOCS / PROJECTION_DOC / SYNC_SKILL）から
-# 読み取るため、採用 repo が設定を変更してもテストはその値に追随する。
+# bash / git / jq のみで動く。stdin に PostToolUse の JSON を渡し、出力の JSON を jq で検証する。
+# 対象ドキュメントなどの設定値は PROJ_PROJECTION_* の環境変数（seam）で渡すため、採用 repo が
+# hook 冒頭の既定値を変更してもテストは変わらない。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../post-edit-projection-reminder.sh"
 
-if [[ ! -f "$HOOK" ]]; then
-  echo "FAIL: hook not found: $HOOK" >&2
-  exit 1
-fi
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+require_hook
 
-fail() {
-  echo "FAIL: $1" >&2
-  exit 1
-}
+# seam に渡す設定値。射影元は 2 つ（":" 区切り）にして、複数指定も検証する。
+TARGET="docs/internal/design.md"
+TARGET_B="docs/internal/flows.md"
+export PROJ_PROJECTION_TARGET_DOCS="$TARGET:$TARGET_B"
+export PROJ_PROJECTION_DOC="docs/public/design.md"
+export PROJ_PROJECTION_SYNC_SKILL="/sync-public"
+export PROJ_PROJECTION_RULES=".claude/skills/sync-public/rules.md"
 
-# hook 冒頭の設定値を取り込む（1 行の代入のみを対象にする）。
-eval "$(grep -E '^(TARGET_DOCS|PROJECTION_DOC|SYNC_SKILL)=' "$HOOK")"
-[[ "${#TARGET_DOCS[@]}" -gt 0 && -n "${PROJECTION_DOC:-}" && -n "${SYNC_SKILL:-}" ]] \
-  || fail "could not read TARGET_DOCS / PROJECTION_DOC / SYNC_SKILL from the hook (keep each definition on one line)"
-TARGET="${TARGET_DOCS[0]}"
+# 作業ツリー。絶対パスの判定は、ファイルが属する作業ツリーのルート基準で行う。
+REPO="$(make_repo)"
+mkdir -p "$REPO/docs/internal" "$REPO/docs/public"
 
-# stdin に tool_input（キーは $1、値は $2）を渡して hook を実行する。
+# stdin に tool_input（キーは $1、値は $2）を渡し、作業ツリーの中で hook を実行する。
 run_hook_with() {
   local key="$1" value="$2"
-  jq -n --arg k "$key" --arg v "$value" '{tool_input: {($k): $v}}' | bash "$HOOK"
-}
-
-ctx_of() {
-  printf '%s' "$1" | jq -r '.hookSpecificOutput.additionalContext // empty'
+  (
+    cd "$REPO"
+    jq -n --arg k "$key" --arg v "$value" '{tool_input: {($k): $v}}' | bash "$HOOK"
+  )
 }
 
 # --------------------------------------------------------------------------
 # Test 1: 射影元ドキュメント（相対パス）の編集で、リマインドが additionalContext に入る。
-# 内容: 編集した射影元、射影先、追従に使う skill 名。PostToolUse 用のイベント名で出力する。
+# 内容: 編集した射影元、射影先、追従に使う skill 名、射影ルール。PostToolUse 用のイベント名で出力する。
 # --------------------------------------------------------------------------
 test1_relative_path_reminds() {
   local out ctx event
   out="$(run_hook_with file_path "$TARGET")"
   event="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.hookEventName // empty')"
   [[ "$event" == "PostToolUse" ]] || fail "test1: hookEventName should be PostToolUse (out=$out)"
-  ctx="$(ctx_of "$out")"
+  ctx="$(hook_ctx "$out")"
   [[ -n "$ctx" ]] || fail "test1: editing a source doc must inject a reminder (out=$out)"
-  printf '%s' "$ctx" | grep -qF "$TARGET" || fail "test1: reminder should name the edited source doc (ctx=$ctx)"
-  printf '%s' "$ctx" | grep -qF "$PROJECTION_DOC" || fail "test1: reminder should name the projection doc (ctx=$ctx)"
-  printf '%s' "$ctx" | grep -qF "$SYNC_SKILL" || fail "test1: reminder should name the sync skill (ctx=$ctx)"
+  grep -qF "$TARGET" <<< "$ctx" || fail "test1: reminder should name the edited source doc (ctx=$ctx)"
+  grep -qF "$PROJ_PROJECTION_DOC" <<< "$ctx" || fail "test1: reminder should name the projection doc (ctx=$ctx)"
+  grep -qF "$PROJ_PROJECTION_SYNC_SKILL" <<< "$ctx" || fail "test1: reminder should name the sync skill (ctx=$ctx)"
+  grep -qF "$PROJ_PROJECTION_RULES" <<< "$ctx" || fail "test1: reminder should name the projection rules (ctx=$ctx)"
   echo "PASS test1: relative path edit injects the reminder"
 }
 
 # --------------------------------------------------------------------------
-# Test 2: 絶対パスでも末尾一致で判定する（PostToolUse の file_path は絶対パスで渡される）。
+# Test 2: 絶対パスでも作業ツリーのルート基準で判定する（PostToolUse の file_path は絶対パスで渡される）。
+# 2 つ目の射影元も対象になる。
 # --------------------------------------------------------------------------
 test2_absolute_path_reminds() {
   local out
-  out="$(run_hook_with file_path "/abs/path/repo/$TARGET")"
-  [[ -n "$(ctx_of "$out")" ]] || fail "test2: absolute path of a source doc must inject a reminder (out=$out)"
+  out="$(run_hook_with file_path "$REPO/$TARGET")"
+  [[ -n "$(hook_ctx "$out")" ]] || fail "test2: absolute path of a source doc must inject a reminder (out=$out)"
+  out="$(run_hook_with file_path "$REPO/$TARGET_B")"
+  [[ -n "$(hook_ctx "$out")" ]] || fail "test2: every configured source doc must inject a reminder (out=$out)"
   echo "PASS test2: absolute path edit injects the reminder"
 }
 
@@ -68,25 +71,25 @@ test2_absolute_path_reminds() {
 test3_path_key_fallback() {
   local out
   out="$(run_hook_with path "$TARGET")"
-  [[ -n "$(ctx_of "$out")" ]] || fail "test3: tool_input.path must be accepted (out=$out)"
+  [[ -n "$(hook_ctx "$out")" ]] || fail "test3: tool_input.path must be accepted (out=$out)"
   echo "PASS test3: tool_input.path fallback injects the reminder"
 }
 
 # --------------------------------------------------------------------------
 # Test 4: 対象外のファイルは無出力で通過する（他の PostToolUse hook を妨げない）。
-# 射影先そのもの、射影元に似た名前（接尾辞違い・別ディレクトリ）、無関係なソースを含める。
+# 射影先そのもの、射影元に似た名前（接尾辞違い・別ディレクトリ・祖先ディレクトリ違い）、
+# 作業ツリー外の同名ファイル、無関係なソースを含める。
 # --------------------------------------------------------------------------
 test4_non_target_passes_silently() {
-  local out file files
-  files=("$PROJECTION_DOC" "${TARGET}.bak" "docs/product/OVERVIEW.md" "apps/app/src/index.ts")
-  # 別ディレクトリの同名ファイル。射影元がディレクトリ付きのパスのときだけ「末尾一致しない」ことを確かめられる。
-  if [[ "$TARGET" == */* ]]; then
-    files+=("notes/$(basename "$TARGET")")
-  fi
-  for file in "${files[@]}"; do
+  local out file other
+  other="$(mktemp -d)"
+  mkdir -p "$other/docs/internal"
+  for file in "$PROJ_PROJECTION_DOC" "${TARGET}.bak" "docs/internal/other.md" "notes/design.md" \
+    "notes/$TARGET" "$REPO/notes/$TARGET" "$other/$TARGET" "apps/app/src/index.ts"; do
     out="$(run_hook_with file_path "$file")"
     [[ -z "$out" ]] || fail "test4: non-target file must pass with no output (file=$file, out=$out)"
   done
+  rm -rf "$other"
   echo "PASS test4: non-target files pass with no output"
 }
 
@@ -95,9 +98,9 @@ test4_non_target_passes_silently() {
 # --------------------------------------------------------------------------
 test5_missing_path_passes_silently() {
   local out
-  out="$(printf '%s' '{}' | bash "$HOOK")"
+  out="$(cd "$REPO" && printf '%s' '{}' | bash "$HOOK")"
   [[ -z "$out" ]] || fail "test5: empty object must pass with no output (out=$out)"
-  out="$(printf '%s' '{"tool_input":{}}' | bash "$HOOK")"
+  out="$(cd "$REPO" && printf '%s' '{"tool_input":{}}' | bash "$HOOK")"
   [[ -z "$out" ]] || fail "test5: missing file_path must pass with no output (out=$out)"
   out="$(run_hook_with file_path "")"
   [[ -z "$out" ]] || fail "test5: empty file_path must pass with no output (out=$out)"
@@ -110,4 +113,5 @@ test3_path_key_fallback
 test4_non_target_passes_silently
 test5_missing_path_passes_silently
 
+rm -rf "$REPO"
 echo "ALL PASS"

@@ -14,27 +14,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUBMODULE_GUARD="$SCRIPT_DIR/../../bin/submodule-guard.sh"
 
-if [[ ! -f "$SUBMODULE_GUARD" ]]; then
-  echo "FAIL: submodule-guard.sh not found: $SUBMODULE_GUARD" >&2
-  exit 1
-fi
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+require_hook "$SUBMODULE_GUARD"
 
 # shellcheck source=../../bin/submodule-guard.sh
 source "$SUBMODULE_GUARD"
-
-fail() {
-  echo "FAIL: $1" >&2
-  exit 1
-}
-
-# cwd に git repo を init し、テスト用 user config を設定する（呼び出し側が先に
-# mktemp -d + cd 済みであること前提）。3 箇所で使う boilerplate を集約する。
-init_git_repo() {
-  git init -q
-  git config user.email "test@example.com"
-  git config user.name "Test"
-  git config commit.gpgsign false
-}
 
 # --------------------------------------------------------------------------
 # テスト用の submodule remote + 親 repo を作る。
@@ -43,29 +28,24 @@ init_git_repo() {
 # --------------------------------------------------------------------------
 make_repo_with_submodule() {
   local sub_remote main_repo
-  sub_remote="$(mktemp -d)"
+  sub_remote="$(make_repo)"
   (
     cd "$sub_remote"
-    init_git_repo
     printf 'dep content\n' > dep.txt
     git add dep.txt
     git commit -q -m "dep init"
   )
 
-  main_repo="$(mktemp -d)"
+  main_repo="$(make_repo)"
   (
     cd "$main_repo"
-    init_git_repo
     export GIT_ALLOW_PROTOCOL="file"
-    printf 'root\n' > root.txt
-    git add root.txt
-    git commit -q -m "root init"
     mkdir -p lib
     git submodule add -q "file://$sub_remote" lib/dep >/dev/null 2>&1
     git commit -q -m "add submodule"
   )
 
-  printf '%s\n%s' "$main_repo" "$sub_remote"
+  printf '%s\n%s\n' "$main_repo" "$sub_remote"
 }
 
 # --------------------------------------------------------------------------
@@ -73,10 +53,8 @@ make_repo_with_submodule() {
 # （idempotent 初期化の本体）。
 # --------------------------------------------------------------------------
 test1_uninitialized_detected_and_initialized() {
-  local repos main_repo sub_remote
-  repos="$(make_repo_with_submodule)"
-  main_repo="$(sed -n '1p' <<< "$repos")"
-  sub_remote="$(sed -n '2p' <<< "$repos")"
+  local main_repo sub_remote
+  { read -r main_repo; read -r sub_remote; } < <(make_repo_with_submodule)
 
   (
     cd "$main_repo"
@@ -105,10 +83,8 @@ test1_uninitialized_detected_and_initialized() {
 # ならず、ファイルはそのまま存在する。
 # --------------------------------------------------------------------------
 test2_already_initialized_is_noop() {
-  local repos main_repo sub_remote
-  repos="$(make_repo_with_submodule)"
-  main_repo="$(sed -n '1p' <<< "$repos")"
-  sub_remote="$(sed -n '2p' <<< "$repos")"
+  local main_repo sub_remote
+  { read -r main_repo; read -r sub_remote; } < <(make_repo_with_submodule)
 
   (
     cd "$main_repo"
@@ -154,15 +130,10 @@ test3_non_git_dir_is_safe_noop() {
 # --------------------------------------------------------------------------
 test4_no_submodule_defined_is_safe_noop() {
   local tmp
-  tmp="$(mktemp -d)"
+  tmp="$(make_repo)"
 
   (
     cd "$tmp"
-    init_git_repo
-    printf 'x\n' > x.txt
-    git add x.txt
-    git commit -q -m "init"
-
     if submodule_needs_init "no-such-path"; then
       fail "test4: submodule_needs_init should return false when no submodule is defined"
     fi

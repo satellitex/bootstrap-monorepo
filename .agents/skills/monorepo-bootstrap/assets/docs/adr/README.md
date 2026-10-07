@@ -27,7 +27,7 @@
 
 1. [`template.md`](./template.md) をコピーしてファイルを作成する
 2. ファイル名は `ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md`
-   - `{branch-slug}` は作業ブランチ名の `/` を `-` に置換して正規化する
+   - `{YYYYMMDD}` は作成日、`{branch-slug}` は作業ブランチ名の `/` を `-` に置換して正規化したもの、`{topic-slug}` は決定内容を表す英語の kebab-case（簡潔に）
    - 例: `ADR-20260101_agent-example-branch_retry-policy-change.md`
 3. Status を `Proposed` にして PR に含める
 4. 決定が確定してからマージする。Status が未確定の間（採否を保留する場合など）は PR をマージせず、保留の理由を PR 説明に書く
@@ -64,21 +64,13 @@ Proposed → Accepted → Deprecated
 
 `INDEX.md` の更新主体は `/adr-compress`（adr-compactor エージェント）である。ADR を追加・更新する PR は `INDEX.md` を変更せず、ADR 本体（ファイル名 = id、冒頭の `#` 見出し = タイトル、Status 表 = Status・Date）を正しく書くことに責任を持つ。`/adr-compress` が本体から行を決定的に再構築するため、情報は失われない。
 
-並列 PR が同じ表末尾と件数表記を書き換えると衝突するため、更新主体を 1 つにしている（割当表と経過措置 → `docs/harness/skills/shared/index-writer-policy.md`、規約本文 → `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。経過措置（routine の登録前）→ `docs/harness/skills/shared/index-writer-policy.md`。
+並列 PR が同じ表末尾と件数表記を書き換えると衝突するため、更新主体を 1 つにしている（割当表と経過措置 → `docs/harness/skills/shared/index-writer-policy.md`、規約本文 → `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。
 
 `INDEX.md` は **Status 別**（現行: Accepted / Proposed ／ アーカイブ: Superseded・Deprecated ／ プロセス記録）に分類し、各行は **コンパクト形式**（第 1 セル = ADR link、第 2 セル = 1 行要旨）を基本とする。Decision の詳細は ADR 本体が正本であり、INDEX 行に長文要約を詰め込まない。無効化済み・未確定の ADR を「有効な決定」として現行 Accepted に混在させない。
 
 ## 肥大化の圧縮（`/adr-compress`）
 
-ADR コーパスが肥大化したら `/adr-compress`（adr-compactor エージェント）が以下のカテゴリで圧縮し 1 PR にまとめる（routine 定期実行向け）。実行順とカテゴリの所有は `docs/harness/skills/adr-compress/compression-rules.md` に従う:
-
-- **0**: Status 追従（上記）。圧縮ではなく Status の値の更新で、肥大化の閾値と無関係に実行する。候補が 0 件なら変更なしで終了する
-- **I**: `INDEX.md` を Status 別セクションに決定的再構築（lossless、各行リンク + 1 行要旨）
-- **II**: `Superseded` / `Deprecated`、および プロセス記録（durable-decision を含まない手続き記録）の ADR 本体を **同一パスのまま** stub に置換（lossless・**ファイル移動なし**＝参照保全）
-- **III**（opt-in）: 同一 issue 番号に紐づく複数 ADR を 1 ファイルに統合し、原本は in-place の `Superseded by ADR-<consolidated>` stub にする（Decision 全保持）。`/adr-compress consolidate` 時のみ
-- **IV**: サイズ閾値超過の大型 ADR 本文を正準節に要約圧縮（lossy。削除した検討経緯は git 履歴が究極の正本）
-
-ガードレール: **Proposed の ADR は II/III/IV の対象外**（カテゴリ 0 の Status 追従だけが Proposed を書き換える）・**Decision を消さない**・**II/III はファイルを移動しない（in-place stub）**・**プロセス成果物は durable-decision ガードを通す**。手順の正本は `docs/harness/skills/adr-compress.md`、エージェント定義は `.claude/agents/adr-compactor.md`。
+ADR コーパスが肥大化したら、`/adr-compress`（adr-compactor エージェント）が Status 追従・INDEX 再構築・stub 化・大型本文の要約を 1 PR にまとめる（routine 定期実行向け）。Status 追従は肥大化の閾値と無関係に実行する。Decision を消さず、Proposed の ADR は Status 追従を除いて変更しない。カテゴリ・実行順・ガードレールの規則は `docs/harness/skills/adr-compress/compression-rules.md`、手順は `docs/harness/skills/adr-compress.md` に従う。
 
 ## 参照先
 

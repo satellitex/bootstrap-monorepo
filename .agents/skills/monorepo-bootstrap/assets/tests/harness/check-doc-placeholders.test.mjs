@@ -3,14 +3,14 @@
 // ここでいうプレースホルダは、波括弧 2 つで名前を囲んだ記法（以下「二重波括弧」）を指す。
 // 恒久検査の対象は docs/ 配下の markdown（ADR を含む）の散文に限る。既存資産にはテンプレート
 // 構文（二重波括弧を使うツールの設定例など）が含まれうるため、コードブロックとインラインコードの
-// 中は対象にしない。置換対象外の記入欄（support/repo-files.mjs の TEMPLATE_FORM_PATHS）も
-// 対象にしない。
+// 中は対象にしない。置換対象外の記入欄（コピーして埋める様式）も対象にしない。記入欄のファイルは、
+// 冒頭 5 行以内に FORM_MARKER を置いて自己宣言する。
 //
 // モード:
 //   - bootstrap 先（既定）: 散文中の二重波括弧はすべて未解決として失敗する。bootstrap 時の
 //     明示 token（EXPLICIT_TOKENS）が docs/ のどこかに残っている場合は、コードブロックと
 //     インラインコードの中も含めて失敗する。
-//   - テンプレート資産（ルートが MANIFEST.md を持つ）: 明示 token は置換前の状態として
+//   - テンプレートモード（環境変数 HARNESS_TEMPLATE_ROOT=1）: 明示 token は置換前の状態として
 //     許容し、それ以外の二重波括弧だけを失敗にする。
 //
 // TODO は `TODO(取得方法: …)` と `TODO(記入方法: …)` の 2 記法だけを使う。記入欄として書かれた
@@ -28,21 +28,22 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CLOSE,
   EXPLICIT_TOKENS,
-  IS_TEMPLATE_ROOT,
+  IS_TEMPLATE_MODE,
+  OPEN,
   REPO_SCAN_TEST_TIMEOUT_MS,
   assertNoViolations,
-  isTemplateFormPath,
-  linesOutsideFences,
   listHarnessFiles,
   listMarkdownFiles,
+  once,
   proseLines,
   readRepoFile,
-  stripInlineCode,
 } from "./support/repo-files.mjs";
 
-const OPEN = "{" + "{";
-const CLOSE = "}" + "}";
+/** 記入欄（置換対象外の様式）のファイルが、冒頭 5 行以内に置く自己宣言のマーカー。 */
+const FORM_MARKER = "<!-- harness:form -->";
+const FORM_MARKER_WINDOW = 5;
 
 /** 二重波括弧のプレースホルダ文字列を作る（固定入力用）。 */
 const T = (name) => `${OPEN}${name}${CLOSE}`;
@@ -77,7 +78,7 @@ function findExplicitTokens(text) {
 
 /**
  * 空 owner / 空 repo の症状。`github.com//`・`repos//` は取得値が空のまま埋め込まれた形。
- * owner の位置に未置換 token が残った形は、テンプレート資産では置換前の状態として許容する。
+ * owner の位置に未置換 token が残った形は、テンプレートモードでは置換前の状態として許容する。
  */
 function findEmptyOwnerSymptoms(text, { allowTokenOwner }) {
   const out = [];
@@ -99,14 +100,21 @@ function findEmptyOwnerSymptoms(text, { allowTokenOwner }) {
 const BARE_TODO_RE =
   /(?<![\w`])TODO(?:\((?!(?:取得方法|記入方法):)|[:：]|\s*\||\s*-->)/;
 
-function scanTargets() {
-  return listMarkdownFiles("docs").filter((rel) => !isTemplateFormPath(rel));
+/** ファイルが記入欄（コピーして埋める様式）か。冒頭 5 行以内にマーカーがあれば記入欄。 */
+function isTemplateForm(text) {
+  return text
+    .split("\n", FORM_MARKER_WINDOW)
+    .some((line) => line.trim() === FORM_MARKER);
 }
 
+const scanTargets = once(() =>
+  listMarkdownFiles("docs").filter((rel) => !isTemplateForm(readRepoFile(rel))),
+);
+
 /** TODO の検査と件数報告の対象: docs/ とハーネス文書の和集合。 */
-function todoScanTargets() {
-  return [...new Set([...scanTargets(), ...listHarnessFiles()])].sort();
-}
+const todoScanTargets = once(() =>
+  [...new Set([...scanTargets(), ...listHarnessFiles()])].sort(),
+);
 
 describe("placeholder residue gate: docs/ の未置換 token・空 owner", () => {
   it(
@@ -121,7 +129,7 @@ describe("placeholder residue gate: docs/ の未置換 token・空 owner", () =>
     "散文に未解決の二重波括弧プレースホルダが残っていない",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const allowed = IS_TEMPLATE_ROOT ? EXPLICIT_TOKENS : [];
+      const allowed = IS_TEMPLATE_MODE ? EXPLICIT_TOKENS : [];
       const violations = [];
       for (const file of scanTargets()) {
         for (const { n, token } of findBarePlaceholders(
@@ -143,8 +151,8 @@ describe("placeholder residue gate: docs/ の未置換 token・空 owner", () =>
     "bootstrap の明示 token が docs/ に残っていない（bootstrap 先のみ）",
     {
       timeout: REPO_SCAN_TEST_TIMEOUT_MS,
-      skip: IS_TEMPLATE_ROOT
-        ? "テンプレート資産では置換前の明示 token が正"
+      skip: IS_TEMPLATE_MODE
+        ? "テンプレートモードでは置換前の明示 token が正"
         : false,
     },
     () => {
@@ -169,7 +177,7 @@ describe("placeholder residue gate: docs/ の未置換 token・空 owner", () =>
       const violations = [];
       for (const file of scanTargets()) {
         for (const s of findEmptyOwnerSymptoms(readRepoFile(file), {
-          allowTokenOwner: IS_TEMPLATE_ROOT,
+          allowTokenOwner: IS_TEMPLATE_MODE,
         })) {
           violations.push({ file, line: s.n, message: s.message });
         }
@@ -284,8 +292,18 @@ describe("placeholder residue gate: 自己テスト", () => {
     assert.ok(!BARE_TODO_RE.test("TODOS は別の語"));
   });
 
-  it("インラインコードの除去は桁位置を保つ", () => {
-    assert.equal(stripInlineCode("a `bc` d"), "a      d");
-    assert.equal(linesOutsideFences("x\n```\ny\n```\nz").length, 2);
+  it("記入欄の判定は、冒頭 5 行以内のマーカーの自己宣言だけで行う", () => {
+    const withMarker = (...lines) => lines.join("\n");
+    assert.equal(isTemplateForm(`${FORM_MARKER}\n# 様式\n`), true);
+    assert.equal(
+      isTemplateForm(withMarker("# 様式", "", "本文", "", FORM_MARKER)),
+      true,
+    );
+    assert.equal(
+      isTemplateForm(withMarker("# 様式", "", "本文", "", "本文", FORM_MARKER)),
+      false,
+    );
+    assert.equal(isTemplateForm("# 様式\n"), false);
+    assert.equal(isTemplateForm(`本文 ${FORM_MARKER} の言及\n`), false);
   });
 });

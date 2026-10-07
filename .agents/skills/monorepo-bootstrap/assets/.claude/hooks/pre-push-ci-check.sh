@@ -27,329 +27,24 @@ CI_CHECK_STEPS=(format:check lint typecheck build)
 # stdin に cwd が無い入力は、hook の cwd を push 元とする。
 # push 元の repository とは別の repository（submodule や別 clone）への push は、
 # 本 project の検査対象外として通過する。
+# 解釈の実装は ../bin/hook-utils.sh の resolve_git_target で、commit 系の hook と共有する。
 
-# hook 自身の位置は cd する前に絶対パスで確定する。
+# hook 自身の位置は cd する前に絶対パスで確定し、共通ユーティリティを読み込む。
 hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# 作業ツリーの .mise.toml を auto-trust（trust 未完だと shim 経由の pnpm 起動が落ちる）し、
-# mise の shims を PATH に載せる。jq 自体も mise の shim で解決され得るため、入力の解析より前に行う。
-setup_toolchain() {
-  if [ -f ".mise.toml" ]; then
-    mise trust --quiet . 2>/dev/null || true
-  fi
-  eval "$(mise activate bash 2>/dev/null)" || true
-  export PATH="$HOME/.local/share/mise/shims:/opt/homebrew/bin:$PATH"
-}
+HOOK_UTILS="$hook_dir/../bin/hook-utils.sh"
+export HOOK_LOG_PREFIX="pre-push"
+# shellcheck source=../bin/hook-utils.sh
+source "$HOOK_UTILS"
 
 input="$(cat)"
 
 # push を含まない入力は即通過する（`Bash(git -C *)` で起動された `git -C <dir> status` 等）。
 [[ "$input" == *push* ]] || exit 0
 
+# jq 自体も mise の shim で解決され得るため、入力の解析より前に行う。
 setup_toolchain
 
-cmd="$(jq -r '.tool_input.command // ""' <<< "$input")"
-cwd_given="$(jq -r '.cwd // ""' <<< "$input")"
-base_dir="${cwd_given:-$PWD}"
-
-deny() {
-  jq -n --arg reason "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
-  exit 0
-}
-
-# command を語と制御演算子に分割する。結果は tok_val（クォートを外した値）/ tok_op（演算子なら 1）/
-# tok_dyn（変数・コマンド置換・~・glob など実行時に値が変わる語なら 1）の並列配列。
-tok_val=()
-tok_op=()
-tok_dyn=()
-_tk_cur=""
-_tk_has=0
-_tk_dyn=0
-
-_tk_flush() {
-  if [ "$_tk_has" -eq 1 ]; then
-    tok_val+=("$_tk_cur")
-    tok_op+=(0)
-    tok_dyn+=("$_tk_dyn")
-  fi
-  _tk_cur=""
-  _tk_has=0
-  _tk_dyn=0
-}
-
-tokenize() {
-  local s="$1" n i c two rest quoted depth start run
-  n=${#s}
-  i=0
-  tok_val=()
-  tok_op=()
-  tok_dyn=()
-  _tk_cur=""
-  _tk_has=0
-  _tk_dyn=0
-  while [ "$i" -lt "$n" ]; do
-    c="${s:i:1}"
-    case "$c" in
-      ' ' | $'\t')
-        _tk_flush
-        i=$((i + 1))
-        ;;
-      ';' | '&' | '|' | '<' | '>' | '(' | ')' | $'\n')
-        _tk_flush
-        two="${s:i:2}"
-        if [ "$two" = "&&" ] || [ "$two" = "||" ]; then
-          tok_val+=("$two")
-          i=$((i + 2))
-        else
-          tok_val+=("$c")
-          i=$((i + 1))
-        fi
-        tok_op+=(1)
-        tok_dyn+=(0)
-        ;;
-      "'")
-        _tk_has=1
-        rest="${s:i+1}"
-        if [[ "$rest" != *"'"* ]]; then
-          _tk_dyn=1
-          break
-        fi
-        quoted="${rest%%\'*}"
-        _tk_cur+="$quoted"
-        i=$((i + ${#quoted} + 2))
-        ;;
-      '"')
-        _tk_has=1
-        i=$((i + 1))
-        while [ "$i" -lt "$n" ] && [ "${s:i:1}" != '"' ]; do
-          # 特別な意味を持たない文字の連続は、1 文字ずつではなくまとめて取り込む（長い入力で遅くなるため）
-          rest="${s:i}"
-          run="${rest%%[\"\\\$\`]*}"
-          if [ -n "$run" ]; then
-            _tk_cur+="$run"
-            i=$((i + ${#run}))
-            continue
-          fi
-          case "${s:i:1}" in
-            '\')
-              _tk_dyn=1
-              _tk_cur+="${s:i+1:1}"
-              i=$((i + 2))
-              continue
-              ;;
-            '$' | '`') _tk_dyn=1 ;;
-          esac
-          _tk_cur+="${s:i:1}"
-          i=$((i + 1))
-        done
-        if [ "$i" -ge "$n" ]; then
-          _tk_dyn=1
-        fi
-        i=$((i + 1))
-        ;;
-      '$')
-        _tk_has=1
-        _tk_dyn=1
-        if [ "${s:i+1:1}" = "(" ]; then
-          # $( ... ) は対応する閉じ括弧まで 1 語として読み飛ばす（中身は評価せず、原文を語に残す）
-          start=$i
-          depth=1
-          i=$((i + 2))
-          while [ "$i" -lt "$n" ] && [ "$depth" -gt 0 ]; do
-            rest="${s:i}"
-            run="${rest%%[()]*}"
-            if [ -n "$run" ]; then
-              i=$((i + ${#run}))
-              continue
-            fi
-            case "${s:i:1}" in
-              '(') depth=$((depth + 1)) ;;
-              ')') depth=$((depth - 1)) ;;
-            esac
-            i=$((i + 1))
-          done
-          _tk_cur+="${s:start:i-start}"
-        else
-          _tk_cur+='$'
-          i=$((i + 1))
-        fi
-        ;;
-      '`')
-        _tk_has=1
-        _tk_dyn=1
-        rest="${s:i+1}"
-        if [[ "$rest" != *'`'* ]]; then
-          break
-        fi
-        quoted="${rest%%\`*}"
-        i=$((i + ${#quoted} + 2))
-        ;;
-      '\')
-        _tk_has=1
-        _tk_dyn=1
-        _tk_cur+="${s:i+1:1}"
-        i=$((i + 2))
-        ;;
-      '~' | '*' | '?' | '[' | '{')
-        _tk_has=1
-        _tk_dyn=1
-        _tk_cur+="$c"
-        i=$((i + 1))
-        ;;
-      *)
-        _tk_has=1
-        _tk_cur+="$c"
-        i=$((i + 1))
-        ;;
-    esac
-  done
-  _tk_flush
-}
-
-# 戻り値 0: push 先を特定した（push_root に作業ツリーのルートを設定）
-#        1: push を含まない（通過させる）
-#        2: push を含むが push 先を特定できない（unresolved に理由を設定）
-resolve_push_target() {
-  local dir="$base_dir" n i w a gdir env_reason cd_reason git_reason reason root
-  local cd_seen=0 grouped=0 found=0
-  push_root=""
-  unresolved=""
-  cd_reason=""
-  tokenize "$cmd"
-  n=${#tok_val[@]}
-  i=0
-  while [ "$i" -lt "$n" ]; do
-    if [ "${tok_op[i]}" -eq 1 ]; then
-      case "${tok_val[i]}" in
-        '(' | ')') grouped=1 ;;
-      esac
-      i=$((i + 1))
-      continue
-    fi
-
-    # 先頭の環境変数代入（NAME=value）は読み飛ばす。作業ツリーを変える変数は解決不能にする。
-    env_reason=""
-    while [ "$i" -lt "$n" ] && [ "${tok_op[i]}" -eq 0 ] \
-      && [[ "${tok_val[i]}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; do
-      case "${tok_val[i]}" in
-        GIT_DIR=* | GIT_WORK_TREE=* | GIT_COMMON_DIR=*)
-          env_reason="${tok_val[i]%%=*} で作業ツリーが変わる"
-          ;;
-      esac
-      i=$((i + 1))
-    done
-    if [ "$i" -ge "$n" ] || [ "${tok_op[i]}" -eq 1 ]; then
-      continue
-    fi
-
-    w="${tok_val[i]}"
-    case "$w" in
-      '{' | '}')
-        grouped=1
-        i=$((i + 1))
-        continue
-        ;;
-      cd)
-        i=$((i + 1))
-        cd_seen=1
-        if [ "$i" -lt "$n" ] && [ "${tok_op[i]}" -eq 0 ]; then
-          a="${tok_val[i]}"
-          if [ "${tok_dyn[i]}" -eq 1 ]; then
-            cd_reason="cd の引数（${a}）を静的に解決できない"
-          elif [[ "$a" == -* ]]; then
-            cd_reason="cd のオプション（${a}）は解釈しない"
-          elif [[ "$a" == /* ]]; then
-            dir="$a"
-            cd_reason=""
-          else
-            dir="$dir/$a"
-          fi
-        else
-          cd_reason="cd の引数がない"
-        fi
-        ;;
-      git)
-        i=$((i + 1))
-        gdir="$dir"
-        git_reason=""
-        w=""
-        while [ "$i" -lt "$n" ] && [ "${tok_op[i]}" -eq 0 ]; do
-          a="${tok_val[i]}"
-          case "$a" in
-            push)
-              w="push"
-              break
-              ;;
-            -C)
-              i=$((i + 1))
-              if [ "$i" -ge "$n" ] || [ "${tok_op[i]}" -eq 1 ]; then
-                break
-              fi
-              if [ "${tok_dyn[i]}" -eq 1 ]; then
-                git_reason="git -C の引数（${tok_val[i]}）を静的に解決できない"
-              elif [[ "${tok_val[i]}" == /* ]]; then
-                gdir="${tok_val[i]}"
-              else
-                gdir="$gdir/${tok_val[i]}"
-              fi
-              ;;
-            -c | --namespace | --super-prefix | --config-env | --exec-path)
-              i=$((i + 1))
-              ;;
-            --git-dir | --work-tree)
-              git_reason="git ${a} で作業ツリーが変わる"
-              i=$((i + 1))
-              ;;
-            --git-dir=* | --work-tree=*)
-              git_reason="git ${a%%=*} で作業ツリーが変わる"
-              ;;
-            -*) ;;
-            *) break ;;
-          esac
-          i=$((i + 1))
-        done
-        if [ "$w" = "push" ]; then
-          reason="${env_reason:-${git_reason:-$cd_reason}}"
-          if [ -z "$reason" ] && [ "$cd_seen" -eq 1 ] && [ "$grouped" -eq 1 ]; then
-            reason="グループ化されたコマンドの中の cd は解釈しない"
-          fi
-          if [ -z "$reason" ]; then
-            if ! root="$(cd -P "$gdir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)" \
-              || [ -z "$root" ]; then
-              reason="${gdir} は git の作業ツリーではない（または存在しない）"
-            fi
-          fi
-          if [ -n "$reason" ]; then
-            unresolved="$reason"
-            return 2
-          fi
-          if [ "$found" -eq 1 ] && [ "$root" != "$push_root" ]; then
-            unresolved="1 つの command に異なる作業ツリーへの push が含まれる"
-            return 2
-          fi
-          found=1
-          push_root="$root"
-        fi
-        ;;
-    esac
-
-    # 次の演算子まで読み飛ばす
-    while [ "$i" -lt "$n" ] && [ "${tok_op[i]}" -eq 0 ]; do
-      i=$((i + 1))
-    done
-  done
-
-  if [ "$found" -eq 1 ]; then
-    return 0
-  fi
-  return 1
-}
+read_bash_input "$input"
 
 # 作業ツリー DIR の共有 git ディレクトリ（物理パス）。worktree 同士は同じ値になる。
 git_common_dir_of() {
@@ -360,21 +55,22 @@ git_common_dir_of() {
   ) || true
 }
 
-if resolve_push_target; then
-  :
-else
-  rc=$?
-  if [ "$rc" -eq 1 ]; then
-    exit 0
-  fi
-  deny "[pre-push] push 先の作業ツリーを静的に特定できないため push を中止しました（${unresolved}）。cd / git -C の引数に変数・コマンド置換・~・glob を使わず、対象の作業ツリーの中で \`git push\` を単独で実行してください。"
+resolve_git_target push "$HOOK_CMD" "$HOOK_BASE_DIR"
+if [ -n "$GIT_TARGET_UNRESOLVED" ]; then
+  emit_hook_deny "[pre-push] push 先の作業ツリーを静的に特定できないため push を中止しました（${GIT_TARGET_UNRESOLVED}）。cd / git -C の引数に変数・コマンド置換・~・glob を使わず、対象の作業ツリーの中で \`git push\` を単独で実行してください。"
+  exit 0
 fi
+push_root="$GIT_TARGET_ROOT"
+[ -n "$push_root" ] || exit 0
 
 # 別 repository への push は本 project の検査対象外（push 元と共有 git ディレクトリが異なる）。
-base_common="$(git_common_dir_of "$base_dir")"
-root_common="$(git_common_dir_of "$push_root")"
-if [ -n "$base_common" ] && [ -n "$root_common" ] && [ "$base_common" != "$root_common" ]; then
-  exit 0
+# cd / -C を経ずに push 元の作業ツリーを指す場合は同じ repository なので、比較しない。
+if [ "$GIT_TARGET_DIR" != "$HOOK_BASE_DIR" ]; then
+  base_common="$(git_common_dir_of "$HOOK_BASE_DIR")"
+  root_common="$(git_common_dir_of "$push_root")"
+  if [ -n "$base_common" ] && [ -n "$root_common" ] && [ "$base_common" != "$root_common" ]; then
+    exit 0
+  fi
 fi
 
 # 以降の検査はすべて push 先の作業ツリーのルートで行う。
@@ -425,16 +121,10 @@ fi
 # 走査する場合に比べて影響範囲は小さい。
 #
 # gitleaks コマンドの注入 seam: PROJ_GITLEAKS_CMD が設定されていればそれを使う（テスト用 stub 注入）。
-# 未設定なら本番デフォルトの PATH 上 gitleaks を使う。
-if [[ -n "${PROJ_GITLEAKS_CMD:-}" ]]; then
-  gitleaks_cmd=("${PROJ_GITLEAKS_CMD}")
-elif command -v gitleaks >/dev/null 2>&1; then
-  gitleaks_cmd=(gitleaks)
-else
-  gitleaks_cmd=()
-fi
+# 未設定なら本番デフォルトの PATH 上 gitleaks を使う（無ければ空で、秘密検知を skip する）。
+gitleaks_bin="${PROJ_GITLEAKS_CMD:-$(command -v gitleaks || true)}"
 
-if [[ ${#gitleaks_cmd[@]} -gt 0 ]]; then
+if [[ -n "$gitleaks_bin" ]]; then
   # gitleaks は既定で「leak 検出」時に exit 1 を返すが、設定不正等の「実行エラー」も
   # 同じく exit 1（不明フラグは 126）となり衝突する。--exit-code 99 で leak 検出時のみ
   # 99 を返させることで、実行エラー（1 / 126 等）と区別可能にする。set -e 下で
@@ -444,13 +134,14 @@ if [[ ${#gitleaks_cmd[@]} -gt 0 ]]; then
   if [[ -f ".gitleaks.toml" ]]; then
     gitleaks_args+=(--config .gitleaks.toml)
   fi
-  if gl_out="$("${gitleaks_cmd[@]}" "${gitleaks_args[@]}" 2>&1)"; then
+  if gl_out="$("$gitleaks_bin" "${gitleaks_args[@]}" 2>&1)"; then
     gl_rc=0
   else
     gl_rc=$?
   fi
   if [[ "$gl_rc" -eq 99 ]]; then
-    deny "[gitleaks] シークレットの可能性がある値を検出したため push を中止しました。検出対象は **まだ remote に出ていないローカル commit のみ**（--all --not --remotes）です。実シークレットなら履歴から除去・ローテーションし、誤検知なら .gitleaks.toml の [allowlist] regexes に値ベース（\\b 厳密一致）で追記してください。"$'\n\n'"$gl_out"
+    emit_hook_deny "[gitleaks] シークレットの可能性がある値を検出したため push を中止しました。検出対象は **まだ remote に出ていないローカル commit のみ**（--all --not --remotes）です。実シークレットなら履歴から除去・ローテーションし、誤検知なら .gitleaks.toml の [allowlist] regexes に値ベース（\\b 厳密一致）で追記してください。"$'\n\n'"$gl_out"
+    exit 0
   elif [[ "$gl_rc" -ne 0 ]]; then
     # rc が 0/99 以外は実行エラー（mise shim 未 pin・config 不正・不明フラグ等）。
     # leak 検出と区別し、gitleaks 不在時 skip と同じく無出力で後続チェックへ継続する
@@ -460,14 +151,8 @@ if [[ ${#gitleaks_cmd[@]} -gt 0 ]]; then
   fi
 fi
 
-## --- 共通ユーティリティ読み込み ---
-# pnpm / node_modules 非依存の検査でも run_step を使えるよう、skip ガードより前に読み込む。
-# hook_dir は cd する前に確定した絶対パス。
-HOOK_UTILS="$hook_dir/../bin/hook-utils.sh"
-export HOOK_LOG_PREFIX="pre-push"
-# shellcheck source=../bin/hook-utils.sh
-source "$HOOK_UTILS"
-
+# run_step LABEL CMD...: 失敗したら compact した出力つきで push を deny する。
+# pnpm / node_modules 非依存の検査でも使えるよう、skip ガードより前に定義する。
 run_step() {
   local label="$1"
   shift
@@ -475,7 +160,8 @@ run_step() {
   if ! output="$("$@" 2>&1)"; then
     local compacted
     compacted="$(compact_output "$label" "$output" 200)"
-    deny "[$label] failed before git push."$'\n\n'"$compacted"
+    emit_hook_deny "[$label] failed before git push."$'\n\n'"$compacted"
+    exit 0
   fi
 }
 
@@ -489,39 +175,25 @@ run_step() {
 
 # pnpm コマンドの注入 seam: PROJ_PNPM_CMD が設定されていればそれを使う（テスト用 stub 注入）。
 # 未設定なら PATH 上の pnpm を使う。
-if [[ -n "${PROJ_PNPM_CMD:-}" ]]; then
-  pnpm_cmd=("${PROJ_PNPM_CMD}")
-else
-  pnpm_cmd=(pnpm)
-fi
+pnpm_bin="${PROJ_PNPM_CMD:-pnpm}"
 
 # pnpm が解決できない（mise activate 失敗等）場合は skip して通過する（fail-open）。
 # skip した検査のうち format:check / build は CI が担保するが、lint / typecheck は担保されない。
-if ! command -v "${pnpm_cmd[0]}" >/dev/null 2>&1; then
-  jq -n '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      additionalContext: "pre-push CI check skipped (pnpm not on PATH; run `mise install` and push again to run lint / typecheck / build locally)"
-    }
-  }'
+if ! command -v "$pnpm_bin" >/dev/null 2>&1; then
+  emit_hook_context PreToolUse "pre-push CI check skipped (pnpm not on PATH; run \`mise install\` and push again to run lint / typecheck / build locally)"
   exit 0
 fi
 
 # node_modules が無い（worktree 等で install 未済）場合は skip して通過する。
 # 手動で `pnpm install --frozen-lockfile` を実行してから push し直すと完全検証になる。
 if [ ! -d "node_modules" ]; then
-  jq -n '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      additionalContext: "pre-push CI check skipped (node_modules not installed; run `pnpm install --frozen-lockfile` and push again to run lint / typecheck / build locally)"
-    }
-  }'
+  emit_hook_context PreToolUse "pre-push CI check skipped (node_modules not installed; run \`pnpm install --frozen-lockfile\` and push again to run lint / typecheck / build locally)"
   exit 0
 fi
 
 # 各チェックを順に実行し、失敗した最初のステップで stop して deny を返す。
 for step in "${CI_CHECK_STEPS[@]}"; do
-  run_step "$step" "${pnpm_cmd[@]}" "$step"
+  run_step "$step" "$pnpm_bin" "$step"
 done
 
 # --- PJ 固有の追加 step をここに追加 -------------------------------------------
@@ -532,9 +204,4 @@ done
 # -------------------------------------------------------------------------------
 
 # 全パスしたら additionalContext で通過記録を残す
-jq -n --arg steps "${CI_CHECK_STEPS[*]}" '{
-  hookSpecificOutput: {
-    hookEventName: "PreToolUse",
-    additionalContext: ("pre-push CI check passed (" + $steps + ")")
-  }
-}'
+emit_hook_context PreToolUse "pre-push CI check passed (${CI_CHECK_STEPS[*]})"

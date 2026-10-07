@@ -43,7 +43,7 @@ Issue・PR・計画を書く agent / skill は、解決策の候補が複数あ�
 
 ## 関連
 
-- [autonomous-flow](./autonomous-flow.md) — 途中で止まらず自律判断する。承認が必須なのは課金と秘密値のみ
+- [autonomous-flow](./autonomous-flow.md) — 途中で止まらず自律判断する
 - [long-term-automation](./long-term-automation.md) — 自動化される案を優先する
 - [scope-boundary](./scope-boundary.md) — scope 外の指摘は Issue として切り出す
 - `docs/harness/OPERATING_MODEL.md` — 承認モデルと人間引き渡し境界の正本

@@ -5,22 +5,16 @@ set -euo pipefail
 # formatter (既定: prettier) で整形し、それらのファイルのみを再 stage してから
 # コミットする。別ファイルの unstaged 変更は混入しない。同一ファイル内に未 stage の
 # hunk が残る部分 staging はファイル単位の git add で安全に保持できないため deny する。
-
-# worktree の .mise.toml を auto-trust（trust 未完だと shim 経由の pnpm 起動が落ちる。
-# pre-push-ci-check.sh と同じガード。commit は worktree セッションの最初期に起きうるため
-# ここで trust しておかないと、pre-push 側より先にこの hook が壊れた pnpm 解決に当たりやすい）。
-if [ -f ".mise.toml" ]; then
-  mise trust --quiet . 2>/dev/null || true
-fi
-eval "$(mise activate bash 2>/dev/null)" || true
-export PATH="$HOME/.local/share/mise/shims:/opt/homebrew/bin:$PATH"
+#
+# commit する作業ツリーは、入力の cwd と、command 内の `cd <dir>` / `git -C <dir> commit` から
+# ../bin/hook-utils.sh の resolve_git_target で決める。決められない形（変数を含む cd 先など）は
+# 整形せずに通す（整形は補助で、format:check が pre-push と CI で検証される）。
+# 対象は、commit が cd 以外のコマンドより前に実行される command だけである。
 
 # 共通ユーティリティ読み込み（compact_output で deny 理由を切り詰める）。
-# `cd` ではなく dirname でパス解決する: mise activate が bash の `cd` を chpwd フック付き
-# 関数へ差し替えるため、ここで `cd` を使うと呼び出し元 cwd とは別の（本 hook 自身が
-# 置かれた）ディレクトリ木に対して mise hook-env が誤発火し、無関係な `.mise.toml` の
-# trust 状態でノイズが出うる。
-HOOK_UTILS="$(dirname "${BASH_SOURCE[0]}")/../bin/hook-utils.sh"
+# mise の準備（setup_toolchain）より前に読み込む。
+hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOK_UTILS="$hook_dir/../bin/hook-utils.sh"
 export HOOK_LOG_PREFIX="pre-format-check"
 # shellcheck source=../bin/hook-utils.sh
 source "$HOOK_UTILS"
@@ -28,10 +22,32 @@ source "$HOOK_UTILS"
 # stdin（hook JSON）を先に退避（formatter が消費する前に）
 input="$(cat)"
 
-# 防御ガード: git commit 以外のコマンドなら即通過（if フィルタの保険）
-cmd="$(jq -r '.tool_input.command // ""' <<< "$input")"
-if [[ "$cmd" != git\ commit* ]]; then
+# commit を含まない入力は即通過する（`Bash(git -C *)` で起動された `git -C <dir> status` 等）。
+[[ "$input" == *commit* ]] || exit 0
+
+# jq 自体も mise の shim で解決され得るため、入力の解析より前に行う。
+# commit は worktree セッションの最初期に起きうるため、ここで .mise.toml を trust しておかないと、
+# pre-push 側より先にこの hook が壊れた pnpm 解決に当たりやすい。
+setup_toolchain
+
+read_bash_input "$input"
+
+# commit 先の作業ツリーを決める。git commit を含まない command は通過する（if フィルタの保険）。
+# commit より前に cd 以外のコマンド（git add など）が走る command も通過する。hook 時点の
+# staged 状態が commit の内容と一致せず、整形対象も部分 staging の判定も当てにならないため。
+resolve_git_target commit "$HOOK_CMD" "$HOOK_BASE_DIR"
+[ "$GIT_TARGET_PRECEDED" -eq 0 ] || exit 0
+if [ -n "$GIT_TARGET_UNRESOLVED" ]; then
+  emit_hook_context PreToolUse "pre-format-check skipped (commit target worktree could not be resolved: ${GIT_TARGET_UNRESOLVED}; CI will still validate format)"
   exit 0
+fi
+commit_root="$GIT_TARGET_ROOT"
+[ -n "$commit_root" ] || exit 0
+
+# 以降の処理はすべて commit 先の作業ツリーのルートで行う。
+if [ "$(pwd -P)" != "$commit_root" ]; then
+  builtin cd "$commit_root"
+  setup_toolchain
 fi
 
 # hook 開始時点で staged 済みのファイルを NUL 区切りで取得する（bash 3.2 互換: mapfile 不可）。
@@ -54,12 +70,7 @@ else
   # pnpm が解決できない（worktree 未 install 等）場合は整形を skip して通過する。
   # commit を妨げず、format:check は CI / pre-push 側で検証される（fail-open）。
   if ! command -v pnpm >/dev/null 2>&1; then
-    jq -n '{
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        additionalContext: "pre-format-check skipped (pnpm not on PATH; CI will still validate format)"
-      }
-    }'
+    emit_hook_context PreToolUse "pre-format-check skipped (pnpm not on PATH; CI will still validate format)"
     exit 0
   fi
   formatter=(pnpm exec prettier)
@@ -80,13 +91,7 @@ if [[ "${#partial_staged[@]}" -gt 0 ]]; then
   for f in "${partial_staged[@]}"; do
     partial_list+=" $(printf '%q' "$f")"
   done
-  jq -n --arg reason "pre-format-check: partially staged files cannot be safely auto-formatted (re-running file-level git add would also stage their unstaged hunks):${partial_list}. Stage the full file or commit these hunks separately, then retry." '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
+  emit_hook_deny "pre-format-check: partially staged files cannot be safely auto-formatted (re-running file-level git add would also stage their unstaged hunks):${partial_list}. Stage the full file or commit these hunks separately, then retry."
   exit 0
 fi
 
@@ -97,23 +102,26 @@ fi
 # 書式判定にすると、壊れた shim の "command not found" 等が無言で素通りする）。
 if ! format_output="$("${formatter[@]}" --write --ignore-unknown -- "${staged_files[@]}" 2>&1)"; then
   compacted="$(compact_output "prettier" "$format_output" 200)"
-  jq -n --arg reason "$compacted" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: ("prettier failed to format staged files — commit blocked to avoid committing unformatted content. Run `pnpm install` / verify `pnpm exec prettier --version` resolves correctly, or check the prettier config, then retry.\n\n" + $reason)
-    }
-  }'
+  emit_hook_deny "prettier failed to format staged files — commit blocked to avoid committing unformatted content. Run \`pnpm install\` / verify \`pnpm exec prettier --version\` resolves correctly, or check the prettier config, then retry."$'\n\n'"$compacted"
   exit 0
 fi
 
 # 整形した staged files のみを再 stage するようコマンドを書き換える。
 # 各ファイルは printf '%q' で安全に shell 引用する（スペース・特殊文字対応）。git add -u は使わない。
+# staged files のパスはルート基準なので、Bash の cwd が commit 先のルートそのものの command は
+# そのまま git add を前置する。cd / -C を経る command やサブディレクトリが cwd の command は、
+# ルートを -C で明示する。
+base_phys="$(builtin cd -P "$HOOK_BASE_DIR" 2>/dev/null && pwd -P)" || base_phys=""
+if [[ "$base_phys" == "$commit_root" ]]; then
+  add_cmd="git add --"
+else
+  add_cmd="git -C $(printf '%q' "$commit_root") add --"
+fi
 add_args=""
 for f in "${staged_files[@]}"; do
   add_args+=" $(printf '%q' "$f")"
 done
-new_cmd="git add --${add_args} && ${cmd}"
+new_cmd="${add_cmd}${add_args} && ${HOOK_CMD}"
 
 jq -n --arg cmd "$new_cmd" '{
   hookSpecificOutput: {

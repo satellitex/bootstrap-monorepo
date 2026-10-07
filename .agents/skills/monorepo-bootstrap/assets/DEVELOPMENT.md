@@ -10,16 +10,7 @@
 
 ## 承認が必要な操作
 
-既定は自律実行で、エージェントは明示的な指示がない限り、変更の実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示すればマージまで任せられる。
-
-人間の明示承認が必須なのは次の 2 つのみ:
-
-1. **課金が発生する操作** — 有償リソースの作成・プラン変更・外部サービス契約
-2. **秘密値の挿入・変更** — credential / API key / token を設定へ投入する操作
-
-上記とは別に、公開契約の非互換や個人情報の取扱いなど、PR のレビューだけでは覆しにくい判断を人間へ引き渡す範疇を、導入先が決められる（既定: なし。正本 → `docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」）。
-
-ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。**prod リリースのみ手順を踏む**: main の安全性確認 → release への反映手順の確認。
+承認が必要な操作の範囲と、branch ごとの扱いは `docs/harness/OPERATING_MODEL.md`「承認モデル」が定める。人間の通常の関与は、PR のレビューとマージである。
 
 ## 実装フロー
 
@@ -29,12 +20,12 @@
 ```
 
 1. **Issue 起点** — `/create-issue` で起票するか、既存 Issue の番号をエージェントに伝える。実装フローの振り分けと標準手順は `docs/styles/team-feedback/implementation-flow-switch.md` に従う
-2. **TDD** — テストは「ユーザーストーリーの設計」→「それに対応するテストのみを作成」の順で書く。ユーザーストーリーに対応しない冗長なテスト、数合わせのテスト、実装詳細に密結合してすぐ形骸化するテストは書かない（正本 → `docs/product/TEST_STRATEGY.md` / `docs/styles/coding_guide/testing_principles.md`）
-3. **open PR** — 検証ゲート（`gate:commit`。定義 → `docs/harness/skills/shared/verification-gates.md`）を通し、PR 前に簡素化パスを 1 回入れてから提出する。計画・判断・検証結果は PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）と commit に残し、設計判断は `/create-adr` で ADR に残す（PR の作り方 → `docs/harness/skills/shared/pr-creation.md`）
+2. **TDD** — テストはユーザーストーリーの設計から書く（→ `docs/styles/coding_guide/testing_principles.md`「第一原則: ユーザーストーリー起点」。テストレベルと網羅基準 → `docs/product/TEST_STRATEGY.md`）
+3. **open PR** — 検証ゲート（`gate:commit`。定義 → `docs/harness/skills/shared/verification-gates.md`）を通し、PR 前に簡素化パスを 1 回入れてから提出する。計画・判断・検証結果は PR 本文の標準節と commit に残し、設計判断は `/create-adr` で ADR に残す（標準節と PR の作り方 → `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）
 4. **レビュー対応** — レビューコメントが付いたら `/handle-review`（批判的評価と自律修正）、LGTM まで見届けさせるなら `/review-cycle`
 5. **マージ** — 人間が diff を確認してマージする（PR body の `Closes #N` で Issue が自動 close）
 
-PR 本文は、レビュー時に判断の経緯を確認する唯一の置き場になる。方針と却下案、検証結果、残るリスクが書かれているかを見る。
+PR 本文は、レビュー時に判断の経緯を確認する唯一の置き場になる。標準節に方針と却下案、検証結果、残るリスクが書かれているかを見る。
 
 ## よく使う slash コマンド
 
@@ -75,4 +66,4 @@ sync 系（`/readme-sync` / `/docs-sync` / `/code-sync` 等）を含む全コマ
 - **レビューでは遠慮なく修正指示を出す** — AI は再生成するだけなのでコストは低い。設計段階で方向修正するほうが手戻りが少ない
 - **設計判断は ADR に残す** — `/create-adr` で「なぜこの設計にしたか」を記録すると後から振り返れる
 - **複数タスクは worktree で並行** — 各 worktree は独立した作業コピーで、互いに干渉しない
-- **INDEX は更新主体に任せる** — 実装 PR は既存の `INDEX.md` を編集しない。並列に進む PR の衝突を避けるためで、行は更新主体が実体から起こす。更新主体の routine を登録するまでは、実装 PR が同一 PR で更新してよい（正本 → `docs/harness/skills/shared/index-writer-policy.md`）
+- **INDEX は更新主体に任せる** — 実装 PR は既存の `INDEX.md` を編集しない（正本 → `docs/styles/team-feedback/shared-aggregate-single-writer.md`）

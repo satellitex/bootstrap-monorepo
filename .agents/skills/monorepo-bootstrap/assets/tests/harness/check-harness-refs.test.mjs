@@ -1,8 +1,8 @@
 // 参照実在 gate: ハーネス文書のインラインコードに書かれたリポジトリ相対パスが実在するか検査する。
 //
 // 走査対象はハーネス文書（support/repo-files.mjs の listHarnessFiles）。対象のパスは
-// PATH_PREFIXES で始まるトークンで、インラインコード（バッククォート 1 組）の中にあるものだけを
-// 見る。フェンス付きコードブロックは例示として扱い、検査しない。
+// PATH_PREFIXES（support/markdown.mjs）で始まるトークンで、インラインコード（バッククォート 1 組）
+// の中にあるものだけを見る。フェンス付きコードブロックは例示として扱い、検査しない。
 //
 // 実在判定から外すもの:
 //   - ワイルドカード・プレースホルダ・変数展開などのメタ文字を含むトークン
@@ -15,7 +15,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  IS_TEMPLATE_ROOT,
+  IS_TEMPLATE_MODE,
+  PATH_PREFIXES,
   REPO_SCAN_TEST_TIMEOUT_MS,
   assertNoViolations,
   existsExactCase,
@@ -24,26 +25,15 @@ import {
   linesOutsideFences,
   listHarnessFiles,
   loadGitignoreMatcher,
+  matchesPathSpec,
+  once,
   readRepoFile,
   validateExclusions,
 } from "./support/repo-files.mjs";
 
-/** 実在確認の対象にするパスの接頭辞。 */
-const PATH_PREFIXES = [
-  ".agents/",
-  ".claude/",
-  ".github/",
-  "apps/",
-  "docs/",
-  "infra/",
-  "packages/",
-  "scripts/",
-  "tests/",
-];
-
 /**
  * 実在しないが、参照として正しいトークン。`{ candidate, reason, optional? }`。
- * `candidate` は末尾の `/` を除いたトークン全体、または末尾 `/**` を持つ接頭辞。
+ * `candidate` は末尾の `/` を除いたトークン全体、または末尾 `/**` を持つ接頭辞（配下全体）。
  * 本文に出現しない除外は stale として失敗にする。`optional: true` の除外は、導入先の文書構成に
  * よって現れないことがあるため、テンプレート資産でだけ stale を検査する。導入先で除外を足す
  * ときは `optional` を付けず、対象が消えたら除外も削除する。
@@ -104,17 +94,17 @@ function normalizeToken(raw) {
   return t;
 }
 
-function matchesExclusion(token, exclusion) {
-  return exclusion.candidate.endsWith("/**")
-    ? token.startsWith(exclusion.candidate.slice(0, -2))
-    : token === exclusion.candidate;
+function matchesExclusion(token, { candidate }) {
+  // 末尾 `/**` は配下全体を表し、matchesPathSpec の末尾 `/` に当たる。
+  const spec = candidate.endsWith("/**") ? candidate.slice(0, -2) : candidate;
+  return matchesPathSpec(token, spec);
 }
 
 function isExcluded(token) {
   return MISSING_PATH_EXCLUSIONS.some((e) => matchesExclusion(token, e));
 }
 
-function collectCandidates() {
+const collectCandidates = once(() => {
   const out = [];
   for (const file of listHarnessFiles()) {
     for (const c of extractPathCandidates(readRepoFile(file))) {
@@ -122,7 +112,7 @@ function collectCandidates() {
     }
   }
   return out;
-}
+});
 
 describe("参照実在 gate: ハーネス文書のパス参照", () => {
   it(
@@ -161,7 +151,7 @@ describe("参照実在 gate: ハーネス文書のパス参照", () => {
       );
       const tokens = collectCandidates().map((c) => c.token);
       const stale = findStaleExclusions(
-        MISSING_PATH_EXCLUSIONS.filter((e) => IS_TEMPLATE_ROOT || !e.optional),
+        MISSING_PATH_EXCLUSIONS.filter((e) => IS_TEMPLATE_MODE || !e.optional),
         (e) => tokens.some((t) => matchesExclusion(t, e)),
       );
       assert.deepEqual(

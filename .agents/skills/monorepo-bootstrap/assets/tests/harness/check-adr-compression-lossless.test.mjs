@@ -1,5 +1,7 @@
 // check-adr-compression-lossless.mjs の自己テスト。検査対象ルート（HARNESS_ROOT）には依存せず、
-// 固定の ADR 文字列と一時ファイルだけを使う。
+// 固定の ADR 文字列と一時ファイルだけを使う。CLI は main() をインプロセスで呼び、子プロセスの
+// 起動は、スクリプトとして実行したときの終了コード（isMain と process.exit の経路）を確かめる
+// 1 件だけにする。
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -14,6 +16,7 @@ import {
   collectReferences,
   extractStatus,
   findSection,
+  main,
   verifyCompression,
 } from "./check-adr-compression-lossless.mjs";
 
@@ -223,9 +226,11 @@ describe("check-adr-compression-lossless: Status の読み取り", () => {
 
 describe("check-adr-compression-lossless: 相互参照の抽出", () => {
   it("ADR id は .md と末尾の句点を落とし、パスはアンカーと行番号を落とす", () => {
-    const refs = collectReferences(
-      "[a](ADR-20260101_x_y.md) と ADR-20260101_x_y. と docs/adr/README.md#運用 と tests/a.mjs:10",
-    ).map((r) => `${r.rule}:${r.ref}`);
+    const refs = [
+      ...collectReferences(
+        "[a](ADR-20260101_x_y.md) と ADR-20260101_x_y. と docs/adr/README.md#運用 と tests/a.mjs:10",
+      ).values(),
+    ].map((r) => `${r.rule}:${r.ref}`);
     assert.deepEqual(refs.sort(), [
       "adr-id:ADR-20260101_x_y",
       "repo-path:docs/adr/README.md",
@@ -234,49 +239,51 @@ describe("check-adr-compression-lossless: 相互参照の抽出", () => {
   });
 
   it("Issue 番号は #数字 だけを拾い、見出し記法・アンカーは拾わない", () => {
-    const refs = collectReferences(
-      "# 見出し\n\n#12 と (#34) と page#6 と #abc",
-    ).map((r) => r.ref);
+    const refs = [
+      ...collectReferences(
+        "# 見出し\n\n#12 と (#34) と page#6 と #abc",
+      ).values(),
+    ].map((r) => r.ref);
     assert.deepEqual(refs.sort(), ["#12", "#34"]);
   });
 });
 
 describe("check-adr-compression-lossless: CLI", () => {
-  function runCli(before, after, extra = []) {
+  /** 一時ファイルに before / after を書き、main() をインプロセスで呼ぶ。 */
+  function runMain(before, after, extra = []) {
     const dir = mkdtempSync(join(tmpdir(), "adr-lossless-"));
     try {
       const b = join(dir, "before.md");
       const a = join(dir, "after.md");
       writeFileSync(b, before);
       writeFileSync(a, after);
-      return spawnSync(process.execPath, [CLI, b, a, ...extra], {
-        encoding: "utf8",
+      const out = [];
+      const err = [];
+      const status = main([b, a, ...extra], {
+        out: (line) => out.push(line),
+        err: (line) => err.push(line),
       });
+      return { status, stdout: out.join("\n"), stderr: err.join("\n") };
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   }
 
   it("通れば終了コード 0、落ちれば 1", () => {
-    const pass = runCli(BEFORE, AFTER);
+    const pass = runMain(BEFORE, AFTER);
     assert.equal(pass.status, 0, pass.stdout + pass.stderr);
     assert.match(pass.stdout, /PASS/);
-    const fail = runCli(BEFORE, AFTER.replace("方針 A", "方針 B"));
+    const fail = runMain(BEFORE, AFTER.replace("方針 A", "方針 B"));
     assert.equal(fail.status, 1);
     assert.match(fail.stdout, /FAIL decision/);
   });
 
-  it("引数不足・読めないファイルは終了コード 2", () => {
-    const noArgs = spawnSync(process.execPath, [CLI], { encoding: "utf8" });
-    assert.equal(noArgs.status, 2);
-    const missing = spawnSync(
-      process.execPath,
-      [CLI, "/nonexistent/a.md", "/nonexistent/b.md"],
-      {
-        encoding: "utf8",
-      },
-    );
-    assert.equal(missing.status, 2);
+  it("引数不足・未知のオプション・読めないファイルは終了コード 2", () => {
+    const quiet = { out: () => {}, err: () => {} };
+    assert.equal(main([], quiet), 2);
+    assert.equal(main(["--unknown", "a", "b"], quiet), 2);
+    assert.equal(main(["--decision-heading"], quiet), 2);
+    assert.equal(main(["/nonexistent/a.md", "/nonexistent/b.md"], quiet), 2);
   });
 
   it("見出し名を差し替えられる", () => {
@@ -284,12 +291,27 @@ describe("check-adr-compression-lossless: CLI", () => {
       s
         .replace("## Decision", "## 決定")
         .replace("## Related Issues", "## 関連 Issue");
-    const result = runCli(localize(BEFORE), localize(AFTER), [
+    const result = runMain(localize(BEFORE), localize(AFTER), [
       "--decision-heading",
       "決定",
       "--related-heading",
       "関連 Issue",
     ]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
+  });
+
+  it("スクリプトとして実行すると、判定の終了コードで終了する", () => {
+    const dir = mkdtempSync(join(tmpdir(), "adr-lossless-"));
+    try {
+      const b = join(dir, "before.md");
+      const a = join(dir, "after.md");
+      writeFileSync(b, BEFORE);
+      writeFileSync(a, AFTER.replace("方針 A", "方針 B"));
+      const r = spawnSync(process.execPath, [CLI, b, a], { encoding: "utf8" });
+      assert.equal(r.status, 1, r.stdout + r.stderr);
+      assert.match(r.stdout, /FAIL decision/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

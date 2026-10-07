@@ -1,6 +1,6 @@
+<!-- harness:form -->
 <!--
-ADR 本文テンプレート。docs/adr/README.md の規約に従い、このファイルをコピーして
-ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md として作成する（コピー後このコメントは削除する）。
+ADR 本文テンプレート。docs/adr/README.md の規約（命名は「書き方」）に従い、このファイルをコピーして作成する（コピー後このコメントは削除する）。
 -->
 
 # ADR-{date}_{branch-slug}_{topic-slug}: {タイトル}

@@ -7,7 +7,7 @@ target repo に既存のテンプレート（PR テンプレート、ADR テン�
 
 ## 1. PR 本文の節構成
 
-PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）と、bootstrap / adopt の PR に加える 2 節（承認ログ / 移管先の文書）の定義は、`../assets/docs/harness/skills/shared/pr-creation.md` が正本である。
+PR 本文の標準節と、bootstrap / adopt の PR に加える 2 節（承認ログ / 移管先の文書）の定義は、`../assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」「bootstrap / adopt の PR に加える節」が正本である。
 ここでは bootstrap で各節に何を書くかと、確定前の途中成果を載せる節を定める。
 
 ```markdown
@@ -132,6 +132,10 @@ PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証�
 | Topic | Decision | Runbook path |
 |-------|----------|--------------|
 
+### Implementation（最初の vertical slice）
+| Slice | 単位（API / UI / DB / worker など） | Verification |
+|-------|-------------------------------------|--------------|
+
 ### Deploy
 | Environment | Provider | Trigger | Smoke check | Rollback | Approval required |
 |-------------|----------|---------|-------------|----------|-------------------|
@@ -145,6 +149,17 @@ PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証�
 |------|--------|------------|-------|
 ```
 
+「Docs と Harness」には、次の項目を立てる。
+
+- docs 運用の層分離、INDEX、公開射影
+- workflow 一覧と opt-in の採否
+- sync 範囲（README / docs / code / public docs / dependency など、鮮度維持の対象）
+- Issue taxonomy と lifecycle
+- milestone
+- Project model（board、field、status、date field、owner field、magic value の保管先）
+- tool adapter（Codex と Claude から各 workflow をどう呼ぶか）
+- 言語方針（Project language と surface ごとの例外、運用文書の言語の扱い）
+
 確定時の移管先:
 
 | 計画の項目 | 移管先 |
@@ -153,6 +168,7 @@ PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証�
 | Architecture / App topology | `docs/product/ARCHITECTURE.md`（現在の構成のみ。判断理由は ADR） |
 | Infrastructure | 採用した選定の ADR と `docs/product/TECH_STACK.md`。手順は `docs/runbooks/` |
 | Docs と Harness | `docs/harness/OPERATING_MODEL.md`（workflow 一覧と言語ポリシー）。opt-in の採否とその理由は ADR 1 本 |
+| Implementation | PR 本文の「方針と却下案」（vertical slice の選定）と「検証結果」 |
 | Environment / Runner operations / Deploy | `docs/runbooks/`。deploy の具体手順は `docs/harness/skills/deploy-verify.md` |
 | CI/CD | PR 本文の「方針と却下案」（拡張候補の採否と理由） |
 | Tasks | GitHub Issue |
@@ -162,7 +178,7 @@ PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証�
 
 ### 2.1 調査ノート（`docs/notes/research/<topic>.md`）
 
-1 トピック 1 ファイルで置く。冒頭に `#` 見出しとリード文（調査の目的と範囲）を書く。`INDEX.md` の行は更新主体が起こす（割当表は `docs/harness/skills/shared/index-writer-policy.md`）。
+1 トピック 1 ファイルで置く。冒頭の見出しとリード文（調査の目的と範囲）は `docs/harness/skills/shared/index-writer-policy.md`「leaf 文書の要件」に従う。`INDEX.md` の行は更新主体が起こす。
 調査ノートは調査した時点の記録であり、採用の宣言は書かない。採用した選定は ADR と `docs/product/TECH_STACK.md` に置く。
 
 ```markdown
@@ -205,7 +221,7 @@ PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証�
 
 ### 2.2 技術選定の ADR（1 領域 1 ADR）
 
-ファイル名は `docs/adr/ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md`。書式は `docs/adr/template.md` に従い、Status は `Proposed` にする（bootstrap PR のマージ後に `/adr-compress` が `Accepted` へ追従させる）。
+ファイル名は `docs/adr/README.md`「書き方」の命名規則に従う。書式は `docs/adr/template.md` に従い、Status は `Proposed` にする（bootstrap PR のマージ後に `/adr-compress` が `Accepted` へ追従させる）。
 代替案と棄却理由を Decision に含める。調査の過程と一次情報は調査ノートに置き、ADR から参照する。
 
 ```markdown
@@ -295,4 +311,4 @@ GitHub から検証した値だけを書く。検証前の値は TODO 記法（`
 - GitHub Project ID・field ID・option ID・milestone node ID・label ID を推測で書かない。
 - Project や field がまだ無い場合は placeholder を書き、作成を GitHub Issue の残タスクに起こす。
 - Codex / Claude の呼び出し方の注記は薄く保ち、workflow の詳細は shared docs に置く。
-- issue / PR / ラベル / milestone / Project 等の GitHub mutation は自律実行してよい（人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ）。
+- issue / PR / ラベル / milestone / Project 等の GitHub mutation は自律実行してよい（承認の定義 → `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。

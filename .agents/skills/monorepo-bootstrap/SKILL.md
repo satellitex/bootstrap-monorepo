@@ -8,7 +8,6 @@ user_invocable: true
 
 任意のプロダクト概要から、実装可能なモノレポを立ち上げる上位オーケストレーション Skill。
 特定 project、業務ドメイン、cloud provider、runtime、CSS framework に固定せず、技術選定、docs 正本、Codex/Claude 両対応ハーネス、環境整備、CI/CD、初期実装、deploy 検証までを自律実行で進める。
-人間の明示承認が必須なのは、課金が発生する操作と秘密値の挿入・変更の 2 つのみとする。
 ハーネス・docs・CI の実体はスクラッチ生成せず、`assets/`（台帳: `assets/MANIFEST.md`）からの copy + placeholder 置換で展開する。
 
 bootstrap 先では vendor/tool 固有の手順を入口ファイルへ閉じ込めない。
@@ -28,8 +27,7 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 | Project language | No | Issue / PR / ADR / docs / review comment の既定言語。assets の運用文書は日本語で収録されており、翻訳は明示された場合のみ（Language Policy 参照） | `日本語`, `English` |
 
 入力が足りない場合は、作業を止めずに仮定を明示して Discovery を始める。
-既定は自律実行とし、変更の実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
-人間の明示承認が必須なのは次の 2 つのみ: (1) 課金が発生する操作（有償リソースの作成・プラン変更・外部サービス契約）、(2) 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）。
+既定は自律実行とし、人間の明示承認が必須なのは課金と秘密値の 2 つのみ（→ `assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
 
 ## 基本方針
 
@@ -89,7 +87,7 @@ Gate A / Gate B の途中成果は、PR 本文の「Intake（確定前）」「G
 | 技術調査（一次情報 URL、比較観点、未確定事項、repo 観察） | `docs/notes/research/<topic>.md` |
 | 技術選定（採用案、代替案、棄却理由、運用リスク、cost/limits、local dev 影響） | 採用した選定は `docs/adr/`（1 領域 1 ADR。代替案と棄却理由を含む）。現在の採用状態は `docs/product/TECH_STACK.md` |
 | ハーネス構成（docs 運用、workflow、Issue/Project 運用、adapter 方針、opt-in 採否） | opt-in の採否とその理由は ADR 1 本。workflow 一覧と言語ポリシーは `docs/harness/OPERATING_MODEL.md`。Project / ラベルの実値は `.claude/skills/create-issue/references/project-fields.md` |
-| 実装計画（docs/ハーネス/環境/CI/CD/deploy/初期機能の Task） | PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）。残タスクは GitHub Issue |
+| 実装計画（docs/ハーネス/環境/CI/CD/deploy/初期機能の Task） | PR 本文の標準節（→ `assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）。残タスクは GitHub Issue |
 | 実装結果（検証、deploy URL、残タスク） | PR 本文（検証結果・リスク）。残タスクは GitHub Issue |
 
 PR 本文の節構成と、移管先の文書のテンプレートは `references/bootstrap-artifacts.md` にある。標準節と 2 つの追加節（承認ログ / 移管先の文書）の定義は `assets/docs/harness/skills/shared/pr-creation.md` が正本である。
@@ -156,39 +154,7 @@ monorepo-bootstrap <product overview>
 最新仕様に依存する判断は、必ず一次情報を確認する。
 公式 docs、公式 examples、SDK/CLI reference、価格/制限ページ、信頼できる migration guide を優先する。
 
-Gate A までに、少なくとも以下を比較する。
-
-| 領域 | 必須確認 |
-|------|----------|
-| App framework / language / monorepo tool | framework、language/runtime、package manager、task runner、workspace 境界 |
-| Deploy / hosting provider | provider 候補、preview/staging/prod support、region、cost、limits、rollback |
-| Runtime model | server、serverless、edge、container、hybrid の適合性 |
-| Database | data model、migration、backup、local dev、connection/runtime 制約 |
-| Object/file storage | upload/download、signed URL、retention、local mock |
-| Cache | consistency、TTL、invalidation、runtime locality |
-| Queue / workflow / job orchestration | retry、DLQ、schedule、durability、visibility |
-| Long-running task handling | timeout、checkpoint、resume、human approval、cancel/retry |
-| External agent / worker runtime boundary | trust boundary、permissions、network/file access、audit |
-| Auth / identity | session boundary、OAuth/OIDC、RBAC、tenant/workspace |
-| Observability | logs、metrics、traces、error tracking、audit trail |
-| CI/CD provider and deployment strategy | CI provider、branch deploy、environment promotion、required checks |
-| CSS / UI styling strategy | UI がある場合。CSS Modules、Tailwind、Panda CSS、vanilla-extract、framework-native styling 等 |
-
-各領域で、Gate A 節に「採用案」「代替案」「棄却理由」「運用リスク」「cost/limits」「local dev 影響」を残す。
-UI がある project では CSS / styling strategy の採用判断も 1 領域として ADR 化する。
-
-### App Topology Selection
-
-`apps/web`, `apps/api`, `apps/workers`, `apps/jobs`, `apps/workflows` などの分割を機械的に決めない。
-次を比較し、Gate A 節（確定後は ADR）に残す。
-
-- UI と server-side route の結合度
-- deploy 単位
-- scaling 単位
-- auth/session 境界
-- external API と internal route の違い
-- tenant/workspace ごとの domain route の自然さ
-- long-running / async 処理の責務分離
+Gate A までに比較する領域（app framework から CSS / UI styling strategy まで）と、領域ごとの必須確認は `references/technology-selection.md` §1 に従う。各領域で残す項目は同 §1 と §2、infrastructure service selection は同 §4、app topology は同 §5 に従い、比較結果を Gate A 節（確定後は ADR）に残す。UI がある project では CSS / styling strategy の採用判断も 1 領域として ADR 化する。
 
 ## Gate A: 技術選定の確定
 
@@ -233,37 +199,9 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 5. `references/ci-cd-runner-deploy.md`
 6. `references/reference-harness-patterns.md`
 
-ハーネス構成には以下を必ず含める。
+ハーネス構成（docs 運用の層分離、workflow 一覧と opt-in 採否、sync 範囲、Issue taxonomy と lifecycle、milestone、Project model、tool adapter、言語方針）は、`references/bootstrap-artifacts.md` §1「Gate B 実装計画（確定前）」の「Docs と Harness」に従って決める。
 
-| セクション | 内容 |
-|------------|------|
-| Docs operating model | `docs/harness/` と `docs/product/` の層分離、INDEX、README、公開射影 |
-| Workflow inventory | `assets/MANIFEST.md` の core 資産一覧と opt-in グループ（一覧は MANIFEST）の採否 |
-| Sync scope | README/docs/code/public docs/dependency など、鮮度維持対象 |
-| Issue taxonomy | infra, web/ui, core/domain, integration, async/job/workflow, ci/cd, security, docs |
-| Issue lifecycle | 計画は PR 本文、判断は ADR、残タスクは Issue。承認要否（必須は課金・秘密値のみ） |
-| Milestones | product roadmap から導いた milestone 一覧と対象範囲 |
-| Project model | Project board、fields、status、date field、owner field、magic value の保管先 |
-| Tool adapters | Codex と Claude から各 workflow をどう呼ぶか |
-| Language policy | Project language と surface ごとの例外、運用文書の言語の扱い（収録言語のまま導入するか、翻訳するか） |
-
-実装計画には以下を必ず含める。
-
-| セクション | 内容 |
-|------------|------|
-| Scope | bootstrap で作るもの、作らないもの |
-| Architecture | apps/packages/infra/docs の構成、境界、依存方向 |
-| Infrastructure | deploy/provider/runtime/DB/storage/cache/queue/workflow/observability の採用案 |
-| App topology | web/api/jobs/workflows/workers の分割理由、deploy/scaling/auth/session 境界 |
-| Docs | docs 正本、4 層モデル、INDEX 更新、公開 docs gate |
-| Harness | AGENTS/CLAUDE、workflow、role、rules、hooks、sync 系、issue 管理 |
-| Environment | `mise` による tool/runtime version 管理、Node/package manager、env files、secret 管理、local dev |
-| CI/CD | 既定は基礎 CI 1 本（format:check / test / build、hooks テストとハーネス機械検査込み）。拡張候補の採否と理由 |
-| Runner operations | self-hosted runner を使う場合の service manager、user、credentials、logs、restart |
-| Implementation | 最初の vertical slice、API/UI/DB/worker 等の単位 |
-| Deploy | branch deploy（main=dev / release=prod）、prod リリース手順、rollback、smoke |
-| Risks | 技術/運用/セキュリティ/cost/limits のリスクと緩和 |
-| Tasks | 1 session で完了可能な issue 粒度、検証コマンド、完了条件 |
+実装計画の項目と、各項目の移管先は、`references/bootstrap-artifacts.md` §1「Gate B 実装計画（確定前）」に従う。環境は Step 6、CI/CD と runner は Step 7、deploy は Step 9 の方針で計画する。
 
 ## Gate B: 実装計画の確定
 
@@ -274,7 +212,7 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 
 確定した内容は、次のとおり各層へ移す。
 
-- 計画は PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）へ。退けた案は 1 案ごとに 1 行で「方針と却下案」に書く。
+- 計画は PR 本文の標準節（→ `assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）へ。退けた案は 1 案ごとに 1 行で「方針と却下案」に書く。
 - opt-in グループの採否とその理由は ADR 1 本へ。workflow 一覧と言語ポリシーは `docs/harness/OPERATING_MODEL.md` へ。
 - 残タスクは GitHub Issue へ。
 - Gate B 節には移管先への参照だけを残す。
@@ -298,14 +236,10 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 ## Step 5: docs 運用正本とハーネス整備
 
 ハーネス・docs・CI の実体はスクラッチ生成しない。
-`assets/MANIFEST.md` を台帳として、次の手順で展開する。
+`assets/MANIFEST.md` を台帳として展開する。手順（core 資産の copy → opt-in グループの採否 → 明示 token の置換 → TODO の充填）は MANIFEST「使い方」に従い、TODO は MANIFEST「TODO 記法」に従う。opt-in グループの採否は Intake / 計画の判断に従い、不採用グループの資産は copy しない。bootstrap では、これに加えて次を行う。
 
-1. core 資産を bootstrap 先へ同一相対パスで copy する。
-2. opt-in グループ（一覧は MANIFEST）は Intake / 計画の採否判断に従い、採用グループのみ copy する。不採用グループの資産は copy しない。core 側に残る参照は、MANIFEST の「グループ除去チェックリスト」で処理する。`docs/README.md` のディレクトリマップは、opt-in と付記した行のうち不採用グループの行を削除し、表の直前の HTML コメントも削除する（所属グループは MANIFEST のグループ節で確認する）。
-3. 明示 token `{{PRODUCT_NAME}}` `{{GITHUB_ORG}}` `{{REPO_NAME}}` `{{PROJECT_LANGUAGE}}` を一括置換する。
-4. TODO は 2 種類ある（正本表は MANIFEST の「TODO 記法」）。`TODO(取得方法: ...)` は環境から取得する値で、実環境で検証した値のみ埋め、未検証のまま実値を書かない。`TODO(記入方法: ...)` はチームが決める内容で、判断基準に沿って PJ の内容を書く。
-5. product docs の骨格（ARCHITECTURE / TECH_STACK / TERMS / TEST_STRATEGY）と各 skill の profile 類を PJ 固有の内容で充填する。Intake の整理と確定した選定は、「成果物」の移管先の表に従って移す。
-6. 言語方針（収録言語のまま導入するか、翻訳するか）を PR 本文に記録し、`docs/harness/OPERATING_MODEL.md` の言語ポリシー節に反映する。
+1. product docs の骨格（ARCHITECTURE / TECH_STACK / TERMS / TEST_STRATEGY）と各 skill の profile 類を PJ 固有の内容で充填する。Intake の整理と確定した選定は、「成果物」の移管先の表に従って移す。
+2. 言語方針（収録言語のまま導入するか、翻訳するか）を PR 本文に記録し、`docs/harness/OPERATING_MODEL.md` の言語ポリシー節に反映する。
 
 設計判断の背景が必要な場合のみ `references/docs-operating-model.md`、`references/issue-lifecycle.md`、`references/reference-harness-patterns.md` を読む。
 
@@ -324,7 +258,7 @@ product 固有の鮮度維持対象を追加する場合のみ、`references/gen
 
 ### 5.3 Issue lifecycle
 
-issue ごとの計画は PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）、設計判断は ADR、残タスクは GitHub Issue に置く。Issue ごとの計画ファイルは作らない。
+issue ごとの計画は PR 本文の標準節、設計判断は ADR、残タスクは GitHub Issue に置く。Issue ごとの計画ファイルは作らない。
 issue-local の人間承認は既定では置かない。実装方針が未確定でも、未確定点は 1 案に確定して「方針と却下案」に書き、open PR まで自律続行する。
 PR は通常 PR で open する（draft にしない。経路ごとの指定は `assets/docs/harness/skills/shared/pr-creation.md` の「draft にしない」）。
 
@@ -341,7 +275,7 @@ copy 済み資産のうち、adapter と magic value の位置は次のとおり
 | `docs/harness/skills/shared/` | skill 横断の共通契約（無人 run・INDEX の更新主体・PR 作成・検証ゲートなど。sync 専用は `sync-` 接頭辞） |
 | `.claude/skills/<name>/SKILL.md` | 各正本への薄い adapter（1:1 対応） |
 | `.claude/rules/*.md` | 常時ロード / paths スコープの rule 層 |
-| `tests/harness/` | ハーネス文書・設定の機械検査（`pnpm harness:test`）。サイズ上限・skill の 1:1・参照パスの実在・未置換 token などを CI が検査する |
+| `tests/harness/` | ハーネス文書・設定の機械検査（`pnpm harness:test`。範囲 → `assets/tests/harness/README.md`「検査一覧」）。CI が検査する |
 | `.claude/skills/create-issue/references/project-fields.md` | GitHub Project ID / field ID など推論不能な magic value（TODO 形式） |
 
 ## Step 6: 環境、secret、deploy 下準備
@@ -355,15 +289,14 @@ runtime、package manager、主要 CLI は `.mise.toml` など repository-local 
 反復的な local dev / check / seed / migration command は、project の package scripts と矛盾しない範囲で `mise run <task>` から呼べるようにする。
 既存 repo に別の標準がある場合は、移行するか併存するかを PR 本文の「方針と却下案」に明記する。
 
-ブランチモデルの既定は main = dev 環境 / release = prod 環境とする。
-main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
+ブランチと環境の対応は承認モデルの既定（`assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）に従い、次のとおり設定する。
 
 | 環境 | 条件 |
 |------|------|
-| dev (main) | CI と build が通る。壊れても復旧可能な前提で自律 deploy してよい |
-| prod (release) | prod リリース手順を踏む: main の安全性確認 → release への反映手順の確認（具体は `docs/harness/skills/deploy-verify.md` の「release 反映（prod）」。merge commit 限定、承認は release 宛て PR のマージ 1 か所） |
+| dev (main) | CI と build が通る。自律 deploy してよい |
+| prod (release) | prod リリース手順を踏む（具体は `docs/harness/skills/deploy-verify.md` の「release 反映（prod）」。merge commit 限定、承認は release 宛て PR のマージ 1 か所） |
 
-秘密値の挿入・変更（secret 登録、credential 投入）と課金が発生する操作（有償リソース作成、プラン変更、外部サービス契約）は人間の明示承認を得てから行う。
+secret 登録・credential 投入・有償リソース作成・プラン変更など、承認が必須な操作は、承認モデルに従って人間の承認を得てから行う。
 
 ## Step 7: CI/CD と runner 運用整備
 
@@ -375,7 +308,7 @@ CI の既定は基礎 CI 1 本（`assets/.github/workflows/ci.yml` を copy）�
 - test job 内で `.claude/hooks/tests/run-all.sh`（hooks の bash テスト）と `pnpm harness:test`（ハーネスの機械検査）を実行。job は増やさず、step を足すだけにする
 
 これを超える check（workflow lint、diff check、e2e、docs gate、deploy、smoke など）は拡張候補であり、`references/ci-cd-runner-deploy.md` の拡張候補リストから必要なものだけ選び、採否と理由を PR 本文の「方針と却下案」に残す。
-秘密検知は CI ではなく pre-push hook（`.claude/hooks/pre-push-ci-check.sh`）が既定の担い手になる。
+秘密検知の既定の担い手は pre-push hook（`.claude/hooks/pre-push-ci-check.sh`）である（hook と CI の分担 → `assets/docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」）。
 定期実行 workflow は既定では収録しない。追加する場合は bootstrap 先の `docs/harness/scheduled-operations.md` の設計ガイドに従う。
 
 GitHub Actions 等を使う場合は repo setting checklist も実装計画に含める。
@@ -398,7 +331,7 @@ self-hosted runner を使う場合は、foreground の `run.sh` 常用ではな�
 
 - `gate:commit` が通る（組合せの定義は `assets/docs/harness/skills/shared/verification-gates.md`）。assets の md は整形済みで、`.prettierignore` は生成物だけを除外するため、追加した文書も `format:check` の対象になる
 - 秘密検知が pre-push hook に入っており、`.claude/hooks/tests/run-all.sh` が green
-- `pnpm harness:test`（`pnpm install` の前なら `node tests/harness/run.mjs`）が green。失敗は、置換漏れ、opt-in グループ除去後のデッド参照、skill の 1:1 欠落、起動経路のない agent などを示す。検査は Node 22 以上の `node:test` だけで動き、追加の依存はない
+- `pnpm harness:test`（`pnpm install` の前なら `node tests/harness/run.mjs`）が green。失敗の読み方は `assets/tests/harness/README.md`「検査一覧」に従う。検査は Node 22 以上の `node:test` だけで動き、追加の依存はない
 - 基礎 CI（`gate:ci` に hooks テストとハーネスの機械検査を加えたもの）が通る
 - smoke test が deploy 先で通る
 - README または docs に local dev と deploy 手順がある
@@ -407,8 +340,8 @@ self-hosted runner を使う場合は、foreground の `run.sh` 常用ではな�
 ## Step 9: deploy と smoke test
 
 Intake で確認した deploy 目標に従い、dev 環境（main）へ deploy する。
-branch と environment の対応は既定で main = dev / release = prod とし、変更する場合は対応表を docs と issue に残す。
-prod（release）への反映は、main の安全性確認 → release への反映手順の確認を経てから行う。
+branch と environment の対応は承認モデルの既定に従い、変更する場合は対応表を docs と issue に残す。
+prod（release）への反映は `docs/harness/skills/deploy-verify.md` の「release 反映（prod）」に従う。
 `docs/harness/skills/deploy-verify.md` のステップ表は、deploy の runbook と同時に具体化する（骨格の `TODO` を残したまま完了にしない）。
 deploy URL、commit SHA、environment、smoke 結果を PR 本文の「検証結果」に記録する。
 
@@ -429,21 +362,20 @@ deploy URL、commit SHA、environment、smoke 結果を PR 本文の「検証結
 2. 変更ファイルと検証結果を要約
 3. Conventional Commits 形式で commit
 4. branch を push し、open PR を作成する（既定の完了形）。作成手順は `assets/docs/harness/skills/shared/pr-creation.md` に従い、base は既定ブランチ、通常 PR（draft にしない）で作る
-5. マージは人間の操作とする。ただし明示的に指示された場合はマージまで行ってよい
+5. マージは承認モデルに従う
 
 既存 repo に PR 作成規約があればそれに従う。
-GitHub Project / Milestone / Label / Issue の作成・更新・comment は自律実行してよい。人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ。
+GitHub Project / Milestone / Label / Issue の作成・更新・comment は自律実行してよい。
 product completion までの task は、1 session で完了可能な issue 粒度に分け、GitHub Issue として起票する。
 技術判断変更が既存 issue に影響する場合、関連 issue に comment する。
 
 ## 制約
 
-- 既定は自律実行。変更の実装から open PR の提出までを自律的に行い、マージは明示指示があった場合のみ行う
-- 人間の明示承認が必須なのは、課金が発生する操作と秘密値の挿入・変更の 2 つのみ
+- 自律実行の範囲と承認が必須な操作は、承認モデル（`assets/docs/harness/OPERATING_MODEL.md`）に従う
 - 技術選定は ADR、実装計画は PR 本文の標準節に残し、PR で提示する。Issue ごとの計画ファイルや bootstrap 専用の成果物ディレクトリは作らない
 - 最新仕様、価格、制限、deploy 手順、CLI option は推測しない。一次情報を確認する
 - secrets、tokens、本番データ、個人情報を repo に書かない
-- prod リリースは main の安全性確認 → release への反映手順の確認を経てから行う
+- prod リリースは `docs/harness/skills/deploy-verify.md` の「release 反映（prod）」に従う
 - ハーネスは `assets/MANIFEST.md` の core を基準にし、不要な opt-in グループを持ち込まない
 - target repo の既存規約がある場合は、この Skill より repo 規約を優先する
 

@@ -35,7 +35,7 @@ adr-compactor agent（`.claude/agents/adr-compactor.md`）を起動し、`consol
 | なし          | 0 / I / II / IV を実行する（III は無効）                                                 |
 | `consolidate` | III も有効にする（「1 ADR = 1 決定」の規約を変える操作のため、明示的に指定したときだけ） |
 
-走査・抑制条件・安全ガードレールの検証・圧縮は agent が行う。ガードレールの正本は agent 定義、実行順と各カテゴリの規則は compression-rules.md である。
+走査・抑制条件の検証・圧縮は agent が行う。ガードレール・実行順・各カテゴリの規則は compression-rules.md が正本であり、agent 定義が持つのは候補除外ゲートの手順と記録キーである。
 
 ## Auto-edit policy
 

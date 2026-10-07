@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import {
   REPO_SCAN_TEST_TIMEOUT_MS,
   assertNoViolations,
-  listFiles,
+  listWorkflowFiles,
   readRepoFile,
 } from "./support/repo-files.mjs";
 
@@ -50,7 +50,7 @@ describe("workflow 構造 gate: .github/workflows/", () => {
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
       assert.ok(
-        listFiles(".github/workflows", (p) => /\.ya?ml$/.test(p)).length > 0,
+        listWorkflowFiles().length > 0,
         ".github/workflows/ に workflow が 0 件",
       );
     },
@@ -61,9 +61,7 @@ describe("workflow 構造 gate: .github/workflows/", () => {
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
       const violations = [];
-      for (const rel of listFiles(".github/workflows", (p) =>
-        /\.ya?ml$/.test(p),
-      )) {
+      for (const rel of listWorkflowFiles()) {
         for (const problem of workflowProblems(readRepoFile(rel))) {
           violations.push({ file: rel, line: 1, message: problem });
         }

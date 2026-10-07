@@ -22,18 +22,17 @@ import assert from "node:assert/strict";
 import {
   REPO_SCAN_TEST_TIMEOUT_MS,
   assertNoViolations,
+  escapeRegExp,
+  listAgentFiles,
   listFiles,
   listMarkdownFiles,
+  listWorkflowFiles,
   parseFrontmatter,
   readRepoFile,
 } from "./support/repo-files.mjs";
 
 /** 冒頭として扱う、frontmatter 直後の行数。 */
 const ORPHAN_ALLOW_WINDOW = 15;
-
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 /** `subagent_type: <name>` の形で agent を起動する記述が text にあるか。 */
 function launchesAgent(text, name) {
@@ -53,20 +52,13 @@ function declaresOrphanAllow(text) {
     .some((line) => /^>\s*orphan-allow:\s*\S/.test(line));
 }
 
-function agentFiles() {
-  return listFiles(
-    ".claude/agents",
-    (p) => p.endsWith(".md") && p.split("/").length === 3,
-  );
-}
-
 function launchCorpus() {
   return [
     ...listMarkdownFiles("docs/harness/skills"),
     ...listMarkdownFiles(".claude/skills"),
     ...listMarkdownFiles(".claude/agents"),
     ...listFiles(".claude", (p) => p === ".claude/settings.json"),
-    ...listFiles(".github/workflows", (p) => /\.ya?ml$/.test(p)),
+    ...listWorkflowFiles(),
   ];
 }
 
@@ -75,7 +67,10 @@ describe("agent 起動経路 gate: .claude/agents/", () => {
     "agent が 1 件以上あり、起動経路の走査対象が 0 件ではない（退化ガード）",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      assert.ok(agentFiles().length > 0, ".claude/agents/ に agent が 0 件");
+      assert.ok(
+        listAgentFiles().length > 0,
+        ".claude/agents/ に agent が 0 件",
+      );
       assert.ok(launchCorpus().length > 0, "起動経路の走査対象が 0 件");
     },
   );
@@ -89,7 +84,7 @@ describe("agent 起動経路 gate: .claude/agents/", () => {
         text: readRepoFile(rel),
       }));
       const violations = [];
-      for (const rel of agentFiles()) {
+      for (const rel of listAgentFiles()) {
         const name = rel.slice(".claude/agents/".length, -".md".length);
         const launched = corpus.some(
           (f) => f.rel !== rel && launchesAgent(f.text, name),

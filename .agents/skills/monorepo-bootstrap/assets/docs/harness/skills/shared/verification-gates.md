@@ -1,6 +1,6 @@
 # 検証ゲートコマンド定義（一元管理）
 
-この文書は本リポジトリの検証ゲートコマンド 6 本と、名前付きの組合せ（`gate:commit` / `gate:push` / `gate:ci` / `gate:docs`）を一元定義する正本である。各コマンドの実装（lint ツールの選定・設定）は書かない（root `package.json` の scripts と各ツール設定ファイルが正本）。hook の fail-open / fail-closed の設計は `.claude/hooks/README.md` が担当する。
+この文書は本リポジトリの検証ゲートコマンド 6 本と、名前付きの組合せ（`gate:commit` / `gate:push` / `gate:ci` / `gate:docs`）、hook と CI の分担を一元定義する正本である。各コマンドの実装（lint ツールの選定・設定）は書かない（root `package.json` の scripts と各ツール設定ファイルが正本）。hook の fail-open / fail-closed の設計は `.claude/hooks/README.md` が担当する。
 
 skill 文書・agent 定義・hook のコメントが検証コマンドを必要とするときは、コマンド列を書かず、組合せの名前（`gate:commit` 等）で本ファイルを参照する。コマンド名（`pnpm run <name>`）を直接書いてよい箇所は、本書、`.claude/hooks/`、`.github/workflows/ci.yml`、root `package.json` に限る。
 
@@ -39,7 +39,7 @@ root `package.json` の scripts として以下の名前で提供する。実装
 
 - `gate:push` と `gate:ci` の和集合は `gate:commit` に一致する。どのゲートも、hook と CI のどちらかが実行する。
 - CI の test job は `gate:ci` の `test` に加えて、hooks のテストとハーネス機械検査（`pnpm harness:test`）を実行する。ハーネス文書・設定・workflow を変更する作業者は、`gate:commit` に加えて `harness:test` を実行する。`harness:test` は 6 本の契約に含めない補助 script である。
-- hook は Claude Code 経由の操作にだけ効き、`--no-verify` や Claude Code 外の端末からの push は素通りする。CI は PR と `main` への push の全経路に効く。したがって `gate:ci` に含まれない `lint` / `typecheck` は、hook の効かない経路では担保されない。CI にも課す場合は `gate:ci` に足し、`ci.yml` と本書を同一 PR で更新する。
+- hook は Claude Code 経由の操作にだけ効き、`--no-verify` や Claude Code 外の端末からの push は素通りする。CI は PR と `main` への push の全経路に効く。したがって `lint` / `typecheck` と、pre-push hook が実行する秘密検知（CI では実行しない）は、hook にだけ置かれ、hook の効かない経路では担保されない。CI にも課す場合は `gate:ci` に足し、`ci.yml` と本書を同一 PR で更新する。
 - docs と設定が混在する変更など、`*.md` 以外のファイルを 1 つでも含む変更は `gate:docs` ではなく `gate:commit` を使う。`gate:docs` は検査の対象が `*.md` だけのときの縮約であり、設定や実装の変更を検査から外すためのものではない。
 - いずれの組合せでも、hook が失敗したら原因を直して再実行する。`--no-verify` で回避すると、同じ失敗が CI で初めて赤くなり、修正の往復が増える。
 

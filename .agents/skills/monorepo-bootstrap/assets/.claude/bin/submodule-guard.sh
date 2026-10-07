@@ -47,7 +47,8 @@ submodule_needs_init() {
 
   # git submodule status の行頭記号: '-' = 未初期化、'+' = 差分あり、'U' = 衝突、' ' = 同期済み。
   # 未初期化行が 1 つでもあれば init が必要と判定する。
-  if printf '%s\n' "$status_output" | grep -q '^-'; then
+  # grep -q の早期終了で書き手が SIGPIPE を受け、pipefail 下で誤判定しないよう、パイプを使わない。
+  if grep -q '^-' <<< "$status_output"; then
     return 0
   fi
   return 1
@@ -69,7 +70,7 @@ ensure_submodule_init() {
 
   echo "submodule-guard: initializing uninitialized submodule(s) under $path ..."
   git submodule update --init --recursive -- "$path" || {
-    echo "submodule-guard: WARNING: submodule init failed for $path (continuing; see 'git submodule update --init --recursive --force $path' to retry manually)" >&2
+    echo "submodule-guard: warning: submodule init failed for $path (continuing; see 'git submodule update --init --recursive --force $path' to retry manually)" >&2
     return 0
   }
 }

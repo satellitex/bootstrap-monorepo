@@ -1,10 +1,24 @@
 // 構造 gate: ハーネス文書のサイズ上限、skill 正本と adapter の 1:1、adapter の薄さ、
-// 検証ゲート名の整合を検査する。
+// 検証ゲート名の整合、文書間の名前の整合（skill 表・rule 表・routine カタログ・pnpm の版）を
+// 検査する。
 //
 // 上限値は docs/harness/harness_authoring_guide.md のサイズ表を正本として読む（この
 // ファイルに数値を持たない）。表は次の 5 種別を持つ前提で、行頭セルのパス表記
 // （OPERATING_MODEL.md / docs/harness/skills/ / .claude/skills/…/SKILL.md /
 // .claude/agents/ / description）で種別を判定する。
+//
+// 検証ゲート名の整合は 3 点を見る。
+//   - 文書中の `gate:<name>` の参照が、verification-gates.md の表に定義されている。
+//   - verification-gates.md の定義表が挙げる script が、package.json の scripts に実在する。
+//   - pre-push hook の CI_CHECK_STEPS が、verification-gates.md の `gate:push` の定義と一致する。
+//
+// 文書間の名前の整合は、表から読んだ名前の集合を実ファイルの集合と突き合わせる。
+//   - OPERATING_MODEL の skill 表の名前 = .claude/skills/*/
+//   - scheduled-operations の routine カタログの名前 ⊂ .claude/skills/*/
+//   - OPERATING_MODEL の領域別 rule 表の名前 = .claude/rules/*.md
+//   - package.json の packageManager の pnpm の版 = .mise.toml の "npm:pnpm" の版
+// どの検査も、表や pin から名前・版を 1 件も読めなければ失敗する（読み取りが壊れて何も検査して
+// いないのに green になることを避ける）。
 //
 // 検査範囲の外:
 //   - docs/harness/skills/shared/ と docs/harness/skills/<name>/ は、表が上限を定めて
@@ -14,20 +28,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  IS_TEMPLATE_ROOT,
   REPO_SCAN_TEST_TIMEOUT_MS,
   assertNoViolations,
   countCodePoints,
   countLines,
   existsInRepo,
   findStaleExclusions,
-  inlineCodeSpans,
   isDirInRepo,
   linesOutsideFences,
-  fencedLines,
+  listAgentFiles,
   listDir,
   listFiles,
   listHarnessFiles,
+  once,
+  packageScriptNames,
   parseFrontmatter,
   readRepoFile,
   readRequiredFile,
@@ -37,6 +51,12 @@ import {
 const GUIDE = "docs/harness/harness_authoring_guide.md";
 const GATES_DOC = "docs/harness/skills/shared/verification-gates.md";
 const OPERATING_MODEL = "docs/harness/OPERATING_MODEL.md";
+const SCHEDULED_OPERATIONS = "docs/harness/scheduled-operations.md";
+const PRE_PUSH_HOOK = ".claude/hooks/pre-push-ci-check.sh";
+const MISE_TOML = ".mise.toml";
+
+/** 入口の薄い adapter。いずれも OPERATING_MODEL を参照する。 */
+const ENTRY_ADAPTERS = ["AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md"];
 
 /**
  * 導入先の既存違反を一時的に許容するサイズ超過の除外。`{ path, reason }`。
@@ -45,75 +65,24 @@ const OPERATING_MODEL = "docs/harness/OPERATING_MODEL.md";
  */
 const SIZE_ALLOWLIST = [];
 
-/**
- * ゲートのコマンド名（`pnpm run <name>`）を直接書いてよい文書。`{ path, reason }`。
- * 末尾 `/` はディレクトリ配下全体。許可箇所は verification-gates.md の記述と揃える。
- * これ以外の文書は組合せを `gate:<name>` で参照する。
- */
-const DIRECT_COMMAND_ALLOWED = [
-  {
-    path: GATES_DOC,
-    reason: "ゲートのコマンド定義と組合せの正本",
-  },
-  {
-    path: ".claude/hooks/",
-    reason: "hook が実行するゲートの実装と説明",
-  },
-];
-
-function isAllowedDirectCommand(rel) {
-  return DIRECT_COMMAND_ALLOWED.some((e) =>
-    e.path.endsWith("/") ? rel.startsWith(e.path) : rel === e.path,
-  );
-}
-
-/** `pnpm <name>` の `<name>` に現れても package.json の script ではないサブコマンド。 */
-const PNPM_BUILTINS = new Set([
-  "add",
-  "approve-builds",
-  "audit",
-  "bin",
-  "config",
-  "create",
-  "dedupe",
-  "deploy",
-  "dlx",
-  "doctor",
-  "env",
-  "exec",
-  "fetch",
-  "i",
-  "import",
-  "init",
-  "install",
-  "licenses",
-  "link",
-  "list",
-  "ln",
-  "ls",
-  "outdated",
-  "pack",
-  "patch",
-  "prune",
-  "publish",
-  "rebuild",
-  "remove",
-  "rm",
-  "root",
-  "run",
-  "self-update",
-  "setup",
-  "store",
-  "un",
-  "uninstall",
-  "unlink",
-  "up",
-  "update",
-  "upgrade",
-  "why",
-]);
-
 // ---- 純関数 -----------------------------------------------------------------
+
+/**
+ * markdown の表の各行を、前後の空白を除いたセルの配列にする。フェンス内の行と、区切り行
+ * （`---`）は含めない。
+ */
+function tableRows(text) {
+  return linesOutsideFences(text)
+    .map(({ text: line }) => line.trim())
+    .filter((line) => line.startsWith("|"))
+    .map((line) =>
+      line
+        .replace(/^\||\|$/g, "")
+        .split("|")
+        .map((cell) => cell.trim()),
+    )
+    .filter((cells) => !cells.every((cell) => /^:?-{3,}:?$/.test(cell)));
+}
 
 const LIMIT_KINDS = [
   {
@@ -146,13 +115,7 @@ const LIMIT_KINDS = [
  */
 function parseSizeLimits(guideText) {
   const limits = {};
-  for (const raw of guideText.split("\n")) {
-    const line = raw.trim();
-    if (!line.startsWith("|")) continue;
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((c) => c.trim());
+  for (const cells of tableRows(guideText)) {
     if (cells.length < 2) continue;
     const m = /(?:≤|<=)\s*(\d+)/.exec(cells[1]);
     if (!m) continue;
@@ -169,62 +132,34 @@ function parseSizeLimits(guideText) {
   return limits;
 }
 
-/** verification-gates.md から script 名の定義表と名前付き組合せ（gate:*）を読む。 */
-function parseGateDefinitions(text) {
-  const scripts = [
-    ...text.matchAll(/^\|\s*`pnpm(?: run)? ([\w:-]+)`\s*\|/gm),
-  ].map((m) => m[1]);
-  const combos = [
-    ...new Set([...text.matchAll(/\bgate:[a-z][a-z0-9-]*/g)].map((m) => m[0])),
-  ];
-  return { scripts: [...new Set(scripts)], combos };
-}
-
 /**
- * 1 行に、定義済み script 名のコマンド表記が複数あるか（組合せの直書き）。
- * コマンド表記は 2 種類ある。
- *   - `pnpm run <name>` / `pnpm <name>`（フェンス内は行のどこでも、散文ではインラインコードの中）:
- *     2 種類以上で直書きとみなす。
- *   - インラインコードが `<name>` だけのもの: `test` や `build` は普通の語でもあるため、
- *     3 種類以上、または名前に `:` を含む script（`format:check` など）と `typecheck` を
- *     含む 2 種類以上で直書きとみなす。
+ * verification-gates.md の表から、script の定義（行頭セルが `pnpm run <name>`）と、名前付き
+ * 組合せの定義（行頭セルが `gate:<name>`）を読む。返り値の `combos` は、組合せの名前から、
+ * 第 2 セルが挙げる定義済み script 名の配列への Map。第 2 セルの括弧書きは補足（他の組合せが
+ * 実行するゲートへの言及など）として構成に数えない。
  */
-function listsGateCommands(lineText, inFence, scriptNames) {
-  if (scriptNames.length === 0) return false;
-  const alt = scriptNames
-    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
-  const pnpmForm = new RegExp(`\\bpnpm(?: run)? (${alt})(?![\\w:-])`, "g");
-  const viaPnpm = new Set();
-  const viaBare = new Set();
-  if (inFence) {
-    for (const m of lineText.matchAll(pnpmForm)) viaPnpm.add(m[1]);
-  } else {
-    for (const span of inlineCodeSpans(lineText)) {
-      const text = span.text.trim();
-      const bare = new RegExp(`^(${alt})$`).exec(text);
-      if (bare) viaBare.add(bare[1]);
-      for (const m of text.matchAll(pnpmForm)) viaPnpm.add(m[1]);
-    }
+function parseGateDefinitions(text) {
+  const rows = tableRows(text);
+  const scripts = [
+    ...new Set(
+      rows
+        .map((cells) => /^`pnpm(?: run)? ([\w:-]+)`$/.exec(cells[0])?.[1])
+        .filter(Boolean),
+    ),
+  ];
+  const combos = new Map();
+  for (const [first, second = ""] of rows) {
+    const name = /^`(gate:[a-z][a-z0-9-]*)`$/.exec(first)?.[1];
+    if (!name) continue;
+    const body = second.replace(/（[^）]*）|\([^)]*\)/g, "");
+    combos.set(
+      name,
+      [...body.matchAll(/`([^`]+)`/g)]
+        .map((m) => m[1])
+        .filter((n) => scripts.includes(n)),
+    );
   }
-  const all = new Set([...viaPnpm, ...viaBare]);
-  if (viaPnpm.size >= 2) return true;
-  const distinctive = [...all].some(
-    (n) => n.includes(":") || n === "typecheck",
-  );
-  return all.size >= 3 || (all.size >= 2 && distinctive);
-}
-
-/** workflow 本文（コメントを除く）から `pnpm run <name>` / `pnpm <name>` の script 名を集める。 */
-function pnpmScriptCalls(workflowText) {
-  const names = new Set();
-  for (const raw of workflowText.split("\n")) {
-    const line = raw.replace(/(^|\s)#.*$/, "");
-    for (const m of line.matchAll(/\bpnpm (?:run )?([a-z][\w:-]*)/g)) {
-      if (!PNPM_BUILTINS.has(m[1])) names.add(m[1]);
-    }
-  }
-  return [...names];
+  return { scripts, combos };
 }
 
 /** hook の `CI_CHECK_STEPS=(a b c)` から step 名を読む。無ければ null。 */
@@ -233,16 +168,41 @@ function parseCiCheckSteps(hookText) {
   return m ? m[1].split(/\s+/).filter(Boolean) : null;
 }
 
-// ---- 実リポジトリの列挙 --------------------------------------------------------
-
-function entryFiles() {
-  return [
-    OPERATING_MODEL,
-    "CLAUDE.md",
-    "AGENTS.md",
-    ".claude/CLAUDE.md",
-  ].filter(existsInRepo);
+/** 表のセルが単独のインラインコードで `/<name>`（引数は任意）の形のとき、その `<name>`。 */
+function slashCommandName(cell) {
+  return /^`\/([a-z][a-z0-9-]*)(?:\s[^`]*)?`$/.exec(cell)?.[1] ?? null;
 }
+
+/** 文書中の表のセルに書かれた skill コマンド名（`/<name>` の `<name>`）。重複なし、昇順。 */
+function slashCommandNames(text) {
+  const names = tableRows(text).flatMap((cells) =>
+    cells.map(slashCommandName).filter((name) => name !== null),
+  );
+  return [...new Set(names)].sort();
+}
+
+/** 文書中の表の行頭セルに書かれた rule ファイル名（`.claude/rules/<file>.md`）。重複なし、昇順。 */
+function ruleFileNames(text) {
+  const names = tableRows(text)
+    .map((cells) => /^`\.claude\/rules\/([^`/]+\.md)`$/.exec(cells[0])?.[1])
+    .filter(Boolean);
+  return [...new Set(names)].sort();
+}
+
+/** package.json の `packageManager`（`pnpm@<版>`、`+<hash>` は除く）から pnpm の版を読む。 */
+function pnpmVersionFromPackageManager(value) {
+  return /^pnpm@([^+\s]+)/.exec(value ?? "")?.[1] ?? null;
+}
+
+/** .mise.toml の `"npm:pnpm" = "<版>"` から pnpm の版を読む。 */
+function pnpmVersionFromMise(text) {
+  return /^\s*["']npm:pnpm["']\s*=\s*["']([^"']+)["']/m.exec(text)?.[1] ?? null;
+}
+
+/** `a` にあって `b` に無い要素。 */
+const without = (a, b) => a.filter((x) => !b.includes(x));
+
+// ---- 実リポジトリの列挙 --------------------------------------------------------
 
 function skillCanonFiles() {
   return listFiles(
@@ -258,10 +218,9 @@ function adapterFiles() {
   );
 }
 
-function agentFiles() {
-  return listFiles(
-    ".claude/agents",
-    (p) => p.endsWith(".md") && p.split("/").length === 3,
+function skillDirNames() {
+  return listDir(".claude/skills").filter((name) =>
+    isDirInRepo(`.claude/skills/${name}`),
   );
 }
 
@@ -273,7 +232,7 @@ function skillNameFromAdapter(rel) {
   return rel.split("/")[2];
 }
 
-function measureSizes() {
+const measureSizes = once(() => {
   const limits = parseSizeLimits(readRequiredFile(GUIDE));
   const lines = (rel) => countLines(readRepoFile(rel));
   const descriptionLength = (rel) => {
@@ -287,7 +246,7 @@ function measureSizes() {
       label: "入口文書（OPERATING_MODEL / CLAUDE / AGENTS）",
       unit: "行",
       limit: limits.entry,
-      files: entryFiles(),
+      files: [OPERATING_MODEL, ...ENTRY_ADAPTERS].filter(existsInRepo),
       measure: lines,
     },
     {
@@ -311,7 +270,7 @@ function measureSizes() {
       label: "agent 定義",
       unit: "行",
       limit: limits.agent,
-      files: agentFiles(),
+      files: listAgentFiles(),
       measure: lines,
     },
     {
@@ -326,7 +285,14 @@ function measureSizes() {
     ...k,
     rows: k.files.map((file) => ({ file, value: k.measure(file) })),
   }));
-}
+});
+
+/** 上限を超えたファイル（許容リストを適用する前）。`{ file, value, k }`。 */
+const oversized = once(() =>
+  measureSizes().flatMap((k) =>
+    k.rows.filter((r) => r.value > k.limit).map((r) => ({ ...r, k })),
+  ),
+);
 
 // ---- サイズ上限 ------------------------------------------------------------------
 
@@ -354,17 +320,13 @@ describe("構造 gate: サイズ上限（authoring guide の表から読む）",
   );
 
   it("各ファイルが表の上限以内", { timeout: REPO_SCAN_TEST_TIMEOUT_MS }, () => {
-    const allowed = new Map(SIZE_ALLOWLIST.map((e) => [e.path, e.reason]));
-    const violations = [];
-    for (const k of measureSizes()) {
-      for (const { file, value } of k.rows) {
-        if (value > k.limit && !allowed.has(file)) {
-          violations.push(
-            `${file}  ${k.label}が上限 ${k.limit} ${k.unit} を超過（${value} ${k.unit}）`,
-          );
-        }
-      }
-    }
+    const allowed = new Set(SIZE_ALLOWLIST.map((e) => e.path));
+    const violations = oversized()
+      .filter(({ file }) => !allowed.has(file))
+      .map(
+        ({ file, value, k }) =>
+          `${file}  ${k.label}が上限 ${k.limit} ${k.unit} を超過（${value} ${k.unit}）`,
+      );
     assertNoViolations(assert, "サイズ上限の超過", violations);
   });
 
@@ -373,12 +335,7 @@ describe("構造 gate: サイズ上限（authoring guide の表から読む）",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
       assert.deepEqual(validateExclusions(SIZE_ALLOWLIST, "path"), []);
-      const over = new Set();
-      for (const k of measureSizes()) {
-        for (const { file, value } of k.rows) {
-          if (value > k.limit) over.add(file);
-        }
-      }
+      const over = new Set(oversized().map(({ file }) => file));
       const stale = findStaleExclusions(SIZE_ALLOWLIST, (e) =>
         over.has(e.path),
       );
@@ -428,11 +385,8 @@ describe("構造 gate: skill 正本と adapter の 1:1・薄さ", () => {
           );
         }
       }
-      for (const dir of listDir(".claude/skills")) {
-        if (
-          isDirInRepo(`.claude/skills/${dir}`) &&
-          !existsInRepo(`.claude/skills/${dir}/SKILL.md`)
-        ) {
+      for (const dir of skillDirNames()) {
+        if (!existsInRepo(`.claude/skills/${dir}/SKILL.md`)) {
           violations.push(`.claude/skills/${dir}/  SKILL.md が無い`);
         }
       }
@@ -481,9 +435,7 @@ describe("構造 gate: skill 正本と adapter の 1:1・薄さ", () => {
     "入口 adapter（AGENTS.md / CLAUDE.md）は OPERATING_MODEL を参照する",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const files = ["AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md"].filter(
-        existsInRepo,
-      );
+      const files = ENTRY_ADAPTERS.filter(existsInRepo);
       assert.ok(files.length > 0, "入口 adapter が 0 件");
       const violations = [];
       for (const file of files) {
@@ -520,7 +472,7 @@ describe("構造 gate: 検証ゲート名の整合", () => {
         "コマンド定義表から script 名を読めない",
       );
       assert.ok(
-        defs.combos.length > 0,
+        defs.combos.size > 0,
         "名前付き組合せ（gate:<name>）が定義されていない",
       );
     },
@@ -530,9 +482,7 @@ describe("構造 gate: 検証ゲート名の整合", () => {
     "定義表の script 名が package.json の scripts に存在する",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const scripts = Object.keys(
-        JSON.parse(readRequiredFile("package.json")).scripts ?? {},
-      );
+      const scripts = packageScriptNames();
       const defs = parseGateDefinitions(readRequiredFile(GATES_DOC));
       const missing = defs.scripts.filter((n) => !scripts.includes(n));
       assert.deepEqual(
@@ -544,119 +494,148 @@ describe("構造 gate: 検証ゲート名の整合", () => {
   );
 
   it(
-    "workflow の pnpm 呼び出しが package.json の scripts に存在する",
+    "文書中の gate:* の参照がすべて verification-gates.md に定義されている",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const workflows = listFiles(".github/workflows", (p) =>
-        /\.ya?ml$/.test(p),
-      );
-      assert.ok(workflows.length > 0, "workflow が 0 件");
-      const scripts = Object.keys(
-        JSON.parse(readRequiredFile("package.json")).scripts ?? {},
-      );
+      const defs = parseGateDefinitions(readRequiredFile(GATES_DOC));
       const violations = [];
-      for (const file of workflows) {
-        for (const name of pnpmScriptCalls(readRepoFile(file))) {
-          if (!scripts.includes(name)) {
-            violations.push(
-              `${file}  pnpm ${name} は package.json の scripts に無い`,
-            );
+      for (const file of gateReferenceFiles()) {
+        if (file === GATES_DOC) continue;
+        const names = new Set(
+          readRepoFile(file).match(/\bgate:[a-z][a-z0-9-]*/g) ?? [],
+        );
+        for (const name of names) {
+          if (!defs.combos.has(name)) {
+            violations.push(`${file}  ${name} は ${GATES_DOC} に定義が無い`);
           }
         }
       }
-      assertNoViolations(assert, "workflow が呼ぶ script の欠落", violations);
+      assertNoViolations(assert, "未定義の組合せの参照", violations);
     },
   );
 
   it(
-    "pre-push hook の CI_CHECK_STEPS が package.json の scripts に存在する",
+    "pre-push hook の CI_CHECK_STEPS が gate:push の定義と一致する",
     {
       timeout: REPO_SCAN_TEST_TIMEOUT_MS,
-      skip: existsInRepo(".claude/hooks/pre-push-ci-check.sh")
-        ? false
-        : "pre-push hook が無い",
+      skip: existsInRepo(PRE_PUSH_HOOK) ? false : "pre-push hook が無い",
     },
     () => {
-      const steps = parseCiCheckSteps(
-        readRepoFile(".claude/hooks/pre-push-ci-check.sh"),
-      );
+      const steps = parseCiCheckSteps(readRepoFile(PRE_PUSH_HOOK));
       assert.ok(
         steps !== null && steps.length > 0,
         "CI_CHECK_STEPS を読めない",
       );
-      const scripts = Object.keys(
-        JSON.parse(readRequiredFile("package.json")).scripts ?? {},
+      const defined = parseGateDefinitions(
+        readRequiredFile(GATES_DOC),
+      ).combos.get("gate:push");
+      assert.ok(
+        defined !== undefined && defined.length > 0,
+        `${GATES_DOC} から gate:push の定義を読めない`,
       );
-      const missing = steps.filter((n) => !scripts.includes(n));
-      assert.deepEqual(missing, [], "package.json に無い step を hook が呼ぶ");
+      assert.deepEqual(
+        [...steps].sort(),
+        [...defined].sort(),
+        `hook の CI_CHECK_STEPS が ${GATES_DOC} の gate:push の定義と異なる。hook と定義を同一 PR で揃える`,
+      );
+    },
+  );
+});
+
+// ---- 文書間の名前の整合 -------------------------------------------------------------
+
+describe("構造 gate: 文書間の名前の整合", () => {
+  it(
+    "OPERATING_MODEL の skill 表が .claude/skills/ の skill と同じ集合",
+    { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
+    () => {
+      const listed = slashCommandNames(readRequiredFile(OPERATING_MODEL));
+      assert.ok(
+        listed.length > 0,
+        `${OPERATING_MODEL} の表から skill コマンド（\`/<name>\`）を読めない`,
+      );
+      const actual = skillDirNames();
+      assert.ok(actual.length > 0, ".claude/skills/ に skill が 0 件");
+      assertNoViolations(assert, "skill 表と .claude/skills/ の不一致", [
+        ...without(listed, actual).map(
+          (n) =>
+            `${OPERATING_MODEL}  表の /${n} に対応する .claude/skills/${n}/ が無い`,
+        ),
+        ...without(actual, listed).map(
+          (n) =>
+            `.claude/skills/${n}/  ${OPERATING_MODEL} の skill 表に行が無い`,
+        ),
+      ]);
     },
   );
 
   it(
-    "gate:* の参照がすべて定義済みで、定義済みの組合せがどこかで参照されている",
+    "routine カタログの skill がすべて .claude/skills/ に存在する",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const defs = parseGateDefinitions(readRequiredFile(GATES_DOC));
-      const referenced = new Map();
-      for (const file of gateReferenceFiles()) {
-        if (file === GATES_DOC) continue;
-        const text = readRepoFile(file);
-        for (const m of text.matchAll(/\bgate:[a-z][a-z0-9-]*/g)) {
-          if (!referenced.has(m[0])) referenced.set(m[0], file);
-        }
-      }
-      const violations = [];
-      for (const [name, file] of referenced) {
-        if (!defs.combos.includes(name)) {
-          violations.push(`${file}  ${name} は ${GATES_DOC} に定義が無い`);
-        }
-      }
-      for (const name of defs.combos) {
-        if (!referenced.has(name)) {
-          violations.push(
-            `${GATES_DOC}  ${name} をどの文書も参照していない。参照するか定義を削除する`,
-          );
-        }
-      }
-      assertNoViolations(assert, "名前付き組合せの不整合", violations);
+      const listed = slashCommandNames(readRequiredFile(SCHEDULED_OPERATIONS));
+      assert.ok(
+        listed.length > 0,
+        `${SCHEDULED_OPERATIONS} の表から routine のエントリポイント（\`/<name>\`）を読めない`,
+      );
+      const actual = skillDirNames();
+      assertNoViolations(
+        assert,
+        "routine カタログの不整合",
+        without(listed, actual).map(
+          (n) =>
+            `${SCHEDULED_OPERATIONS}  routine /${n} に対応する .claude/skills/${n}/ が無い`,
+        ),
+      );
     },
   );
 
   it(
-    "組合せは名前で参照し、ゲートのコマンド列を直書きしない",
+    "OPERATING_MODEL の領域別 rule 表が .claude/rules/*.md と同じ集合",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     () => {
-      const defs = parseGateDefinitions(readRequiredFile(GATES_DOC));
-      const reasonProblems = validateExclusions(DIRECT_COMMAND_ALLOWED, "path");
-      assert.deepEqual(reasonProblems, []);
-      const violations = [];
-      for (const file of listHarnessFiles()) {
-        if (isAllowedDirectCommand(file)) continue;
-        const text = readRepoFile(file);
-        const prose = linesOutsideFences(text);
-        const fenced = fencedLines(text);
-        for (const { n, text: t } of prose) {
-          if (listsGateCommands(t, false, defs.scripts)) {
-            violations.push({
-              file,
-              line: n,
-              message:
-                "ゲートのコマンド列を直書きしている。gate:<name> で参照する",
-            });
-          }
-        }
-        for (const { n, text: t } of fenced) {
-          if (listsGateCommands(t, true, defs.scripts)) {
-            violations.push({
-              file,
-              line: n,
-              message:
-                "ゲートのコマンド列を直書きしている。gate:<name> で参照する",
-            });
-          }
-        }
-      }
-      assertNoViolations(assert, "ゲートのコマンド列の直書き", violations);
+      const listed = ruleFileNames(readRequiredFile(OPERATING_MODEL));
+      assert.ok(
+        listed.length > 0,
+        `${OPERATING_MODEL} の表から rule（\`.claude/rules/<file>.md\`）を読めない`,
+      );
+      const actual = listDir(".claude/rules").filter((n) => n.endsWith(".md"));
+      assert.ok(actual.length > 0, ".claude/rules/ に rule が 0 件");
+      assertNoViolations(assert, "rule 表と .claude/rules/ の不一致", [
+        ...without(listed, actual).map(
+          (n) =>
+            `${OPERATING_MODEL}  表の .claude/rules/${n} に対応するファイルが無い`,
+        ),
+        ...without(actual, listed).map(
+          (n) => `.claude/rules/${n}  ${OPERATING_MODEL} の rule 表に行が無い`,
+        ),
+      ]);
+    },
+  );
+
+  it(
+    "pnpm の版が package.json の packageManager と .mise.toml で一致する（dual-pin）",
+    {
+      timeout: REPO_SCAN_TEST_TIMEOUT_MS,
+      skip: existsInRepo(MISE_TOML)
+        ? false
+        : `${MISE_TOML} が無い（mise を使わない導入先）`,
+    },
+    () => {
+      const fromPackage = pnpmVersionFromPackageManager(
+        JSON.parse(readRequiredFile("package.json")).packageManager,
+      );
+      const fromMise = pnpmVersionFromMise(readRepoFile(MISE_TOML));
+      assert.ok(
+        fromPackage !== null,
+        "package.json の packageManager から pnpm の版を読めない",
+      );
+      assert.ok(fromMise !== null, `${MISE_TOML} の "npm:pnpm" の版を読めない`);
+      assert.equal(
+        fromMise,
+        fromPackage,
+        `pnpm の版が package.json の packageManager（${fromPackage}）と ${MISE_TOML}（${fromMise}）で異なる。2 か所を同時に更新する`,
+      );
     },
   );
 });
@@ -673,6 +652,22 @@ describe("構造 gate: 自己テスト", () => {
     "| Agent 定義（`.claude/agents/*.md`） | ≤250 行 | d |",
     "| Skill description（frontmatter） | ≤250 文字 | e |",
   ].join("\n");
+
+  it("tableRows: セルを trim し、区切り行とフェンス内の行を除く", () => {
+    const text = [
+      "| a | b |",
+      "| :--- | ---: |",
+      "|  `x`  |y|",
+      "```",
+      "| z | w |",
+      "```",
+      "本文 | 表ではない",
+    ].join("\n");
+    assert.deepEqual(tableRows(text), [
+      ["a", "b"],
+      ["`x`", "y"],
+    ]);
+  });
 
   it("parseSizeLimits: 5 種別を読む", () => {
     assert.deepEqual(parseSizeLimits(goodTable), {
@@ -697,51 +692,29 @@ describe("構造 gate: 自己テスト", () => {
     assert.equal(parseSizeLimits(translated).entry, 200);
   });
 
-  it("parseGateDefinitions: script 名と gate:* を読む", () => {
+  it("parseGateDefinitions: script 名と組合せの構成を表から読み、括弧書きと本文の言及は数えない", () => {
     const text = [
       "| コマンド | 役割 |",
       "|---|---|",
       "| `pnpm run lint` | 静的解析 |",
       "| `pnpm run format:check` | 差分検査 |",
-      "| `gate:commit` | lint |",
-      "本文で `gate:push` と `gate:commit` を使う。",
+      "| `pnpm run test` | テスト |",
+      "",
+      "| 名前 | 内容 |",
+      "|---|---|",
+      "| `gate:commit` | `lint` + `format:check` + `test` |",
+      "| `gate:push` | `lint` + `format:check`（`test` は `gate:ci` が実行） |",
+      "本文で `gate:docs` を参照する。",
     ].join("\n");
     const defs = parseGateDefinitions(text);
-    assert.deepEqual(defs.scripts, ["lint", "format:check"]);
-    assert.deepEqual(defs.combos.sort(), ["gate:commit", "gate:push"]);
-  });
-
-  it("listsGateCommands: 散文の列挙とフェンス内の列挙を検出する", () => {
-    const names = ["format:check", "lint", "typecheck", "test", "build"];
-    assert.equal(
-      listsGateCommands(
-        "`format:check` + `lint` + `build` を通す",
-        false,
-        names,
-      ),
-      true,
-    );
-    assert.equal(
-      listsGateCommands("pnpm run lint && pnpm run test", true, names),
-      true,
-    );
-    assert.equal(
-      listsGateCommands("`pnpm run lint` を通す", false, names),
-      false,
-    );
-    assert.equal(listsGateCommands("lint と test を通す", false, names), false);
-    assert.equal(listsGateCommands("pnpm run lint", true, names), false);
-  });
-
-  it("pnpmScriptCalls: コメントと組み込みサブコマンドを除く", () => {
-    const yml = [
-      "      - run: pnpm install --frozen-lockfile",
-      "      - run: pnpm test",
-      "      - run: pnpm run format:check",
-      "      # pnpm lint はここでは実行しない",
-      "      - run: pnpm exec prettier --check .",
-    ].join("\n");
-    assert.deepEqual(pnpmScriptCalls(yml).sort(), ["format:check", "test"]);
+    assert.deepEqual(defs.scripts, ["lint", "format:check", "test"]);
+    assert.deepEqual([...defs.combos.keys()], ["gate:commit", "gate:push"]);
+    assert.deepEqual(defs.combos.get("gate:commit"), [
+      "lint",
+      "format:check",
+      "test",
+    ]);
+    assert.deepEqual(defs.combos.get("gate:push"), ["lint", "format:check"]);
   });
 
   it("parseCiCheckSteps: 配列を読む / 無ければ null", () => {
@@ -753,7 +726,45 @@ describe("構造 gate: 自己テスト", () => {
     assert.equal(parseCiCheckSteps("echo hi\n"), null);
   });
 
-  it("許容リストの形: IS_TEMPLATE_ROOT は真偽値", () => {
-    assert.equal(typeof IS_TEMPLATE_ROOT, "boolean");
+  it("slashCommandNames: 単独のインラインコードの `/<name>` だけを読む（引数は落とす）", () => {
+    const text = [
+      "| コマンド | 用途 |",
+      "|---|---|",
+      "| `/multi-issue #N ...` | 実装 |",
+      "| `/docs-sync` | 突合 |",
+      "| `/<name>` で `.claude/skills/<name>/SKILL.md` が起動する | 読み替え |",
+      "| 週次 | `/docs-sync` | 重複は 1 件にまとまる |",
+      "| `docs/harness/x.md` | 別のセル |",
+    ].join("\n");
+    assert.deepEqual(slashCommandNames(text), ["docs-sync", "multi-issue"]);
+  });
+
+  it("ruleFileNames: 行頭セルの `.claude/rules/<file>.md` だけを読む", () => {
+    const text = [
+      "| rule | スコープ |",
+      "|---|---|",
+      "| `.claude/rules/team-policy.md` | 全領域 |",
+      "| `.claude/rules/product-development.md` | `apps/**/*` |",
+      "| 本文の `.claude/rules/other.md` の言及 | x |",
+    ].join("\n");
+    assert.deepEqual(ruleFileNames(text), [
+      "product-development.md",
+      "team-policy.md",
+    ]);
+  });
+
+  it("pnpm の版の読み取り: packageManager の hash 接尾辞を除き、.mise.toml の pin を読む", () => {
+    assert.equal(pnpmVersionFromPackageManager("pnpm@11.24.0"), "11.24.0");
+    assert.equal(
+      pnpmVersionFromPackageManager("pnpm@11.24.0+sha512.abc"),
+      "11.24.0",
+    );
+    assert.equal(pnpmVersionFromPackageManager("yarn@4.0.0"), null);
+    assert.equal(pnpmVersionFromPackageManager(undefined), null);
+    assert.equal(
+      pnpmVersionFromMise('[tools]\nnode = "22"\n"npm:pnpm" = "11.24.0"\n'),
+      "11.24.0",
+    );
+    assert.equal(pnpmVersionFromMise('[tools]\nnode = "22"\n'), null);
   });
 });

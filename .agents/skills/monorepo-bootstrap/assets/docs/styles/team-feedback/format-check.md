@@ -10,7 +10,7 @@ commit 前に検出すれば数秒で済む。push 後に CI で fail すると�
 
 ## How to apply
 
-強制は 2 段で行う。hook は Claude Code 経由の操作にだけ効き、CI は全経路に効く。
+強制は hook と CI の 2 段で行う（分担 → `docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」）。
 
 ### hook が有効な経路（Claude Code 経由）
 
@@ -25,7 +25,7 @@ commit 前に `format` ゲートで自動修正し、`format:check` ゲートで
 
 ### CI（全経路の最終ゲート）
 
-基礎 CI（`.github/workflows/ci.yml`）の format job が `format:check` を実行する。hook を持たない実行環境では、CI が唯一の強制になる。既定の CI は format / test / build を検査し、lint・typecheck・秘密検知は hook 経由でだけ強制される（→ `.claude/hooks/README.md`）。
+基礎 CI（`.github/workflows/ci.yml`）の format job が `format:check` を実行する。hook を持たない実行環境では、CI が唯一の強制になる。
 
 ## 関連
 

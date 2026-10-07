@@ -4,7 +4,7 @@
 
 ## PR 本文の構成
 
-PR 本文は、標準 5 節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク。`docs/harness/skills/shared/pr-creation.md`）に、次の区分をこの順で加える。件数が 0 の区分は「なし」と書き、区分そのものは省かない。
+PR 本文は、標準節（→ `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）に、次の区分をこの順で加える。件数が 0 の区分は「なし」と書き、区分そのものは省かない。
 
 1. **カテゴリ別件数**: 0 / I / II / III / IV の実行件数。III は `consolidate` で起動したときだけ数える。
 2. **変更一覧**: 対象 ADR・カテゴリ・変更内容（Status 追従・stub 化・統合・要約）・検出根拠の実測値（行数・サイズ・Status 値）の表。
@@ -18,7 +18,7 @@ IV で削除した詳細を git 履歴で追える旨は、PR 本文の末尾に
 ### 本文の雛形
 
 ```markdown
-（標準 5 節: 背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）
+（標準節: `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）
 
 ## カテゴリ別件数
 

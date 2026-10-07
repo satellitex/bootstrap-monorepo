@@ -71,7 +71,7 @@
 
 `agent/runbook-alignment-YYYY-MM-DD` ブランチ（同日重複は `-2`）を `origin/main` から切り、編集した手順書だけを add し、`docs(runbooks): align <runbook> with implementation` で commit、push する。検証ゲートは `gate:docs`（定義 → `docs/harness/skills/shared/verification-gates.md`）。PR は `docs/harness/skills/shared/pr-creation.md` に従って作る。
 
-PR 本文は標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）に、次を加える。
+PR 本文は標準節（→ `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」）に、次を加える。
 
 - 未確定事項の一覧: Step 2 の分類ごとの扱い（確定した事実 / 未確定のまま残した事項 / 不明とした事実）。未承認の判断には、その旨を添える
 - 差異評価表: 下記の列構成

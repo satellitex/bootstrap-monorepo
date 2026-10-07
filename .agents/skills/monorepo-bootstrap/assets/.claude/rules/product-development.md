@@ -21,7 +21,7 @@ paths:
 ## プロダクト設計固有 rule
 
 <!-- TODO(記入方法: /promote-memory で昇格したプロダクト固有 rule の pointer をここに追記する。形式は
-`- [<rule 名>](../../docs/styles/team-feedback/<name>.md) — <1 行要旨>`) -->
+`- [<rule 名>](../../docs/styles/team-feedback/<name>.md)`。概要は INDEX に書く) -->
 
 横断的な team rule は [team-policy.md](team-policy.md) を参照。
 

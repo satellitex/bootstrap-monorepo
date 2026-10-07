@@ -34,9 +34,7 @@ CI は基礎 CI 1 本のみを既定とする。
 設計意図:
 
 - CI job を増やすほど、原因切り分けと待ち時間が伸びる。agent が merge 可能性を判断できる最小集合から始める。
-- 秘密検知は CI ではなく pre-push hook が担う。push 前に止めるほうが、漏洩後の revert より安い。ただし hook は Claude Code 経由の操作にだけ効くため、`--no-verify` や Claude Code 外の端末からの push では実行されない。
-- lint / typecheck は package scripts と post-edit hook 側で走る。CI では実行されないため、hook を経由しない push では担保されない。CI 追加は重複の価値が説明できる場合に限る。
-- hook は Claude Code 経由の操作にだけ効き、CI は PR と main への push の全経路に効く。両者が実行する検査の差は、検証ゲートの名前付き組合せ（`gate:push` と `gate:ci`。`docs/harness/skills/shared/verification-gates.md`）に書き、他の文書へ複製しない。
+- hook と CI の分担は `../assets/docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」が正本であり、他の文書へ複製しない。CI への追加は、重複の価値が説明できる場合に限る。
 - 検証ゲートのコマンド定義は 1 箇所（`docs/harness/skills/shared/verification-gates.md`）に置き、CI・hooks・skill が同じ定義を参照する。
 
 ### 2.2 拡張候補
@@ -145,7 +143,7 @@ job レベルの条件で skip された静的名の job は skipped として�
 ## 4. Repository Settings Checklist
 
 下表の決定は、PR 本文の計画節と repo settings runbook に残す。
-repo settings の変更は自律実行してよい（人間承認が必要なのは課金が発生する操作と秘密値の挿入・変更のみ）。変更内容と理由は成果物に残す。
+repo settings の変更は自律実行してよい（承認の定義 → `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。変更内容と理由は成果物に残す。
 
 | Setting | Decision |
 |---------|----------|
@@ -183,19 +181,17 @@ service-runner に interactive shell の状態があると仮定しない。work
 
 ### 6.1 既定のブランチモデル
 
-既定は main = dev 環境 / release = prod 環境とする。
+ブランチモデルの定義は `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」が正本である。deploy の設計では、次の対応を環境に落とす。
 
 | Branch | Environment | 運用 |
 |--------|-------------|------|
-| `main` | dev | 壊れても復旧可能な開発環境。CI と build が通れば自律 deploy してよい。開発過程ではセキュリティより柔軟性を優先する |
+| `main` | dev | CI と build が通れば自律 deploy してよい |
 | `release` | prod | prod リリース手順を踏んでから反映する |
 
 prod リリース手順:
 
 1. main の安全性確認（CI green、smoke、既知の未解決リスクの確認）
 2. release への反映手順の確認（反映範囲、migration、rollback 経路、切り戻し条件）
-
-課金が発生する操作と秘密値の挿入・変更のみ、人間の明示承認を得てから行う。これ以外の deploy 操作は自律実行してよい。
 
 ### 6.2 戦略の選択
 
@@ -215,7 +211,7 @@ prod リリース手順:
 
 必須セクション:
 
-- 環境と branch/tag の対応（既定は main = dev / release = prod）
+- 環境と branch/tag の対応（既定 → §6.1）
 - provider bindings と必要な権限
 - environment variables と secret 名（値は書かない）
 - build / deploy コマンド
@@ -224,7 +220,7 @@ prod リリース手順:
 - migration 手順と安全性の注意
 - observability リンクと alert の経路
 - 既知の limits と cost
-- prod リリース手順（main の安全性確認 → release への反映手順の確認）
+- prod リリース手順（§6.1）
 - 課金操作・秘密値投入が必要な箇所と、その承認の取り方
 
 ## 8. Smoke Tests

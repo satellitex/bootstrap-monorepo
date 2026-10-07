@@ -11,7 +11,7 @@ Issue ごとの成果物ファイルは持たない。計画と検証結果は P
 |------|--------|------|
 | 問題・scope・受入条件・依存 | GitHub Issue 本文 | 受入条件はリポジトリ内で満たせる確定事項で書く。「A か B かを選ぶ」を受入条件にしない（`docs/styles/team-feedback/single-solution.md`） |
 | 実装計画 | 実装を担う worker のプロンプトと PR 本文の「方針と却下案」 | Issue 専用の計画ファイルは作らない |
-| 方針と却下案・スコープ外・リスク | PR 本文の標準節 | 標準節は 背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク |
+| 方針と却下案・スコープ外・リスク | PR 本文の標準節 | 標準節の定義は `../assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」 |
 | 検証結果 | PR 本文の「検証結果」 | 実行した検証ゲートの名前と結果、未検証の範囲 |
 | 設計判断 | ADR（`docs/adr/`） | 起票基準は §5。PR 本文から ADR へリンクする |
 | 残タスク・スコープ外の追跡 | GitHub Issue | PR 本文の「スコープ外」に Issue 番号を書く |
@@ -54,15 +54,7 @@ PR は通常 PR で open する。draft にしない規則と、経路ごとの�
 
 ## 4. Approval Rules
 
-既定は自律実行とする。エージェントは明示的な指示がない限り、変更の実装から open PR の提出までを自律的に行う。
-PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
-
-人間の明示承認が必須なのは次の 2 つのみ:
-
-- 課金が発生する操作（有償リソースの作成、プラン変更、外部サービス契約）
-- 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）
-
-導入先が、この 2 つに加えて人間へ引き渡す範疇（公開契約の非互換、個人情報の取扱いの変更など）を持つ場合は、`docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」小節に記入する。既定は空である。
+承認モデル（既定の自律実行、人間の明示承認が必須な操作、ブランチモデル）は `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」が正本であり、ここには複製しない。導入先が人間へ引き渡す範疇を持つ場合は、同書の「人間引き渡し境界」に記入する。
 
 次の条件に当たる issue は承認の対象ではないが、判断材料を PR 本文（設計判断は ADR）に残して提示する:
 
@@ -73,9 +65,6 @@ PR のマージは人間の操作だが、明示的に指示された場合は�
 - implementation spans multiple deploy/scaling units
 - long-running or async workflow durability is not yet designed
 - issue has unclear acceptance criteria
-
-ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
-prod（release）への反映のみ手順を踏む: main の安全性確認 → release への反映手順の確認。
 
 ## 5. ADR Triggers
 
@@ -94,8 +83,7 @@ prod（release）への反映のみ手順を踏む: main の安全性確認 → 
 
 ## 6. Remote GitHub Mutation
 
-GitHub labels / milestones / Projects / fields / issues / issue relationships の作成・変更は自律実行してよい。
-人間承認が必要なのは、課金が発生する操作と秘密値の挿入・変更のみ。
+GitHub labels / milestones / Projects / fields / issues / issue relationships の作成・変更は自律実行してよい（§4）。
 
 自律実行した mutation は、判断材料と結果を PR 本文に残す:
 

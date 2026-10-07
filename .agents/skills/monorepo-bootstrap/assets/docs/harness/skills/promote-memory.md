@@ -79,8 +79,10 @@ Step 2 で決めた category に対応するセクション表に 1 行追加す
 rule の本文は `docs/styles/team-feedback/<slug>.md` だけに置き、`.claude/rules/` には pointer 行だけを置く（本文の二重管理を避けるため）。Step 2 で決めた振り分け先 rule ファイルに次の形式で pointer 行を追加する。既存セクション見出しがあればその末尾に、なければ新規見出しを設けて配置する:
 
 ```markdown
-- [<人間が読める rule タイトル>](../../docs/styles/team-feedback/<slug>.md) — <1 行概要>
+- [<人間が読める rule タイトル>](../../docs/styles/team-feedback/<slug>.md)
 ```
+
+1 行概要は pointer 行に書かない。概要の正本は Step 4 の INDEX である。
 
 ### Step 6: 個人 memory の pointer 化
 

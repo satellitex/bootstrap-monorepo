@@ -9,7 +9,7 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 - この repository をローカルに clone する（skill と資産のコピー元になる）。
 - `gh` CLI が認証済みであること（Issue / PR / repo 操作に使う）。
-- 人間の明示承認が必須なのは「課金が発生する操作」と「秘密値の挿入・変更」のみ。それ以外は open PR の提出まで自律実行される（明示的に指示すればマージまで行う）。
+- 承認モデル: 人間の明示承認が必須なのは課金と秘密値のみで、それ以外は open PR の提出まで自律実行される（定義 → `.agents/skills/monorepo-bootstrap/assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
 
 ### A. 0 から新しい repo を作る — `/monorepo-bootstrap`
 
@@ -56,21 +56,12 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh
 ```
 
-検査する内容:
-
-- `assets/MANIFEST.md` の資産一覧と `assets/` の実ファイルが 1:1 であること
-- skill 正本（`docs/harness/skills/*.md`）と adapter（`.claude/skills/*/SKILL.md`）が同名で 1:1 であること
-- 二重波括弧の token が明示 token 4 種だけで、MANIFEST が列挙していること
-- 固有語の denylist に一致する箇所がないこと
-- `HARNESS_ROOT` を `assets/` に向けて、配布版の機械検査（`assets/tests/harness/`）が通ること
-
-固有語の denylist は、固有語そのものを repo へ混入させないため、repo の外に置く。環境変数 `TEMPLATE_DENYLIST_FILE` にファイルのパスを渡す（1 行 1 パターンの拡張正規表現、`#` で始まる行はコメント、大文字小文字は区別しない）。未設定の場合、この検査は skip と表示される。
+検査項目と、固有語 denylist の形式は、スクリプト冒頭のコメント（`.agents/skills/monorepo-bootstrap/scripts/check-assets.sh`）が正本である。denylist は固有語そのものを repo へ混入させないため repo の外に置き、環境変数 `TEMPLATE_DENYLIST_FILE` にファイルのパスを渡す（未設定の場合、この検査は skip と表示される）。
 終了コードは、すべて通過（skip を含む）なら 0、1 つ以上失敗なら 1。
 
 ## 目的
 
 任意のプロダクト概要から、技術調査、技術選定の確定、モノレポ基盤、ハーネス、CI/CD、初期実装、deploy 検証までを自律実行するための template を管理する。
-人間の明示承認が必須なのは、課金が発生する操作と秘密値の挿入・変更の 2 つのみとする。
 
 ハーネス・docs・CI の実体はスクラッチ生成せず、`assets/MANIFEST.md` を台帳として copy と placeholder 置換で展開する。
 

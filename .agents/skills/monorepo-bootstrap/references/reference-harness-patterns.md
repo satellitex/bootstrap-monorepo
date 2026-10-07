@@ -31,7 +31,7 @@ copy と置換の手順も書かない（手順は SKILL.md Step 5 と MANIFEST 
 | `docs/styles/team-feedback/` | 横断判断 rule の本文。`.claude/rules/team-policy.md` は pointer に徹する |
 | `.claude/rules/*.md` | 常時ロード rule と paths スコープ rule |
 | `.claude/hooks/` / `.claude/bin/` | 機械強制される検査（format / 秘密検知 / 編集後検査）とその hermetic テスト。Claude Code 経由の操作にだけ効く |
-| `tests/harness/` | ハーネス文書・設定の機械検査（依存ゼロの `node:test`。サイズ上限・skill の 1:1・参照パスの実在・未置換 token など、決定論的に判定できる規約）。CI の test job が実行する |
+| `tests/harness/` | ハーネス文書・設定の機械検査（依存ゼロの `node:test`。範囲 → `tests/harness/README.md`「検査一覧」）。CI の test job が実行する |
 | `.claude/agents/*.md` | 単機能 subagent。skill 本文から呼ばれる |
 
 言語ポリシー、issue lifecycle、Project 運用は独立ファイルにせず、次に畳み込んでいる。分割を増やすと入口が太り、pointer の維持コストだけが増えるため。
@@ -87,7 +87,7 @@ skill は 2 層構成にする。正本を片方のツールに閉じないた�
 | evaluator | `multi-issue` の独立 review pass（worktree の絶対パスを渡す） | diff、受入条件、coding guide | 修正提案 | 実装と同一の役で完結させない |
 | `architecture-sync` | `.claude/agents/architecture-sync.md` | 実装差分、README/docs | docs 更新案 | 現状事実だけを書く |
 | `refactorer` | `.claude/agents/refactorer.md`（入口は `/refactor-sync`） | 変更近傍のコード、規約正本 | 観点の検出結果 | 実装せず Issue 提案に留める |
-| `gc-agent` | `.claude/agents/gc-agent.md` | ハーネス文書全体 | 重複・孤児の整理案（サイズ・1:1・パス実在は機械検査が担当） | 削除はすべて PR で提案し、単独で消さない |
+| `gc-agent` | `.claude/agents/gc-agent.md` | ハーネス文書全体 | 重複・孤児の整理案（機械検査で判定できる項目は対象外） | 削除はすべて PR で提案し、単独で消さない |
 | `adr-compactor` | `.claude/agents/adr-compactor.md` | ADR コーパス | Status 追従、圧縮案、INDEX 再構築 | 判断内容を改変しない |
 | `refactor-guide-sync` | `.claude/agents/refactor-guide-sync.md` | 規約正本、リファクタガイド | 観点の追加・削除・根拠パス修正 | 規約内容そのものを決めない |
 
@@ -95,16 +95,7 @@ skill は 2 層構成にする。正本を片方のツールに閉じないた�
 
 ## 4. 承認が必要な操作
 
-既定は自律実行とする。エージェントは明示的な指示がない限り、変更の実装から open PR の提出までを自律的に行う。PR のマージは人間の操作だが、明示的に指示された場合はマージまで行ってよい。
-
-人間の明示承認が必須なのは次の 2 つのみ。
-
-| 対象 | 具体例 |
-|------|--------|
-| 課金が発生する操作 | 有償リソースの作成、有償プランへの変更、外部サービス契約 |
-| 秘密値の挿入・変更 | credential / API key / token を設定へ投入する操作 |
-
-これ以外は承認を待たずに実行してよい。ただし判断材料は成果物に残し、PR で提示する。
+承認モデル（既定の自律実行、承認が必須な操作、ブランチモデル）は `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」が正本であり、ここには複製しない。承認が必須でない操作は、判断材料を成果物に残し、PR で提示する。
 
 | 操作 | 承認 | 残すもの |
 |------|------|----------|
@@ -115,8 +106,7 @@ skill は 2 層構成にする。正本を片方のツールに閉じないた�
 | dev 環境（main）への deploy | 不要 | deploy URL、commit SHA、smoke 結果 |
 | repo settings の変更 | 不要 | 変更前後の設定と理由 |
 
-ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
-prod リリースのみ手順を踏む: main の安全性確認 → release への反映手順の確認。手順の具体は `deploy-verify` の release 反映節（merge commit 限定、承認は release 宛て PR のマージ 1 か所）にある。release 用の別 skill は持たない。
+prod リリースの手順の具体は `deploy-verify` の「release 反映（prod）」節（merge commit 限定、承認は release 宛て PR のマージ 1 か所）にある。release 用の別 skill は持たない。
 
 承認を得た場合、そのログは PR 本文の「承認ログ（課金・秘密値）」節に残す。チャットだけに閉じると、後続 agent や別ツールが判断経緯を読めない。
 
@@ -129,7 +119,7 @@ CI の既定は基礎 CI 1 本のみ（`assets/.github/workflows/ci.yml`）。
 
 これを超える check は拡張候補であり、product に必要なものだけ選ぶ。候補一覧・採否の記録先・base branch diff の注意点は `ci-cd-runner-deploy.md` を参照する。
 秘密検知は CI ではなく pre-push hook が既定の担い手になる。CI job を増やす前に hook で止められないかを先に検討する。
-hook は Claude Code 経由の操作にだけ効き、CI は PR と既定ブランチへの push の全経路に効く。lint / typecheck / 秘密検知は hook のみで担保されるため、hook の効かない経路（他の実行環境や `--no-verify`）では素通りする。この差は `docs/harness/skills/shared/verification-gates.md` の名前付き組合せの表で説明できる状態に保つ。
+hook と CI の分担は `../assets/docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」が正本であり、この差を同書の表で説明できる状態に保つ。
 
 CI は「agent が merge 可能性を判断できる」粒度まで機械化する。
 Codex / Claude のどちらで実装しても同じ gate に当たるよう、CI を tool 非依存の最終判定にする。
@@ -186,7 +176,7 @@ bootstrap 直後の PR checklist:
 
 ## 9. PR Contract
 
-PR 本文は標準 5 節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）を既定とする。定義と各節に書くことは `assets/docs/harness/skills/shared/pr-creation.md` が正本である。
+PR 本文は標準節を既定とする。定義と各節に書くことは `assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」が正本である。
 bootstrap / adopt の PR は、これに「承認ログ（課金・秘密値）」と「移管先の文書」の 2 節を加える。節構成のテンプレートは `bootstrap-artifacts.md` にある。
 
 PR 本文に最低限入れる情報と、その置き場:
@@ -202,8 +192,7 @@ PR 本文に最低限入れる情報と、その置き場:
 | 成果を移した文書 | 移管先の文書 |
 
 PR の作成規約は `assets/docs/harness/skills/shared/pr-creation.md` が正本である。base は常に既定ブランチ、draft にしない、open 前に他の open PR との衝突を検査する。
-Issue auto-close が必要な repo では closing keyword を body に入れる。title だけに issue number を書いても auto-close されない。
-運用 rule の本文は `docs/styles/team-feedback/pr-closing-keyword.md` を正本にする。
+closing keyword の規則は `docs/styles/team-feedback/pr-closing-keyword.md` を正本にする。
 
 ## 10. Avoid Tool / Provider Lock-in
 

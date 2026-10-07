@@ -1,10 +1,10 @@
 # adr-compress 圧縮規則（カテゴリ別の検出・手順・stub 形式・INDEX 構造）
 
-> この文書は `/adr-compress` が実行する圧縮の規則と形式の正本である。起動方法と PR の差分表は `docs/harness/skills/adr-compress.md`、検出・安全ゲート・PR 化のオーケストレーションは `.claude/agents/adr-compactor.md`、PR 本文の形式は `docs/harness/skills/adr-compress/pr-output-format.md` が担当する。ADR の status model・命名・書き方は `docs/adr/README.md` が正本であり、ここには書かない。
+> この文書は `/adr-compress` が実行する圧縮の規則と形式の正本である。横断のガードレール（Proposed の保護・Decision の保全・in-place・durable-decision・無損失の証明）は、各カテゴリの規則と「抑制条件」に含まれる。起動方法と PR の差分表は `docs/harness/skills/adr-compress.md`、検出・安全ゲート・PR 化のオーケストレーションは `.claude/agents/adr-compactor.md`、PR 本文の形式は `docs/harness/skills/adr-compress/pr-output-format.md` が担当する。ADR の status model・命名・書き方は `docs/adr/README.md` が正本であり、ここには書かない。
 
 ## 共通前提
 
-- `<id>`: ADR のファイル名から `.md` を除いたもの（`ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}`）。
+- `<id>`: ADR のファイル名から `.md` を除いたもの（ファイル名の規則 → `docs/adr/README.md`「書き方」）。
 - 比較・更新の基準は `origin/main`。ファイルの列挙と本文の取得は `git ls-tree -r --name-only origin/main -- docs/adr/` と `git show origin/main:<path>` で行う。
 - `{adr-slug}`: `<id>` を小文字にし、`_` と `.` を `-` に置換した文字列。
 - 候補 ID は `{prefix}-{adr-slug}` とする。`{prefix}` は 0 が `status-follow`、II が `stub`、III が `consolidate`、IV が `summarize`。I の候補 ID は `index-rebuild` 固定。候補 ID は人間レビュー用のトレーサビリティであり、open PR ガードの判定キーではない。
@@ -183,7 +183,7 @@ Context と Consequences は圧縮済みである。省略した詳細は git �
 `/adr-compress consolidate` で起動したときだけ実行する。「1 ADR = 1 決定」の規約を変える操作のため、既定では無効である。
 
 - **検出**: 同一グループの ADR が 3 件以上で、全件が non-Proposed。グループのキーは、`{branch-slug}` に Issue 番号を含む命名規約ではその番号、含まない規約では `{branch-slug}` 自体とする。
-- **手順**: 各 Decision を節に分けて 1 つの consolidated ADR に統合する。ファイル名は `ADR-{YYYYMMDD}_consolidated_{グループのキー}.md`。Status は Accepted、Author は `adr-compactor (consolidation)`。原本は同じパスのまま `Superseded by ADR-<consolidated-id>` の stub にする（形式は II の full stub に従う）。
+- **手順**: 各 Decision を節に分けて 1 つの consolidated ADR に統合する。ファイル名は README の規則に従い、`{branch-slug}` を `consolidated`、`{topic-slug}` をグループのキーにする。Status は Accepted、Author は `adr-compactor (consolidation)`。原本は同じパスのまま `Superseded by ADR-<consolidated-id>` の stub にする（形式は II の full stub に従う）。
 - 元の各 Decision とその根拠を 1 つも落とさない。落ちる場合は候補から外す。
 
 ## カテゴリ IV: 本文の要約圧縮（lossy）

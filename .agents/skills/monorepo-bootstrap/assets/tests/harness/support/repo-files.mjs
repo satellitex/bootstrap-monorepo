@@ -1,12 +1,29 @@
 // ハーネス検査の共通ヘルパ。Node 標準（node:fs / node:path / node:url）だけを使う。
 //
 // 検査対象のルートは環境変数 HARNESS_ROOT で差し替えられる（既定は tests/harness/support/
-// から 3 階層上、つまり bootstrap 先 repo のルート）。ルートが MANIFEST.md を持つ場合は
-// テンプレート資産そのものとみなし、置換前の明示 token を許容する（IS_TEMPLATE_ROOT）。
+// から 3 階層上、つまり bootstrap 先 repo のルート）。テンプレート資産そのものを検査するときは、
+// 環境変数 HARNESS_TEMPLATE_ROOT=1 でテンプレートモードにし、置換前の明示 token を許容する
+// （IS_TEMPLATE_MODE）。
+//
+// ROOT に依存しない純粋なテキストヘルパは markdown.mjs にあり、ここから re-export する。
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+export {
+  PATH_PREFIXES,
+  countCodePoints,
+  countLines,
+  escapeRegExp,
+  fenceMask,
+  fencedLines,
+  inlineCodeSpans,
+  linesOutsideFences,
+  parseFrontmatter,
+  proseLines,
+  stripInlineCode,
+} from "./markdown.mjs";
 
 /**
  * 走査系テストに付ける明示 timeout（ミリ秒）。repo 全体を走査する検査は実行環境の
@@ -32,12 +49,13 @@ function resolveRoot() {
 export const ROOT = resolveRoot();
 
 /**
- * ルートがテンプレート資産そのものか。MANIFEST.md は bootstrap 先へ配布されない台帳で、
- * テンプレート資産のルートにだけ存在する。
+ * テンプレートモード。テンプレート資産そのもの（置換前の明示 token を持つ状態）を検査する
+ * ときだけ、テンプレート repo の整合検査（scripts/check-assets.sh）が環境変数
+ * HARNESS_TEMPLATE_ROOT=1 で有効にする。bootstrap 先では設定しない。
  */
-export const IS_TEMPLATE_ROOT = existsSync(join(ROOT, "MANIFEST.md"));
+export const IS_TEMPLATE_MODE = process.env.HARNESS_TEMPLATE_ROOT === "1";
 
-/** テンプレート資産でだけ存在し、bootstrap 先へ配布されないファイル。 */
+/** テンプレート資産でだけ存在し、bootstrap 先へ配布されないルート直下のファイル。 */
 export const TEMPLATE_ONLY_FILES = ["MANIFEST.md"];
 
 /** bootstrap 時に置換される明示 token の名前（二重波括弧で囲んだ記法の名前部分）。 */
@@ -49,15 +67,31 @@ export const EXPLICIT_TOKENS = [
 ];
 
 /**
- * 置換対象外の記入欄（コピーして埋める様式）を置くパス。末尾 `/` はディレクトリ配下全体。
- * これらの中の二重波括弧は未置換 token ではなく記入欄として扱う。
+ * 二重波括弧の開きと閉じ。bootstrap 時の一括置換で書き換わらないよう、リテラルを分けて
+ * 連結して組み立てる（固定入力に二重波括弧の実例が要る自己テスト用）。
  */
-export const TEMPLATE_FORM_PATHS = ["docs/adr/template.md", "docs/templates/"];
+export const OPEN = "{" + "{";
+export const CLOSE = "}" + "}";
 
-export function isTemplateFormPath(rel) {
-  return TEMPLATE_FORM_PATHS.some((p) =>
-    p.endsWith("/") ? rel.startsWith(p) : rel === p,
-  );
+/**
+ * `rel`（ルート相対の POSIX パス）が `spec` に一致するか。`spec` が `/` で終わればその配下全体、
+ * それ以外は完全一致。
+ */
+export function matchesPathSpec(rel, spec) {
+  return spec.endsWith("/") ? rel.startsWith(spec) : rel === spec;
+}
+
+/** 引数なしの関数の結果を、最初の呼び出しで 1 回だけ計算して使い回す。 */
+export function once(fn) {
+  let cached;
+  let computed = false;
+  return () => {
+    if (!computed) {
+      cached = fn();
+      computed = true;
+    }
+    return cached;
+  };
 }
 
 const SKIP_DIRS = new Set([".git", "node_modules"]);
@@ -76,8 +110,17 @@ export function isDirInRepo(rel) {
   return existsSync(p) && statSync(p).isDirectory();
 }
 
+// 検査は実行中にルートを書き換えないため、読み取り結果はモジュール内で使い回す。
+const fileCache = new Map();
+const dirCache = new Map();
+
 export function readRepoFile(rel) {
-  return readFileSync(repoPath(rel), "utf8");
+  let text = fileCache.get(rel);
+  if (text === undefined) {
+    text = readFileSync(repoPath(rel), "utf8");
+    fileCache.set(rel, text);
+  }
+  return text;
 }
 
 /** gate の前提となるファイルを読む。無ければ、何が無いかが分かる例外を投げる。 */
@@ -90,10 +133,19 @@ export function readRequiredFile(rel) {
   return readRepoFile(rel);
 }
 
-/** ディレクトリ直下のエントリ名（ファイル・ディレクトリ）を昇順で返す。存在しなければ空。 */
+/**
+ * ディレクトリ直下のエントリ名（ファイル・ディレクトリ）を昇順で返す。存在しなければ空。
+ * 返す配列は使い回すため、変更できない。
+ */
 export function listDir(rel) {
-  if (!isDirInRepo(rel)) return [];
-  return readdirSync(repoPath(rel)).sort();
+  let names = dirCache.get(rel);
+  if (names === undefined) {
+    names = Object.freeze(
+      isDirInRepo(rel) ? readdirSync(repoPath(rel)).sort() : [],
+    );
+    dirCache.set(rel, names);
+  }
+  return names;
 }
 
 /**
@@ -103,9 +155,10 @@ export function listDir(rel) {
 export function listFiles(rel = "", predicate = () => true) {
   const out = [];
   const walk = (relDir) => {
-    const abs = repoPath(relDir);
-    if (!existsSync(abs) || !statSync(abs).isDirectory()) return;
-    for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (!isDirInRepo(relDir)) return;
+    for (const entry of readdirSync(repoPath(relDir), {
+      withFileTypes: true,
+    })) {
       const childRel = relDir === "" ? entry.name : `${relDir}/${entry.name}`;
       if (entry.isDirectory()) {
         if (!SKIP_DIRS.has(entry.name)) walk(childRel);
@@ -120,6 +173,19 @@ export function listFiles(rel = "", predicate = () => true) {
 
 export function listMarkdownFiles(rel) {
   return listFiles(rel, (p) => p.endsWith(".md"));
+}
+
+/** `.claude/agents/` 直下の agent 定義（`references/` などの配下は含まない）。 */
+export function listAgentFiles() {
+  return listFiles(
+    ".claude/agents",
+    (p) => p.endsWith(".md") && p.split("/").length === 3,
+  );
+}
+
+/** `.github/workflows/` の workflow ファイル（`*.yml` / `*.yaml`）。 */
+export function listWorkflowFiles() {
+  return listFiles(".github/workflows", (p) => /\.ya?ml$/.test(p));
 }
 
 /** ルート直下の *.md（テンプレート専用の台帳を除く）。 */
@@ -149,180 +215,11 @@ export function listHarnessFiles() {
   return [...files].sort();
 }
 
-// ---- markdown の簡易解析 --------------------------------------------------
-// CommonMark の完全準拠ではなく、検査に必要な範囲（フェンス付きコードブロックと
-// インラインコード）だけを扱う。限界: 複数行にまたがるインラインコード、HTML ブロック、
-// インデントによるコードブロックは判定しない。
-
-/** 行配列に対し、フェンス付きコードブロックの内側（区切り行を含む）を true にしたマスク。 */
-export function fenceMask(lines) {
-  const mask = new Array(lines.length).fill(false);
-  let open = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (open === null) {
-      const m = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
-      if (m && !(m[1][0] === "`" && m[2].includes("`"))) {
-        open = { char: m[1][0], len: m[1].length };
-        mask[i] = true;
-      }
-    } else {
-      mask[i] = true;
-      const m = /^\s*(`{3,}|~{3,})\s*$/.exec(line);
-      if (m && m[1][0] === open.char && m[1].length >= open.len) open = null;
-    }
-  }
-  return mask;
-}
-
-/** フェンス付きコードブロックの外側の行を `{ n, text }`（n は 1 始まりの行番号）で返す。 */
-export function linesOutsideFences(text) {
-  const lines = text.split("\n");
-  const mask = fenceMask(lines);
-  const out = [];
-  lines.forEach((line, i) => {
-    if (!mask[i]) out.push({ n: i + 1, text: line });
-  });
-  return out;
-}
-
-/** フェンス付きコードブロックの内側の行を `{ n, text }` で返す（区切り行は含まない）。 */
-export function fencedLines(text) {
-  const lines = text.split("\n");
-  const mask = fenceMask(lines);
-  const out = [];
-  lines.forEach((line, i) => {
-    if (mask[i] && !/^\s*(`{3,}|~{3,})/.test(line)) {
-      out.push({ n: i + 1, text: line });
-    }
-  });
-  return out;
-}
-
-/**
- * 1 行の中のインラインコード範囲を返す。開きと同じ長さのバッククォート列で閉じる。
- * 返り値の `start` / `end` は区切りのバッククォートを含む範囲、`text` は中身。
- */
-export function inlineCodeSpans(line) {
-  const spans = [];
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] !== "`") {
-      i += 1;
-      continue;
-    }
-    let runEnd = i;
-    while (runEnd < line.length && line[runEnd] === "`") runEnd += 1;
-    const len = runEnd - i;
-    let j = runEnd;
-    let closeStart = -1;
-    while (j < line.length) {
-      if (line[j] !== "`") {
-        j += 1;
-        continue;
-      }
-      let k = j;
-      while (k < line.length && line[k] === "`") k += 1;
-      if (k - j === len) {
-        closeStart = j;
-        break;
-      }
-      j = k;
-    }
-    if (closeStart === -1) {
-      i = runEnd;
-      continue;
-    }
-    spans.push({
-      start: i,
-      end: closeStart + len,
-      text: line.slice(runEnd, closeStart),
-    });
-    i = closeStart + len;
-  }
-  return spans;
-}
-
-/** インラインコードを同じ長さの空白に置き換えた行（桁位置を保つ）。 */
-export function stripInlineCode(line) {
-  let out = line;
-  for (const s of inlineCodeSpans(line)) {
-    out =
-      out.slice(0, s.start) + " ".repeat(s.end - s.start) + out.slice(s.end);
-  }
-  return out;
-}
-
-/** フェンスとインラインコードを除いた散文の行（`{ n, text }`）。 */
-export function proseLines(text) {
-  return linesOutsideFences(text).map(({ n, text: t }) => ({
-    n,
-    text: stripInlineCode(t),
-  }));
-}
-
-// ---- frontmatter ---------------------------------------------------------
-
-/**
- * 先頭の YAML frontmatter を簡易に読む（単一行の `key: value` だけを扱う）。
- * frontmatter が無ければ null。複数行の値（`>` / `|` / 継続行）は `multiline` に記録する。
- */
-export function parseFrontmatter(text) {
-  const lines = text.split("\n");
-  if (lines[0].trim() !== "---") return null;
-  let end = -1;
-  for (let i = 1; i < lines.length; i += 1) {
-    if (lines[i].trim() === "---") {
-      end = i;
-      break;
-    }
-  }
-  if (end === -1) return null;
-  const fields = new Map();
-  const multiline = new Set();
-  let lastKey = null;
-  for (let i = 1; i < end; i += 1) {
-    const line = lines[i];
-    const m = /^([A-Za-z_][\w-]*):\s*(.*)$/.exec(line);
-    if (m) {
-      lastKey = m[1];
-      let value = m[2].trim();
-      if (/^[>|][+-]?$/.test(value)) {
-        multiline.add(lastKey);
-        value = "";
-      }
-      if (
-        value.length >= 2 &&
-        (value[0] === '"' || value[0] === "'") &&
-        value[value.length - 1] === value[0]
-      ) {
-        value = value.slice(1, -1);
-      }
-      fields.set(lastKey, value);
-    } else if (/^\s+\S/.test(line) && lastKey !== null) {
-      multiline.add(lastKey);
-    }
-  }
-  return {
-    fields,
-    multiline,
-    bodyStartLine: end + 2,
-    body: lines.slice(end + 1).join("\n"),
-  };
-}
-
-// ---- 計測 ---------------------------------------------------------------
-
-/** `wc -l` ではなく表示上の行数を数える（末尾の改行は行を増やさない）。 */
-export function countLines(text) {
-  if (text === "") return 0;
-  const n = text.split("\n").length;
-  return text.endsWith("\n") ? n - 1 : n;
-}
-
-/** Unicode コードポイント数（サロゲートペアを 1 と数える）。 */
-export function countCodePoints(text) {
-  return [...text].length;
+/** ルートの `package.json` の scripts の名前。`package.json` が無ければ例外を投げる。 */
+export function packageScriptNames() {
+  return Object.keys(
+    JSON.parse(readRequiredFile("package.json")).scripts ?? {},
+  );
 }
 
 // ---- 除外定数の検査 ---------------------------------------------------------

@@ -1,7 +1,7 @@
 # ADR INDEX
 
 > この文書は `docs/adr/` 配下 ADR の一覧（Status 別）である。決定の詳細は各 ADR 本体が正本であり、本表には 1 行要旨のみを書く（長文要約を詰め込まない）。
-> 命名規則: `ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md`。各行はコンパクト形式（第 1 セル = ADR link、第 2 セル = 1 行要旨）。運用は [`README.md`](./README.md)。
+> 各行はコンパクト形式（第 1 セル = ADR link、第 2 セル = 1 行要旨）。命名規則を含む運用は [`README.md`](./README.md)。
 
 ## 現行 ADR
 

@@ -11,8 +11,8 @@
 // 出力は組み込みの reporter を使わず、テストの結果イベントだけから組み立てる（Node の版による
 // reporter の差を受けないため）。
 
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { readdirSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { run } from "node:test";
 
@@ -37,16 +37,17 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const rootEnv = process.env.HARNESS_ROOT;
-if (rootEnv !== undefined && rootEnv !== "") {
-  const abs = resolve(rootEnv);
-  if (!existsSync(abs) || !statSync(abs).isDirectory()) {
-    console.error(`harness:test: HARNESS_ROOT がディレクトリではない: ${abs}`);
+// HARNESS_ROOT の検査は、検査ファイルと同じ解決処理（repo-files.mjs の import）に任せる。
+// 不正なルートは、検査ファイルが 1 本ずつ読み込みに失敗して原因が散らばる前にここで止める。
+if (process.env.HARNESS_ROOT) {
+  try {
+    await import("./support/repo-files.mjs");
+  } catch (error) {
+    console.error(`harness:test: ${error.message}`);
     process.exit(1);
   }
 }
 
-let executed = 0;
 let passed = 0;
 let failed = 0;
 let skipped = 0;
@@ -77,7 +78,6 @@ stream.on("test:pass", (event) => {
     console.log(`  - ${label(event)}  (skip)`);
     return;
   }
-  executed += 1;
   passed += 1;
   console.log(`  ✔ ${label(event)}`);
 });
@@ -85,7 +85,6 @@ stream.on("test:pass", (event) => {
 stream.on("test:fail", (event) => {
   // 子テストが失敗した suite は、子の失敗で報告済みのため数えない。
   if (event.details?.type === "suite") return;
-  executed += 1;
   failed += 1;
   console.log(`  ✖ ${label(event)}`);
   failures.push({ title: label(event), message: errorMessage(event) });
@@ -113,9 +112,9 @@ stream.on("end", () => {
     }
   }
   console.log(
-    `\nharness:test: 実行 ${executed} 件（成功 ${passed} / 失敗 ${failed}）、skip ${skipped} 件、検査ファイル ${files.length} 本`,
+    `\nharness:test: 実行 ${passed + failed} 件（成功 ${passed} / 失敗 ${failed}）、skip ${skipped} 件、検査ファイル ${files.length} 本`,
   );
-  if (executed === 0) {
+  if (passed + failed === 0) {
     console.error("harness:test: 実行されたテストが 0 件");
     process.exitCode = 1;
   } else {
