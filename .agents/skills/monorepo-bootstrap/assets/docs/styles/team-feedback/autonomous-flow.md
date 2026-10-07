@@ -15,8 +15,12 @@
 - 変更の実装・テスト・検証ゲート通過・ブランチ作成・open PR の提出までを、人間の中断なく自律的に行う
 - PR のマージは人間の操作。ただし明示的に指示された場合はマージまで行ってよい
 - 不確定要素は次の優先順で自律判断する: 既存 docs → 技術調査（research 系ドキュメント）→ 業界ベストプラクティス → 保守的 default
-- 「Open Questions」「Gate チェックポイント」のような人間入力で停止するセクションを計画に作らない
-- 採用した判断はすべて Design Decisions テーブル等に記録し、人間が最終レビュー時に一覧で確認できるようにする。「人間に確認すべき」と判断した項目も、止まらずに保守的 default で先に進めた上で「人間承認推奨」フラグ付きで記録する
+- 判断は 1 案に確定して書く（→ [single-solution](./single-solution.md)）。「Open Questions」「Gate チェックポイント」のような人間入力で停止するセクションを、計画にも PR 本文にも作らない
+- 採用した判断はすべて PR 本文の「方針と却下案」節（→ `docs/harness/skills/shared/pr-creation.md`）に記録し、人間が最終レビュー時に一覧で確認できるようにする。人間引き渡し境界（`docs/harness/OPERATING_MODEL.md` の承認モデル節。既定: なし）に当たる案は、案と根拠を「人間承認推奨」として記録する。記録して続行するか、人間へ引き渡して終了するかは実行モードによる（→ 次節「無人実行（routine）」）
+
+### 無人実行（routine）
+
+routine などの無人 run では、質問・認可更新・許可外 tool の承認待ちに当たると、run が再開されないまま止まる。確認ゲートの扱いは実行モードによって異なり、その契約は `docs/harness/skills/shared/unattended-contract.md` が定める。課金と秘密値は無人 run でも人間の承認が必須であり、契約はこれを変えない。
 
 ### 人間の明示承認が必須な操作（2 つのみ）
 
@@ -35,6 +39,8 @@
 
 ## 関連
 
+- [single-solution](./single-solution.md) — 解決策は 1 案に確定して書く
 - [scope-boundary](./scope-boundary.md) — スコープ判断の自律ガイド
 - [long-term-automation](./long-term-automation.md) — 自動化最優先方針
+- `docs/harness/skills/shared/unattended-contract.md` — 無人 run の契約（確認ゲート別の扱い）
 - [../../harness/OPERATING_MODEL.md](../../harness/OPERATING_MODEL.md) — 承認モデルを含むハーネス運用の正本

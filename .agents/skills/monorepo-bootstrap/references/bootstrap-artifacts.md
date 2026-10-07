@@ -1,197 +1,90 @@
 # Bootstrap Artifacts
 
-`monorepo-bootstrap` が生成する成果物の標準構造。
-target repo に既存テンプレートがある場合は、そちらを優先し、この構造を不足確認に使う。
+この文書は、`monorepo-bootstrap` と `harness-adopt` の成果物を、PR 本文の節構成と、各層の文書へ移すときのテンプレートとして定める。
+成果物専用のディレクトリやファイルは作らない。作業中の成果は PR 本文の節に書き、確定した内容を既存の層（調査・決定・現状・運用）の文書へ移す。
+どの成果をどの文書へ移すかの対応表は `../SKILL.md` の「成果物」を正本とし、ここには複製しない。
+target repo に既存のテンプレート（PR テンプレート、ADR テンプレート等）がある場合はそちらを優先し、この構造は不足確認に使う。
 
-Durable bootstrap artifacts belong under:
+## 1. PR 本文の節構成
 
-```text
-docs/issues/000_bootstrap/
-```
-
-Do not keep `docs/bootstrap/` as the long-lived source of truth.
-If temporary scratch files are created there, migrate durable content into Issue 0, `docs/notes/research/`, `docs/adr/`, `docs/harness/`, or `docs/runbooks/` before completion.
-
-## product-brief.md
+PR 本文の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）と、bootstrap / adopt の PR に加える 2 節（承認ログ / 移管先の文書）の定義は、`../assets/docs/harness/skills/shared/pr-creation.md` が正本である。
+ここでは bootstrap で各節に何を書くかと、確定前の途中成果を載せる節を定める。
 
 ```markdown
-# Product Brief: <project name>
+<linkage 行（起票元 Issue がある場合のみ）>
 
-## Summary
+## 背景
+## 方針と却下案
+## スコープ外
+## 検証結果
+## リスク
+## 承認ログ（課金・秘密値）
+## 移管先の文書
+
+## Intake（確定前）
+## Gate A 技術選定（確定前）
+## Gate B 実装計画（確定前）
+```
+
+| 節 | bootstrap で書くこと |
+|----|----------------------|
+| 背景 | プロダクト概要、project language、deploy 目標、制約。Intake の原文を引用し、入力が足りずに置いた仮定を明示する |
+| 方針と却下案 | 採用した stack と app topology の要約（詳細は技術選定の ADR を参照）、opt-in グループの採否、既存 repo の規約を優先した判断、CI の拡張候補の採否と理由。退けた案は 1 案ごとに 1 行 |
+| スコープ外 | bootstrap で作らないものと、その追跡先の GitHub Issue |
+| 検証結果 | 実行した検証ゲート（`gate:commit` 等）と基礎 CI の結果、`pnpm harness:test` と hooks テストの結果、deploy 先の smoke 結果、deploy URL・commit SHA・environment。未検証の範囲 |
+| リスク | 技術・運用・セキュリティ・cost / limits のリスクと緩和、残っている `TODO(` の一覧、routine 登録など人間への引き継ぎ |
+| 承認ログ（課金・秘密値） | 承認必須 2 種に該当する項目と状態。該当なしの場合は「該当なし」と書く |
+| 移管先の文書 | 成果を移した文書のパスと、各文書へ移した内容の 1 行要約 |
+
+途中成果の節（Intake / Gate A / Gate B）の扱い:
+
+- 作業中は、これらの節に確定前の内容を書く。PR 本文は commit しない作業用ファイルに書き、最後に `gh pr create --body-file` へ渡す。作業が複数 session にまたがる場合は、作業ブランチを push した後に通常 PR（draft にしない）を open し、同じ節構成で本文を更新し続けてよい。
+- 内容を確定したら、§2 のテンプレートに従って移管先の文書へ移し、途中成果の節には移管先への参照だけを残す。確定前の内容を節に残したまま PR を提出しない。
+- 課金・秘密値の承認ログは、承認を得た時点で「承認ログ（課金・秘密値）」節に追記する。チャットだけに閉じると、後続の agent や別ツールが判断経緯を読めない。
+
+### Intake（確定前）
+
+```markdown
+## Intake（確定前）
 
 - Problem:
 - Users:
-- Core value:
-- First deploy target:
-- Project language:
-
-## Language Policy
-
-- Default communication language:
-- Applies to: user chat, Issues, PRs, ADRs, review comments, sync reports, runbooks, and internal docs
-- Exceptions: code identifiers, API/package names, JSON keys, standard errors, external specification names, quoted source titles, and deliverables explicitly requested in another language
-
-## Core Flows
-
-| ID | Actor | Flow | Success signal |
-|----|-------|------|----------------|
-| CF-1 | | | |
-
-## Data And Trust
-
-| Data | Owner | Sensitivity | Retention | Audit need |
-|------|-------|-------------|-----------|------------|
-
-## Interfaces
-
-- Web:
-- API:
-- Background jobs:
-- Workflow/queue:
-- External agents/workers:
-- External integrations:
-
-## Constraints
-
-- Technical:
-- Provider/runtime:
-- Organization:
-- Cost:
-- Compliance:
-- Timeline:
-
-## Non-goals
-
-- ...
-
-## Open Questions
-
-| ID | Question | Impact | Owner |
-|----|----------|--------|-------|
+- Core flows（最初に動くべき 1-3 個）:
+- Data and trust（中心 entity、機密性、保持期間、監査要件）:
+- Interfaces（Web / API / batch / webhook / SDK / external agent）:
+- Constraints（技術 / provider / 組織 / cost / compliance / timeline）:
+- Non-goals:
+- Project language と、運用文書の言語の扱い（収録言語のまま導入するか、翻訳するか）:
+- Open questions（仮定として確定した内容と根拠）:
 ```
 
-## research.md
+### Gate A 技術選定（確定前）
+
+領域の一覧は `technology-selection.md` §1 に従う。
 
 ```markdown
-# Bootstrap Research
+## Gate A 技術選定（確定前）
 
-## Repository Observations
+| 領域 | 採用案 | 代替案 | 棄却理由 | 運用リスク | cost / limits | local dev 影響 | 調査ノート |
+|------|--------|--------|----------|------------|---------------|----------------|------------|
 
-| Area | Observation | Evidence |
-|------|-------------|----------|
-
-## External Sources
-
-| Topic | Source | Access date | Why it matters |
-|-------|--------|-------------|----------------|
-
-## Findings
-
-| Area | Finding | Confidence | Follow-up |
-|------|---------|------------|-----------|
-
-## Provider / Runtime Notes
-
-| Option | Source | Limits checked | Cost checked | Local dev notes |
-|--------|--------|----------------|--------------|-----------------|
-
-## Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-```
-
-Rules:
-
-- Use primary sources for current product docs, pricing, API limits, deploy behavior, CLI options, CI/CD syntax, and migration behavior.
-- Record URLs and access dates when the result may change.
-- Separate observation from recommendation.
-- Do not infer provider limits from memory when the decision depends on them.
-
-## decision-matrix.md
-
-```markdown
-# Technology Decision Matrix
-
-## Recommended Stack
-
-| Area | Choice | Why | Operational risk | Cost / limits | Local dev impact | Source |
-|------|--------|-----|------------------|---------------|------------------|--------|
-
-## Required Domain Decisions
-
-| Domain | Recommended | Alternatives | Rejected reasons | Operational risks | Cost / limits | Local dev impact | Sources |
-|--------|-------------|--------------|------------------|-------------------|---------------|------------------|---------|
-| App framework / language / monorepo tool | | | | | | | |
-| Deploy / hosting provider | | | | | | | |
-| Runtime model | | | | | | | |
-| Database | | | | | | | |
-| Object/file storage | | | | | | | |
-| Cache | | | | | | | |
-| Queue / workflow / job orchestration | | | | | | | |
-| Long-running task handling | | | | | | | |
-| External agent / worker runtime boundary | | | | | | | |
-| Auth / identity | | | | | | | |
-| Observability | | | | | | | |
-| CI/CD provider and deployment strategy | | | | | | | |
-| CSS / UI styling strategy | | | | | | | |
-
-## Infrastructure Service Selection
-
-| Service | Adopted approach | Alternative | Why | Gate / follow-up |
-|---------|------------------|-------------|-----|------------------|
-| Deploy / hosting | | | | |
-| Runtime model | | | | |
-| Database | | | | |
-| Object/file storage | | | | |
-| Cache | | | | |
-| Queue / workflow / job orchestration | | | | |
-| Long-running tasks | | | | |
-| External agent / worker boundary | | | | |
-| Auth / identity | | | | |
-| Observability | | | | |
-| CI/CD | | | | |
-
-## App Topology
+### App topology
 
 | Option | Shape | Pros | Cons | Decision |
 |--------|-------|------|------|----------|
 
-Decision:
-Rationale:
-ADR:
-
-## CSS / UI Styling Strategy
-
-Required only when UI exists.
+### CSS / UI styling strategy（UI がある場合のみ）
 
 | Option | Design system fit | Typed tokens | Runtime cost | Team familiarity | Migration cost | Decision |
 |--------|-------------------|--------------|--------------|------------------|----------------|----------|
 
-Decision:
-ADR:
+### 人間承認が必要な項目（課金 / 秘密値）
 
-## Alternatives Considered
-
-| Area | Option | Pros | Cons | Decision |
-|------|--------|------|------|----------|
-
-## Decisions To Confirm
-
-| ID | Decision | Default | Needs human input because |
-|----|----------|---------|---------------------------|
-
-## Billing / Secret Approvals
-
-課金または秘密値に該当する項目とその承認状態のみを記録する。該当なしの場合は「該当なし」と明記する。
-
-| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
-|------|-----------------------------|-----------------------------|-------------|------|
-
-> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。それ以外の選定は承認を待たず自律続行する。
+| Item | Category (billing / secret) | Status (Pending / Approved) |
+|------|-----------------------------|-----------------------------|
 ```
 
-Decision criteria:
+選定の判断基準:
 
 - Fit to product flows and operational capacity
 - Long-term maintainability
@@ -203,285 +96,203 @@ Decision criteria:
 - Provider/runtime limits and pricing
 - App topology and deployment/scaling boundaries
 
-## harness-catalog.md
+### Gate B 実装計画（確定前）
 
 ```markdown
-# Harness Catalog
+## Gate B 実装計画（確定前）
 
-## Docs Operating Model
+### Scope
+（In Scope / Out Of Scope）
 
-| Area | Path | Responsibility | Sync owner |
-|------|------|----------------|------------|
-| Knowledge hub | `docs/README.md` | Placement rules and INDEX discipline | docs-sync |
-| Harness docs | `docs/harness/` | Tool-neutral workflows, roles, rules, adapters | docs-sync |
-| State-of-now | `docs/product/`, `docs/styles/` | Current facts only | docs-sync |
-| Bootstrap Issue 0 | `docs/issues/000_bootstrap/` | Bootstrap artifacts and approval history | bootstrap workflow |
-| Decisions | `docs/adr/` | Why, alternatives, supersession history | create-adr |
-| Research | `docs/notes/research/` | Investigation and comparisons | research workflow |
-| Issue plans | `docs/issues/<number>_<scope>/` | Issue-specific lifecycle docs | multi-issue / メインエージェント判断 |
-| Requirements | `docs/requirements/` | Human-approved requirements | manual approval |
-| Customer docs | `docs/customer/` | Originals and summaries | customer-doc-review (opt-in:public-site) |
-| Runbooks | `docs/runbooks/` | Operations procedures | infra workflow |
-| Public projection | `docs/product/PUBLIC_*.md` or equivalent | External/customer-safe docs | public-arch-sync (opt-in:public-site) |
+### Architecture
+| Layer | Path | Responsibility | Depends on |
+|-------|------|----------------|------------|
 
-## Product-Derived Workflow Inventory
+### Infrastructure
+| Service | Selected approach | Required setup | Verification | Runbook |
+|---------|-------------------|----------------|--------------|---------|
 
-収録 skill と採否は `assets/MANIFEST.md` を正本とする（本節に一覧を複製せず、MANIFEST にない workflow を追加した場合のみその理由をここに書く）。
+### App topology
+| Unit | Path | Deploy unit | Scaling unit | Auth/session boundary | Async responsibility |
+|------|------|-------------|--------------|-----------------------|----------------------|
 
-## Issue Taxonomy
+### Docs と Harness
+| Item | Path | Purpose | Required before first implementation |
+|------|------|---------|--------------------------------------|
 
-| Type | Use when | Default labels |
-|------|----------|----------------|
-| infra | deploy/provider/runtime/storage/DB/cache/queue/observability | |
-| web/ui | screens, components, styling, design system, accessibility | |
-| core/domain | business rules, data model, core workflow | |
-| integration | external APIs, webhooks, SDK, import/export | |
-| async/job/workflow | queue, jobs, workflows, scheduler, long-running tasks | |
-| ci/cd | CI, release, branch deploy, runner operations | |
-| security | auth, authorization, secrets, privacy, audit | |
-| docs | docs, ADRs, runbooks, harness docs | |
+### Environment
+| Item | Path/Provider | Notes |
+|------|---------------|-------|
 
-## Issue Lifecycle
+### CI/CD（拡張候補の採否と理由）
+| Check | Command/Workflow | Required before merge | Notes |
+|-------|------------------|-----------------------|-------|
 
-| Phase | File | Notes |
-|-------|------|-------|
-| Inception | `docs/issues/<number>_<scope>/inception.md` | Write when the issue body is not precise |
-| Plan | `docs/issues/<number>_<scope>/plan.md` | Write when the approach is unsettled/high impact |
-| Construction | `docs/issues/<number>_<scope>/construction.md` | Record deviations |
-| Verification | `docs/issues/<number>_<scope>/verification.md` | Required before review |
-| Review notes | `docs/issues/<number>_<scope>/review-notes.md` | Required for non-trivial changes |
+### Runner operations（self-hosted runner を使う場合）
+| Topic | Decision | Runbook path |
+|-------|----------|--------------|
 
-小さな issue は `docs/issues/<number>_<scope>/task-note.md` 1 枚に収めてよい（運用の正本は `docs/issues/README.md`）。
+### Deploy
+| Environment | Provider | Trigger | Smoke check | Rollback | Approval required |
+|-------------|----------|---------|-------------|----------|-------------------|
 
-## Language Policy
+### Tasks（1 session で完了できる粒度）
+| Task | Issue type | Why | What | Verification | Depends on |
+|------|------------|-----|------|--------------|------------|
 
-| Surface | Default language | Exceptions |
-|---------|------------------|------------|
-| User-facing agent replies | <project language> | User explicitly requests another language |
-| GitHub Issues / PRs | <project language> | Code identifiers, labels, commit types |
-| ADR / planning docs | <project language> | External standard names, quoted source titles |
-| Public docs / SDK docs | <project language> | Another language if product brief or customer requires it |
-| Sync reports | <project language> | File paths, symbols, command output |
+### Risks
+| Risk | Impact | Mitigation | Owner |
+|------|--------|------------|-------|
+```
 
-## Milestones
+確定時の移管先:
 
-| Milestone | Product phase | Entry criteria | Exit criteria |
-|-----------|---------------|----------------|---------------|
+| 計画の項目 | 移管先 |
+|------------|--------|
+| Scope | PR 本文の「背景」と「スコープ外」 |
+| Architecture / App topology | `docs/product/ARCHITECTURE.md`（現在の構成のみ。判断理由は ADR） |
+| Infrastructure | 採用した選定の ADR と `docs/product/TECH_STACK.md`。手順は `docs/runbooks/` |
+| Docs と Harness | `docs/harness/OPERATING_MODEL.md`（workflow 一覧と言語ポリシー）。opt-in の採否とその理由は ADR 1 本 |
+| Environment / Runner operations / Deploy | `docs/runbooks/`。deploy の具体手順は `docs/harness/skills/deploy-verify.md` |
+| CI/CD | PR 本文の「方針と却下案」（拡張候補の採否と理由） |
+| Tasks | GitHub Issue |
+| Risks | PR 本文の「リスク」 |
 
-## Project Model
+## 2. 各層へ移す文書のテンプレート
 
-| Project | Purpose | Included issue types | Fields |
-|---------|---------|----------------------|--------|
+### 2.1 調査ノート（`docs/notes/research/<topic>.md`）
 
-## Project Field Constants
+1 トピック 1 ファイルで置く。冒頭に `#` 見出しとリード文（調査の目的と範囲）を書く。`INDEX.md` の行は更新主体が起こす（割当表は `docs/harness/skills/shared/index-writer-policy.md`）。
+調査ノートは調査した時点の記録であり、採用の宣言は書かない。採用した選定は ADR と `docs/product/TECH_STACK.md` に置く。
 
-Path: `.claude/skills/create-issue/references/project-fields.md`
+```markdown
+# <topic> の調査
+
+<調査の目的と範囲を 1〜3 行で書く>
+
+## Repository observations
+
+| Area | Observation | Evidence |
+|------|-------------|----------|
+
+## External sources
+
+| Topic | Source | Access date | Why it matters |
+|-------|--------|-------------|----------------|
+
+## Findings
+
+| Area | Finding | Confidence | Follow-up |
+|------|---------|------------|-----------|
+
+## Provider / Runtime notes
+
+| Option | Source | Limits checked | Cost checked | Local dev notes |
+|--------|--------|----------------|--------------|-----------------|
+
+## Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+```
+
+規則:
+
+- 現行の製品 docs、価格、API limits、deploy の挙動、CLI option、CI/CD の構文、migration の挙動は一次情報で確認する。
+- 結果が変わりうる場合は URL と確認日を記録する。
+- 観察と推奨を分ける。
+- 判断が provider の limits に依存するとき、limits を記憶から推定しない。
+
+### 2.2 技術選定の ADR（1 領域 1 ADR）
+
+ファイル名は `docs/adr/ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md`。書式は `docs/adr/template.md` に従い、Status は `Proposed` にする（bootstrap PR のマージ後に `/adr-compress` が `Accepted` へ追従させる）。
+代替案と棄却理由を Decision に含める。調査の過程と一次情報は調査ノートに置き、ADR から参照する。
+
+```markdown
+# ADR-{date}_{branch-slug}_{topic-slug}: <領域> の選定
+
+| 項目 | 値 |
+|------|-----|
+| Status | Proposed |
+| Date | YYYY-MM-DD |
+| Author | <著者> |
+
+## Context
+
+<この領域で満たす要件と、選定を制約する条件（既存技術、provider 制約、予算、規制、納期）>
+
+## Decision
+
+<採用する技術と、その理由>
+
+### 検討した代替案
+
+| 代替案 | 棄却理由 |
+|--------|----------|
+
+## Consequences
+
+### Positive
+
+- <期待されるメリット（local dev 影響を含む）>
+
+### Negative
+
+- <運用リスク、cost / limits、lock-in と移行コスト>
+
+## Related Issues
+
+- 調査ノート: `docs/notes/research/<topic>.md`
+```
+
+選定の対象領域（app framework / deploy / runtime model / database / storage / cache / queue / long-running task / external agent boundary / auth / observability / CI/CD / CSS・UI strategy / app topology）は `technology-selection.md` §1・§5・§6 に従う。複数の領域を 1 本の ADR にまとめない。
+
+### 2.3 opt-in 採否の ADR（1 本）
+
+opt-in グループ（一覧は `../assets/MANIFEST.md`）と、実態次第で不採用にする core 資産（deploy 手順が確立していない場合の `deploy-verify`、IaC を採用しない場合の infra 向け rule など）の採否を、複数の選択肢を比較して決めた判断として 1 本の ADR に記録する。形式は §2.2 と同じ。
+
+```markdown
+## Decision
+
+| 対象（MANIFEST のグループ名または資産） | 採否 | 理由（対応する surface が product に実在するか） |
+|------------------------------------------|------|--------------------------------------------------|
+
+### 検討した代替案
+
+| 代替案 | 棄却理由 |
+|--------|----------|
+```
+
+workflow 一覧と project language の扱いは、ADR ではなく `docs/harness/OPERATING_MODEL.md` に書く（現状の事実を 1 箇所に置くため）。
+
+### 2.4 `docs/product/TECH_STACK.md` の記入
+
+確定した選定ごとに、確定スタック一覧へ 1 行を足す。決定日と ADR 列を埋める。選定理由は 1 行にとどめ、詳細は ADR に委ねる。
+
+```markdown
+| # | 領域 | 技術 | 選定理由 | 決定日 | ADR |
+|---|------|------|---------|--------|-----|
+| 1 | <領域> | <技術とバージョン> | <1 行> | YYYY-MM-DD | `ADR-{id}` |
+```
+
+### 2.5 プロダクト概要の記入
+
+- `docs/product/ARCHITECTURE.md` の High-Level Overview の冒頭に、プロダクトの目的・主な利用者・提供する価値を 3〜5 行で書く。現在形で書き、変更の経緯や将来計画は書かない。
+- `docs/product/TERMS.md` に、Intake で確定した主要な用語を足す。対応する要件が無い用語は「初出」列を `—` にする。
+- `docs/harness/OPERATING_MODEL.md` のプロダクト 1 行を、Intake の回答から書く。
+- Intake の原文は PR 本文の「背景」に残す。
+
+### 2.6 Project / ラベルの実値（`.claude/skills/create-issue/references/project-fields.md`）
+
+GitHub から検証した値だけを書く。検証前の値は TODO 記法（`TODO(取得方法: ...)`）のまま残す。
 
 | Constant | Value | How it was obtained | Last verified |
 |----------|-------|---------------------|---------------|
 
-## Billing / Secret Approvals
+規則:
 
-課金または秘密値に該当する項目とその承認状態のみを記録する（taxonomy / Project / milestone の作成は自律実行のため記入対象外）。該当なしの場合は「該当なし」と明記する。
-
-| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
-|------|-----------------------------|-----------------------------|-------------|------|
-
-> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。
-```
-
-Rules:
-
-- Generate taxonomy from the product brief and roadmap, not from this repository's domain labels.
-- Do not invent GitHub Project IDs, field IDs, option IDs, or milestone node IDs.
-- If the Project or fields do not exist yet, write placeholders and a creation task in `bootstrap-plan.md`.
-- Keep the Codex / Claude invocation notes thin; workflow details live in shared docs.
+- taxonomy は、この repository のドメイン固有のラベルではなく、product の目的と roadmap から導く。
+- GitHub Project ID・field ID・option ID・milestone node ID・label ID を推測で書かない。
+- Project や field がまだ無い場合は placeholder を書き、作成を GitHub Issue の残タスクに起こす。
+- Codex / Claude の呼び出し方の注記は薄く保ち、workflow の詳細は shared docs に置く。
 - issue / PR / ラベル / milestone / Project 等の GitHub mutation は自律実行してよい（人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ）。
-
-## bootstrap-plan.md
-
-```markdown
-# Bootstrap Plan
-
-## 0. Metadata
-
-- Project:
-- Branch:
-- Bootstrap artifacts:
-- Approved stack:
-- Deploy target:
-- Project language:
-
-## 1. Scope
-
-### In Scope
-
-- ...
-
-### Out Of Scope
-
-- ...
-
-## 2. Architecture
-
-| Layer | Path | Responsibility | Depends on |
-|-------|------|----------------|------------|
-
-## 3. Infrastructure Service Selection
-
-| Service | Selected approach | Required setup | Verification | Runbook |
-|---------|-------------------|----------------|--------------|---------|
-| Deploy / hosting | | | | |
-| Runtime model | | | | |
-| Database | | | | |
-| Object/file storage | | | | |
-| Cache | | | | |
-| Queue / workflow / job orchestration | | | | |
-| Long-running tasks | | | | |
-| External agent / worker boundary | | | | |
-| Auth / identity | | | | |
-| Observability | | | | |
-
-## 4. App Topology
-
-| Unit | Path | Deploy unit | Scaling unit | Auth/session boundary | Async responsibility |
-|------|------|-------------|--------------|-----------------------|----------------------|
-
-## 5. Docs Operating Model
-
-| Docs artifact | Path | Purpose | Required before first implementation |
-|---------------|------|---------|--------------------------------------|
-
-## 6. Harness
-
-| Harness item | Path | Purpose | Required for first iteration |
-|--------------|------|---------|------------------------------|
-
-### Codex / Claude Adapter
-
-| Tool | Entry file | How it invokes the shared workflow | Tool-specific notes |
-|------|------------|------------------------------------|---------------------|
-| Codex | `AGENTS.md` | | |
-| Claude | `CLAUDE.md` | | |
-
-Shared source of truth:
-
-- Docs operating model:
-- Language policy:
-- Skill/workflow docs:
-- Role docs:
-- Rules:
-
-### Generated Sync Workflows
-
-| Workflow | Freshness source | Compared against | Auto-edit scope | Creates PR? |
-|----------|------------------|------------------|-----------------|-------------|
-
-### Issue And Project Management
-
-| Artifact | Path | Purpose |
-|----------|------|---------|
-| create-issue workflow | `docs/harness/skills/create-issue.md` | |
-| project field constants | `.claude/skills/create-issue/references/project-fields.md` | |
-| issue 成果物の運用 | `docs/issues/README.md` | |
-
-## 7. Environment
-
-| Item | Path/Provider | Notes |
-|------|---------------|-------|
-| tool/runtime version management | `.mise.toml` or repo-local mise config | Pin runtime, package manager, and major CLI versions; setup starts with `mise install` |
-| local dev task entrypoints | `mise run <task>` and package scripts | Keep repeated dev/check/seed/migration commands callable through mise without hiding package-native scripts |
-| env examples | `.env.example` and docs/runbooks | Document required names and safe sample values only |
-| secrets | provider / secret manager | Document registration steps and naming convention, never secret values |
-
-## 8. CI/CD
-
-| Check | Command/Workflow | Required before merge | Notes |
-|-------|------------------|-----------------------|-------|
-| YAML parse / workflow lint | | | |
-| base branch diff check | | | |
-| format/lint/typecheck/test/build | | | |
-| docs gate | | | |
-| secret scan | | | |
-| deploy/smoke | | | |
-
-## 9. Runner Operations
-
-Required if self-hosted runner is used.
-
-| Topic | Decision | Runbook path |
-|-------|----------|--------------|
-| service manager | | |
-| runner user / credentials | | |
-| CLI versions and `--help` checks | | |
-| fetch strategy | | |
-| logs/status/restart | | |
-
-## 10. Deploy
-
-| Environment | Provider | Trigger | Smoke check | Rollback | Approval required |
-|-------------|----------|---------|-------------|----------|-------------------|
-
-## 11. Implementation Tasks
-
-| Task | Issue type | Why | What | Verification | Depends on |
-|------|------------|-----|------|--------------|------------|
-
-## 12. Risks And Mitigations
-
-| Risk | Impact | Mitigation | Owner |
-|------|--------|------------|-------|
-
-## 13. Billing / Secret Approvals
-
-課金または秘密値に該当する項目とその承認状態のみを記録する。該当なしの場合は「該当なし」と明記する。
-
-| Item | Category (billing / secret) | Status (Pending / Approved) | Approved by | Date |
-|------|-----------------------------|-----------------------------|-------------|------|
-
-> 承認者・日付欄は、課金 / 秘密値に該当する項目がある場合のみ記入する。それ以外の計画項目は承認を待たず実装へ自律続行する。
-```
-
-## implementation-report.md
-
-```markdown
-# Implementation Report
-
-## Summary
-
-- Branch:
-- Commit:
-- Deploy URL:
-- CI:
-
-## Changed Files
-
-| Path | Purpose |
-|------|---------|
-
-## Verification
-
-| Check | Result | Notes |
-|-------|--------|-------|
-
-## Deploy
-
-| Environment | URL | Smoke result | Notes |
-|-------------|-----|--------------|-------|
-
-## Remote Mutations
-
-| System | Mutation | Approval reference |
-|--------|----------|--------------------|
-
-## Remaining Work
-
-| Item | Reason | Suggested owner |
-|------|--------|-----------------|
-
-## PR Notes
-
-- Artifacts:
-- Risks:
-- Follow-up issues:
-```

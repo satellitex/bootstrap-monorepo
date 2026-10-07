@@ -1,0 +1,19 @@
+# traceability matrix の雛形（opt-in:traceability）。
+# `<issue番号>_<scope>.traceability-matrix.yaml` としてコピーして使う（コピー後このコメントは削除する）。
+# スキーマの説明と更新規約は docs/product/tests/README.md を参照する。
+traceability_matrix:
+  spec_ref: "https://github.com/{{GITHUB_ORG}}/{{REPO_NAME}}/issues/<N>"
+  mappings:
+    - ac_id: "AC-001-01"
+      category: 正常系
+      test_file: "<test-file>"
+      test_name: "<test title>"
+      rationale: "<AC の Given / When / Then との対応>"
+    - ac_id: "AC-001-02"
+      category: 異常系
+      test_file: "<test-file>"
+      test_name: "<test title>"
+      rationale: "<AC の Given / When / Then との対応>"
+  uncovered_acs: []
+  orphan_tests: []
+  summary: { total_acs: 2, covered_acs: 2, total_tests: 2, orphan_count: 0 }

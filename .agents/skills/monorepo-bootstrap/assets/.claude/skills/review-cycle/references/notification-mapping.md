@@ -1,6 +1,6 @@
-# レビュー完了通知の宛先マッピング（プロジェクト profile）
+# レビュー終了通知の宛先マッピング（プロジェクト profile）
 
-この文書は `/review-cycle` の完了通知に使う「通知手段の設定場所」と「GitHub アカウント → 通知先メンション」の対応表を定義するプロジェクト固有 profile である。ループ制御・終了判定・通知メッセージの構造は書かない（正本は `docs/harness/skills/review-cycle.md`）。
+この文書は `/review-cycle` の終了通知に使う「通知手段の設定場所」と「GitHub アカウント → 通知先メンション」の対応表を定義するプロジェクト固有 profile である。ループ制御・判定表・通知メッセージの構造・通知の区分は書かない（正本は `docs/harness/skills/review-cycle.md`）。webhook の解決順・未設定時の扱い・資格情報の扱いは `docs/harness/skills/shared/notification-contract.md` が正本であり、ここには複製しない。
 
 > **本ファイルはテンプレート状態（未記入）である。** 通知先は個人に紐づくため、実名・個人アカウント名・
 > webhook URL といった値を**本ファイルに直接書かない**。表には運用で必要な最小限の対応だけを追加し、
@@ -10,18 +10,18 @@
 
 | 項目 | 値 |
 |------|-----|
-| 環境変数名 | `PROJ_REVIEW_NOTIFY_WEBHOOK_URL` |
+| 環境変数名 | `PROJ_REVIEW_NOTIFY_WEBHOOK_URL`（`/review-cycle` 専用の指定。共通の `PROJ_NOTIFY_WEBHOOK_URL` を使う場合は設定しなくてよい） |
 | フォールバック | プロジェクトルート `.env` の同名キー（`.env` は git 管理外） |
-| 通知先 | TODO(bootstrap: 利用するチャットサービスと投稿先チャンネル名。webhook URL 自体はここに書かない) |
+| 通知先 | TODO(記入方法: 利用するチャットサービスと投稿先の名前。webhook URL 自体はここに書かない) |
 
 設定手順:
 
 1. 利用するチャットサービスで incoming webhook を発行する（発行操作と URL の取り扱いは秘密値のため人間が行う）
-2. 取得した URL を `PROJ_REVIEW_NOTIFY_WEBHOOK_URL` として shell 環境またはルート `.env` に設定する
+2. 取得した URL を上記の環境変数として shell 環境またはルート `.env` に設定する
 3. `.env.example` にキー名のみ（値は空）を追加し、必要な環境変数であることを明示する
+4. 人間が 1 回テスト送信し、通知先に届くことを確認する（テスト送信の手順は利用するチャットサービスの webhook 仕様に従う）
 
-**未設定でも正常系**: 環境変数・`.env` のいずれからも取得できない場合、`/review-cycle` は通知をスキップし、
-本節の設定手順を報告に添えて**正常終了**する（通知の未設定をフローの失敗にしない）。
+未設定のときの挙動は、`/review-cycle` の終了理由の区分による。情報通知（`LGTM` / `all-skipped` / `closed`）は通知をスキップして正常終了し、エスカレーション通知（`draft-hold` / `budget` / `conflict` / `ci`）は通知できなかったことを失敗として報告して終了する（→ `docs/harness/skills/shared/notification-contract.md`）。
 
 ## GitHub アカウント → 通知先メンション
 
@@ -32,11 +32,11 @@
 
 | GitHub アカウント | 通知先メンション |
 |---|---|
-| TODO(bootstrap: `<github-login>`) | TODO(bootstrap: `<mention>`) |
+| TODO(記入方法: `<github-login>`) | TODO(記入方法: `<mention>`) |
 
 ## 更新手順
 
 1. メンバーが増減したら上表に行を追加・削除する（1 行 = 1 アカウント）
 2. メンション文字列はチャット側の表示名ではなく、**メンションとして解決される識別子**を使う
-3. 通知先チャンネルや利用サービスを変更した場合は「通知手段の設定」節を同一 PR で更新する
+3. 通知先や利用サービスを変更した場合は「通知手段の設定」節を同一 PR で更新する
 4. webhook URL・トークン等の秘密値は本ファイルに書かない（commit 対象のため）

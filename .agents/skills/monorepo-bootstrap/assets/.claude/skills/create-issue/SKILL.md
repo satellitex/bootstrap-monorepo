@@ -1,6 +1,6 @@
 ---
 name: create-issue
-description: GitHub Issue を作成し、Label・Project・Status・Expired date・Relationships を設定して読み戻し検証まで行う
+description: GitHub Issue を起票する場合に使う。内容から Label・Project・Status・Expired date・Relationships を推定して設定し、読み戻し検証した実値を報告する。設計判断の記録は /create-adr、実装は /multi-issue の担当
 ---
 
 # /create-issue

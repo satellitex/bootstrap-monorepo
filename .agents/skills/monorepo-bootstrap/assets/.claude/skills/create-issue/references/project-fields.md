@@ -38,6 +38,18 @@ gh api graphql -f login='<project-owner-org>' -f query='
 > これらの ID は変わらず、書き換えてはいけない。ID 文字列に owner 名が現れないため、owner 名の grep では
 > 追随の要否を判定できない（→ `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 4 の例外）。
 
+### Issue と Project の読み戻し経路
+
+Project の所有者がリポジトリの owner と異なる構成では、Issue 側から引く `projectItems` が空配列になり得る
+（Project に追加済みでも「未追加」と区別できない）。Project 側の属性は、追加時に控えた item の node ID から引く。
+空配列を「未追加」と判定しない。
+
+| 読みたい属性 | 経路 |
+|---|---|
+| milestone / labels / assignees / body | `gh issue view <番号> --json number,milestone,labels,assignees,body` |
+| Project・Status・Expired date | 追加時に控えた item node ID を `node(id:)` で引く（`docs/harness/skills/create-issue.md` Step 7） |
+| ブロック元 Issue の Expired date | ブロック元の所属 Project の `items` をページ送りし `content.number` で突合する（同 Step 1） |
+
 ### 振り分けルール
 
 - `harness:harness` ラベルを持つ Issue → **ハーネス用 Project**
@@ -131,9 +143,32 @@ TODO(取得方法: monorepo の実レイアウト（`apps/*` / `packages/*` / `i
 
 | ラベル | 用途 |
 |--------|------|
-| `refactor:proposal` | 自動検出されたリファクタ観点の提案 Issue |
+| `refactor:proposal` | 自動検出されたリファクタ観点の提案 Issue（`/refactor-sync` が起票する） |
 | `refactor:approved` | リファクタ提案 Issue への着手指示（実装フローのトリガー） |
 | `LGTM` | レビュー完了を示す PR ラベル（Issue には付けない） |
+
+### routine ラベル
+
+routine（定期実行）を起点にする skill が作った PR / Issue に付け、人間が一覧で見分ける目印にする。
+体系は `routine:<skill-name>`。sync 系は起動経路（routine か人間の直接起動か）を問わず付ける。
+人間が手で起票した Issue には付けない。付与の手順は `docs/harness/skills/shared/sync-pr-flow.md` に従う。
+本表が routine ラベルの唯一の一覧であり、skill を採用・除外したら同一 PR で行を足す・消す。
+
+| ラベル | 対象 |
+|--------|------|
+| `routine:readme-sync` | `/readme-sync` が作った PR |
+| `routine:docs-sync` | `/docs-sync` が作った PR |
+| `routine:code-sync` | `/code-sync` が作った PR |
+| `routine:gc-scan` | `/gc-scan` が作った PR |
+| `routine:adr-compress` | `/adr-compress` が作った PR |
+| `routine:refactor-guide-sync` | `/refactor-guide-sync` が作った PR |
+| `routine:refactor-sync` | `/refactor-sync` が起票した Issue（`refactor:proposal` と併用） |
+| `routine:renovate-sync` | `/renovate-sync` が作った PR（opt-in グループ。一覧は MANIFEST） |
+| `routine:public-arch-sync` | `/public-arch-sync` が作った PR（opt-in グループ。一覧は MANIFEST） |
+
+TODO(取得方法: `gh label list` で採用した skill の `routine:*` の実在を確認し、未作成なら
+`gh label create <name> --description "<用途>"` でまとめて作成する。`gh pr create --label` /
+`gh issue create --label` は存在しないラベルで非ゼロ終了するため、ラベルの作成は routine 登録より前に行う)
 
 ## マイルストーン
 

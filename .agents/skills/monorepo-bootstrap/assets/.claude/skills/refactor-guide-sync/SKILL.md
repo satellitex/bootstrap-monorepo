@@ -1,6 +1,6 @@
 ---
 name: refactor-guide-sync
-description: コーディング規約正本（docs/styles/coding_guide/）と refactoring_guide.md の検出基準を refactor-guide-sync エージェントで突合し、観点の追加・削除・根拠パス修正・リネーム更新を 1 PR にまとめる
+description: コーディング規約を変更した後に refactoring_guide.md の追従漏れに気づいた場合、または routine の定期実行時に使う。検出基準の観点追加・削除・根拠パス修正・リネーム更新を 1 PR にまとめる。コード自体の課題検出は /refactor-sync の担当
 ---
 
 # /refactor-guide-sync

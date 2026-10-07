@@ -8,10 +8,8 @@
 
 ## rules の読み込まれ方
 
-- `.claude/rules/team-policy.md` — `paths:` frontmatter なし。全セッションで常時ロードされる横断方針
-- `.claude/rules/harness-development.md` — `paths: .claude/**/*, docs/harness/**/*` の編集時にロード
-- `.claude/rules/product-development.md` — `paths: apps/**/*, packages/**/*` の編集時にロード
-- `.claude/rules/infra-development.md` — `paths: infra/**/*` の編集時にロード
+- `paths:` frontmatter を持たない rule は全セッションで常時ロードされ、`paths:` を持つ rule は該当ファイルの編集時にロードされる
+- rule の一覧・スコープ・読む場面の正本は `docs/harness/OPERATING_MODEL.md`「領域別 rule の読み場面」
 
 ## skill
 

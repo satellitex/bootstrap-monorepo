@@ -1,22 +1,27 @@
-# code-sync（ソースコメントの 3 原則・内部参照検査）
+# code-sync（ソースコメントの 3 原則・内部参照・実装整合検査）
 
-この文書は `/code-sync` の手順正本である。対象拡張子のソースコメントを `origin/main` から抽出し、「現状の事実のみ」3 原則違反（検査 1）と doc-style コメント内の内部参照（検査 2）を検出して修正 PR にする。Markdown 文書（`/docs-sync` 担当）・README（`/readme-sync` 担当）・コード本体のロジックは扱わない。
+この文書は `/code-sync` の手順正本である。対象拡張子のソースコメントを `origin/main` から抽出し、「現状の事実のみ」3 原則違反（検査 1）・doc-style コメント内の内部参照（検査 2）・コメントの主張と実装の食い違い（検査 3）を検出して修正 PR にする。編集はコメントのみで、コードが 1 バイトも変わっていないことを機械的に検証する。Markdown 文書（`/docs-sync` 担当）・README（`/readme-sync` 担当）・コード本体のロジックは扱わない。
 
 ## Purpose
 
-ソースコメントが (1) 経緯・時系列・チケット番号の混入で「現状の事実」でなくなること、
-(2) 公開ドキュメント生成対象のコメント（doc-style）に内部参照が混入して外部に漏れること、を防ぐ。
+ソースコメントが次の状態で残ることを防ぐ。
+
+1. 経緯・時系列・チケット番号の混入で「現状の事実」でなくなる。
+2. 公開ドキュメント生成対象のコメント（doc-style）に内部参照が混入して外部に漏れる。
+3. 実装と食い違ったまま残る。
 
 ## Source of truth
 
 - 検査 1 のポリシー SSOT: `docs/styles/coding_guide/docs.md`（3 原則・signal lexicon・例外規定・退避先判定基準。`/docs-sync` と共有）
 - ソースコメント特有規約の SSOT: `docs/styles/coding_guide/code-comments.md`
   （doc-style / regular の分類基準、ソースコメント特有の例外、検査 2 の内部参照 regex）
+- 検査 3 の記述と実装の矛盾の扱い: `docs/styles/coding_guide/docs.md` の実装整合の原則と、
+  `docs/harness/skills/shared/implementation-consistency.md`（分類手順）
 - regex・例外規定を本文書に複製しない。
 
 ## Compared against
 
-`origin/main` 上の対象ファイルのコメント（line / block / doc-style 全種）。
+`origin/main` 上の対象ファイルのコメント（line / block / doc-style 全種）と、コメントが名指しする同じファイル内の実装。
 
 ## Scope
 
@@ -42,8 +47,8 @@ EXCLUDE grep の 2 段フィルタをかける形でよい。`@generated` 等の
 | YAML | `.yml` `.yaml` | `#` | — | — |
 
 対象言語を増やす場合はこの表に行を足し、その言語の line / block / doc-style マーカーを定義する
-（doc-style 構文を持たない言語は検査 1 のみ適用する。`<additional-language-check>` として
-言語別の検査を追加してよい）。
+（doc-style 構文を持たない言語は検査 2 を適用しない。`<additional-language-check>` として
+言語別の検査を追加してよい）。コメントのみの編集の検証（後述）もこの表のマーカーを使う。
 
 ## Detection
 
@@ -55,43 +60,59 @@ EXCLUDE grep の 2 段フィルタをかける形でよい。`@generated` 等の
   +-- 3. コメント抽出と分類（doc-style / regular）
   +-- 4. 検査 1: 3 原則違反スキャン + 例外照合 + fix_action 分類
   +-- 5. 検査 2: doc-style コメントの内部参照スキャン
-  +-- 6. 自動編集（削除 / 脚注化 / TODO 化 の 3 種のみ）
-  +-- 7. 変更なし終了 or ブランチ → commit → PR（sync-pr-flow）
+  +-- 6. 検査 3: コメントの主張と実装の食い違いを 3 分類
+  +-- 7. 自動編集（削除 / 脚注化 / TODO 化 / 書き直し / 主張の修正 の 5 種のみ）
+  +-- 8. 編集ごとにコメントのみの変更であることを検証（不合格は破棄して記録）
+  +-- 9. 変更なし終了 or ブランチ → commit → PR（sync-pr-flow）
 ```
 
 - **Step 3（抽出と分類）**: 上掲マーカー表でコメントを抽出し `doc-style` / `regular` に分類する。
   シェバン行・license header（SPDX / Copyright）・disabled code（line コメント後がコード構文）は
-  除外し、TODO / FIXME / NOTE / HACK を含むコメントにフラグを立てる（検査 1 の緩和判定に使用）。
+  除外し、TODO / FIXME / NOTE / HACK を含むコメントにフラグを立てる（検査 1・3 の緩和判定に使用）。
   テストファイル（`*.test.ts` 等、プロジェクトのテスト命名規約に従う）にもフラグを立てる。
 - **Step 4（検査 1）**: `docs.md` の signal lexicon を全コメント（regular + doc-style）に適用し、
   違反候補（file / line / kind / principle / matched / excerpt）を蓄積する。次に例外照合を行う:
   `docs.md` の例外規定、および `code-comments.md` のソースコメント特有例外
   （TODO 系マーカー入りは緩和的判定で削除提案しない / disabled code・シェバン・license header は除外）
-  に該当するマッチを外す。残った違反に fix_action を割り当てる:
+  に該当するマッチを外す。残った違反に fix_action を次の順で割り当てる:
   1. **convert_to_todo を先に判定**: 原則 1 の「将来形」signal に該当し、かつ
      **後続の開発アクション（削除 / 追加 / 実装 / 差し替え / 統合 等）をこのコードベースに対して
      後で行う申し送り**と判断できるものだけを `convert_to_todo` にする。runtime・システムの挙動を
      将来形で述べたもの、将来仮定の枠で現状動作を説明したもの、判断が曖昧な散文は対象外
-     （`delete` / `replace_with_link` / `needs_new_doc` / `needs_user_facing_rewrite` に委ねる）。
-  2. 残りに退避先の既存性確認（`docs.md` の退避先判定基準 → `git grep` で既存確認）を適用し、
-     `delete` / `replace_with_link` / `needs_new_doc` を割り当てる（`/docs-sync` Step 5 と同じ手順）。
+     （後続の割当に委ねる）。
+  2. **原則 2 は rewrite_prose**: `regular` コメントに裸の Ticket 参照（原則 2 のマッチ）があるものは
+     `rewrite_prose` にする。参照の除去は経緯の移設ではなくコメントから番号を落とす操作のため、
+     退避先の確認を経由しない。`doc-style` コメント内の Ticket 参照は検査 2 に計上し、
+     本検査では自動編集の対象にしない（二重に数えない）。
+  3. 残りの原則 1 / 3 に、`docs/harness/skills/shared/sync-noise-filter.md` の「違反の退避先の既存性を確認する」
+     手順を適用し、`delete` / `replace_with_link` / `needs_new_doc` を割り当てる。
 - **Step 5（検査 2）**: `kind: doc-style` かつ非テストファイルのコメントに、`code-comments.md` の
   「検出すべき内部参照」regex（内部ドキュメントパス / 要件 ID / ADR ID / Issue・PR 番号）を適用し、
   `fix_action: needs_user_facing_rewrite` として蓄積する。**検査 2 の検出箇所は自動編集しない**
   （利用者向け要約への書き換えは文脈判断が必要なため PR body に記録するに留める）。
   doc-style 構文を持たない言語（YAML）には検査 2 を適用しない。
+- **Step 6（検査 3）**: 抽出済みのコメントのうち、実装（直後の宣言・分岐・定数・設定値）を名指しする主張
+  （識別子・値・条件・ロールや状態の名前・パス）を、同じファイル内の実装を優先して引き当てて突き合わせる
+  （`docs.md` の実装整合の原則）。TODO 系マーカー入り・disabled code・シェバン・license header は対象外とし、
+  テストファイルのコメントはテスト本体と突合する。食い違いは
+  `docs/harness/skills/shared/implementation-consistency.md` の手順で「記述修正 / 実装疑い / 判定不能」に分類する。
+  実装側の根拠（パスと識別子）を示せない食い違いは検出として扱わない。ソースコメントは記述層に当たり、既定は「記述修正」
+  である（定義は `docs.md` の「矛盾の分類」節）。コメントを編集するのは「記述修正」だけで、`fix_claim` でコメント本文の主張だけを
+  実装に合わせて置換する。「実装疑い」「判定不能」はコメントを編集せず、同手順の形式で PR 本文の「実装側判断要」に記録する。
 
 ## Auto-edit policy
 
-自動で行ってよい編集は以下 3 種に限定する。それ以外（新規 ADR / research の作成、利用者向け要約の
-生成、コード本体の編集）は行わず、`needs_new_doc` / `needs_user_facing_rewrite` は PR body に明記して
-人間に委ねる。
+自動で行ってよい編集は以下 5 種に限定する。それ以外（新規 ADR / research の作成、利用者向け要約の
+生成、コード本体の編集）は行わず、`needs_new_doc` / `needs_user_facing_rewrite` / 実装側判断要は
+PR body に明記して人間に委ねる。
 
 | fix_action | 編集内容 |
 |----------|---------|
 | `delete` | 該当コメント行 or doc-style ブロックを削除（コメントのみ。コード本体は変更しない） |
 | `replace_with_link` | 経緯記述を削除し、必要であれば「動作・入出力」の中立記述に置き換え |
 | `convert_to_todo` | 将来タスク句を言語別 `TODO:` line コメントへ変換（下記） |
+| `rewrite_prose` | Ticket 参照と経緯の足場を除き、残る現状の事実を書き直す（下記） |
+| `fix_claim` | 検査 3 で「記述修正」と分類したコメントの主張を、実装に合わせて置換する |
 
 ### convert_to_todo の変換規則
 
@@ -107,10 +128,44 @@ EXCLUDE grep の 2 段フィルタをかける形でよい。`@generated` 等の
 - 生成 TODO は `TODO:` マーカーを持つため、次回実行では Step 4 の緩和判定で除外され再検出されない
   （idempotent）。
 
+### rewrite_prose の規則
+
+- 除くもの: Ticket 参照（括弧付き・`Issue` / `PR` 付き・括弧なしの `#n`）と、経緯の足場
+  （いつ・なぜ入ったかを述べる句。「〜で導入」「〜で対応」「〜で追加された」等）。
+- 残すもの: 除いたあとに残る現状の事実を、現在形の 1 文にする。値・識別子・パスは原文のまま保ち、
+  新しい主張を足さない。
+- ADR や Issue へのリンクは書かない。ソースコメントでは、原則 2 を参照の除去で解消する（検査 2 と整合させるため）。
+- 除いたあとに文が残らないときは `delete` にする。
+- TODO 系マーカー付きコメントは対象外（緩和的判定）。
+- 1 回の実行で書き直すファイル数の上限は `TODO(記入方法: PR のレビュー負荷から決める件数)` とする。
+  Ticket 参照を含む検出ファイルをパスの昇順で上限まで処理し、超過分の件数を PR body に記録して次回に回す
+  （書き直したファイルは次回の検出から消えるため、状態を持たずに収束する）。
+
+### コメントのみの編集の検証
+
+すべての自動編集（`delete` / `replace_with_link` / `convert_to_todo` / `rewrite_prose` / `fix_claim`）は、
+編集したファイルごとに次を満たすことを確認してから commit する。コードを誤って編集するより編集を見送るほうが
+安全なため、判定が曖昧なときは不合格にする。
+
+1. **骨格の一致**: 編集前（`git show origin/main:<path>`）と編集後のそれぞれで、コメント領域の中身を空にした
+   「骨格」を作り、完全に一致する。コード部分が 1 バイトも変わっていないことの確認である。
+2. **Ticket 参照が増えない**: 編集後のコメント内の Ticket 参照の数が、編集前以下である。
+3. **字句判定の成功**: 骨格の作成で、引用符・テンプレートリテラル・ブロックコメントが閉じない、または編集した行にコメントかどうか
+   判定できない箇所（正規表現リテラルらしき `/.../`、YAML のブロックスカラ `|` `>` の内側の `#` 行）がある場合は不合格。
+
+骨格は、上掲のコメントマーカー表の line / block マーカーを使い、文字列リテラル（`'` `"` `` ` ``）の内側を
+コメントとして扱わずに作る。YAML の `#` は、行頭または空白の直後にあり、引用符の外にあるときだけコメントとする。
+検証は git と node の標準機能で書ける最小の処理でよい。
+
+不合格のファイルは、編集前の内容に戻して編集を破棄し、PR body の「未実施」区分にパスと理由（`verify-failed`）を記録する。
+他のファイルの処理は続ける。
+
 ## Branch & PR policy
 
-検出 0 件時は sync-prelude の規約どおり何も作らず終了する。検出ありの場合は
-`docs/harness/skills/shared/sync-pr-flow.md` を Read してその手順に従う。本 skill の差分:
+検出 0 件時は sync-prelude の規約どおり何も作らず終了する。コメントの編集が 0 件（検証での破棄を含む）で
+「実装疑い」「判定不能」「起票要候補」だけが残る run も、ブランチも PR も作らず、所見を根拠付きで完了報告に
+列挙して終了する（`docs/harness/skills/shared/sync-prelude.md` の「編集を伴わない所見だけの run」）。
+編集がある場合は `docs/harness/skills/shared/sync-pr-flow.md` を Read してその手順に従う。本 skill の差分:
 
 | 項目 | 値 |
 |------|-----|
@@ -119,22 +174,23 @@ EXCLUDE grep の 2 段フィルタをかける形でよい。`@generated` 等の
 | git add | 修正したソースファイルのみ |
 | commit | `refactor: sync source code comments with current-state rules (YYYY-MM-DD)` |
 | PR title | `refactor: code-sync (YYYY-MM-DD)` |
-| PR body | 下記 Report shape の 4 区分 |
+| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の 6 区分を加える |
 
 ## Validation
 
-コメントのみの編集だがソースファイルに触れるため、push 前に `pnpm run format:check` +
-`pnpm run lint` + `pnpm run typecheck` + `pnpm run build`
-（`docs/harness/skills/shared/verification-gates.md` の pre-push 組合せ。pre-push hook が自動実行する）。
+コメントのみの編集の検証（上記）を通したうえで、ソースファイルに触れるため、push 前に
+`gate:push`（`docs/harness/skills/shared/verification-gates.md`。pre-push hook が自動実行する）を通す。
 
 ## Report shape
 
-PR body を 4 区分で整理する:
+PR body は標準 5 節に加えて、次の 6 区分で整理する:
 
-1. **検査 1 自動修正**: file / line / kind / principle / matched / fix_action / 退避先リンク or 生成 TODO 文面の表
+1. **検査 1 自動修正**: file / line / kind / principle / matched / fix_action / 退避先リンク・生成 TODO 文面・書き直し後の文面の表
 2. **検査 1 起票要候補**: 推奨退避先タイプ付き（自動起票しない旨を注記）
 3. **検査 2 利用者向け書き換え要候補**: detected カテゴリ / matched / excerpt（自動編集しない旨と `code-comments.md` の参照を注記）
-4. **検出ログ概要**: 検査別件数・自動修正内訳・検査 2 の言語別内訳
+4. **検査 3 結果**: 「記述修正」の一覧（file / line / 修正前後の主張 / 実装側の根拠）と、「実装側判断要」（「実装疑い」「判定不能」。形式は `docs/harness/skills/shared/implementation-consistency.md`。自動起票しない旨を注記）
+5. **未実施**: 検証で不合格になったファイル（パス / `verify-failed` の理由）と、書き直し件数の上限を超えた件数
+6. **検出ログ概要**: 検査別件数・自動修正内訳・検査 2 の言語別内訳
 
 ## Language
 
@@ -143,7 +199,10 @@ PR body を 4 区分で整理する:
 ## Self-check
 
 - [ ] SSOT 2 ファイル（`docs.md` / `code-comments.md`）を Read してから検査した
-- [ ] fix_action の分岐（convert_to_todo 先行 → 退避先確認）を適用した
+- [ ] fix_action の分岐（convert_to_todo 先行 → 原則 2 の rewrite_prose → 退避先確認）を適用した
 - [ ] 検査 2 の検出箇所を自動編集していない
-- [ ] 違反 0 件のとき PR を作成していない
+- [ ] 「実装疑い」「判定不能」のコメントを編集していない
+- [ ] 編集したファイルすべてでコメントのみの編集の検証を通し、不合格は破棄して記録した
+- [ ] 編集 0 件のとき PR を作成していない
+- [ ] PR body が標準 5 節と 6 区分で構成されている
 - [ ] EXCLUDE（生成物・vendored・lock）に手を触れていない

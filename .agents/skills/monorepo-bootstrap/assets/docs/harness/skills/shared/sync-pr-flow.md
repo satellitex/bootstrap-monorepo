@@ -1,8 +1,8 @@
-# Sync 系共通後段フロー（ブランチ・commit・PR 作成）
+# Sync 系共通後段フロー（ブランチ・commit・PR 作成・ラベル付与）
 
-この文書は sync 系 skill が検出「あり」の場合に共通で実行する「既存 open PR ガード → ブランチ作成 → commit → PR 作成」を定める。検査手順そのもの・検出 0 件時の終了（`docs/harness/skills/shared/sync-prelude.md` 担当）・PR body の中身（各 skill 文書の差分テーブルが指定）は書かない。
+この文書は sync 系 skill が検出「あり」の場合に共通で実行する「既存 open PR ガード → ブランチ作成 → commit → PR 作成 → 識別ラベル付与」を定める。検査手順そのもの・検出 0 件時の終了（`docs/harness/skills/shared/sync-prelude.md` 担当）・PR body の中身（各 skill 文書の差分テーブルが指定）は書かない。
 
-前提: 本フローに入る時点で検出結果は非空である（0 件時は sync-prelude の規約で既に終了している）。
+前提: 本フローに入る時点で、編集を伴う検出が 1 件以上ある（0 件・編集を伴わない所見だけの場合は sync-prelude の規約で既に終了している）。
 skill 固有の差分（変更なしメッセージ、ブランチ slug、`git add` 対象、commit message、PR title / body 構成）は
 呼び出し側 skill 文書の差分テーブルが指定する。
 
@@ -40,6 +40,10 @@ raw="$(gh pr list --state open --limit 1000 --json number,url,headRefName)"
 jq '[.[] | select(.headRefName | startswith("agent/<skill名>"))]' <<<"$raw"
 ```
 
+GraphQL が使えない run・`gh` が無い run では、`docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5 の
+REST / MCP 経路で同じ検査（canary・全件取得・打ち切り検知）を行う。判定表に一致しない失敗と、
+代替経路の canary の失敗は「既存 open PR なし」に倒さず停止する。
+
 - **絞り込み結果が 1 件以上**: 既存 open PR がこの skill の未マージ成果を表す。ブランチも
   commit も PR も作らず、**本共通フロー（§2 以降）を実行せずに戻る**（**異常ではなく正常終了**）。
   呼び出し側 skill 文書に PR 作成より後の Step がある場合は、**その Step は必ず実行する**
@@ -67,20 +71,49 @@ jq '[.[] | select(.headRefName | startswith("agent/<skill名>"))]' <<<"$raw"
 （`YYYY-MM-DD` は実行日）。同名ブランチが既に存在する場合は `-2` 等のサフィックスで別名にする。
 これは同日再実行時のブランチ名衝突を避けるためであり、重複 PR の抑止機構ではない（抑止は §1 が担う）。
 
+実行環境が作業ブランチ（セッション用に割り当てられたブランチ等）を指定していても、それは使わず上記の
+skill 規定ブランチを切る。同一セッションで複数の sync 系 skill を続けて実行する場合も、skill ごとに
+ブランチと PR を分ける。§1 のガードが head ブランチの prefix（skill 名）で既存 PR を探すため、別名の
+ブランチや複数 skill の相乗りにすると、次回のガードが既存 PR を見落とす。
+
 ## 3. commit / push
 
 1. 呼び出し側 skill 文書が定める編集を適用する
 2. 更新したファイルのみ `git add` する（`git add -A` 等の広域指定禁止）
 3. Conventional Commits 形式で commit する（メッセージは呼び出し側指定）
-4. `git push -u origin <branch>`（**`--no-verify` 禁止**。CI 同等の事前チェックは
-   `.claude/hooks/pre-push-ci-check.sh` が push 時に自動実行する。検証コマンドの定義は
-   `docs/harness/skills/shared/verification-gates.md` を正本とする）
+4. `git push -u origin <branch>`（`--no-verify` を付けない。CI 同等の事前チェック（`gate:push`）は
+   `.claude/hooks/pre-push-ci-check.sh` が push 時に自動実行し、失敗したら原因を直して再実行する。
+   組合せの定義は `docs/harness/skills/shared/verification-gates.md` を正本とする）
 
 ## 4. PR 作成
 
-`gh pr create` で**通常 PR** を作成する（base の判定は `docs/harness/skills/shared/pr-creation.md`
-に従う。`--draft` は使わない）。title / body は呼び出し側 skill 文書の差分テーブルに従う。
+`gh pr create` で**通常 PR** を作成する。base の判定・open 前の衝突検査・draft にしない指定・PR 本文の標準節は
+`docs/harness/skills/shared/pr-creation.md` に従う。衝突が予測されて open を保留した場合も、見送った検出は
+次回実行で origin/main から再導出される。`gh` が使えない run の作成経路は
+`docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5 に従う。
+
+title / body は呼び出し側 skill 文書の差分テーブルに従い、標準節に検出結果の節を加えた構成にする。
+実装疑い・判定不能・`needs_new_doc` は、本文の「実装側判断要」区分に根拠付きで列挙する
+（形式 → `docs/harness/skills/shared/implementation-consistency.md`）。
 起票元 Issue が無い保守 PR のため closing keyword は不要（特定 Issue 起点で実行した場合は
 body に `関連: #<番号>` を記載する）。PR 作成後、PR URL を console に報告する。
 
 **1 スキャン = 1 PR**。1 回の実行で検出した全候補を 1 つの PR にまとめ、候補ごとに PR を分けない。
+
+## 5. 識別ラベルの付与
+
+PR 作成後、別コマンドで次のラベルを付与する。
+
+- 呼び出し側 skill 文書の差分テーブルが指定するラベル
+- routine 起点を示すラベル。起動が routine でも人間の直接起動でも付ける（sync 系の PR を一覧で見分け、
+  起動経路によらず集計できるようにするため）
+
+ラベル名と体系は `docs/harness/OPERATING_MODEL.md` のラベル規約と
+`.claude/skills/create-issue/references/project-fields.md` が正本であり、ここには書かない。
+
+- **`gh pr create --label` で同時に指定しない**。ラベル名が解決できないと `gh pr create` 自体が失敗し、
+  検出済みの変更が PR 化されないまま run が終わるため。PR を先に確定させてから、`gh pr edit --add-label`
+  （REST 経路では `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5 の対応表）で付与する。
+- 付与に失敗しても run は失敗にしない。PR URL と、付与できなかったラベル名を報告する。
+- ラベル定義の作成・削除は行わない。ラベルは `docs/harness/scheduled-operations.md` の
+  「事前作成が必要な外部リソース」に従い、人間または bootstrap 時に作成する。

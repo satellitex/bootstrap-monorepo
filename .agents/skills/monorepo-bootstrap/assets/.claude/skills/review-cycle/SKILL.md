@@ -1,6 +1,6 @@
 ---
 name: review-cycle
-description: PR レビューコメントを LGTM まで自律ポーリング・対応し、完了時に PR author へ通知する
+description: PR を LGTM まで自律対応させたい場合に使う。判定表に従ってレビュー対応（/handle-review に委譲）・merge conflict の解消・CI 失敗の修正を繰り返し、終了理由を PR author に通知する。単発のコメント対応は /handle-review の担当
 ---
 
 # /review-cycle

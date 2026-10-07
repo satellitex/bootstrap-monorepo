@@ -1,0 +1,50 @@
+# INDEX の更新主体（割当表・leaf 文書の要件・経過措置）
+
+この文書は `INDEX.md` ごとの更新主体の割当表、更新主体が行を起こすために leaf 文書が満たす要件、更新主体の routine を登録する前の経過措置の正本である。更新主体を 1 つに絞る理由と、実装 PR の作法の本文は `docs/styles/team-feedback/shared-aggregate-single-writer.md` に置き、ここには複製しない。
+
+## 割当表
+
+上から順に評価し、最初に一致した行を適用する。
+
+| INDEX | 更新主体 | 更新契機 |
+|---|---|---|
+| `docs/adr/INDEX.md` | `/adr-compress` | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
+| `docs/styles/team-feedback/INDEX.md` | `/promote-memory` | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う |
+| `docs/requirements/INDEX.md`、`docs/customer/**/INDEX.md`（採用している場合） | 人間 | AI エージェントは編集しない（→ `docs/README.md`） |
+| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync` | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める |
+
+- 新しい INDEX を追加するときは、この表に行を足す。足さなければ「上記以外」の行が適用される。
+- 更新主体は直列に実行される 1 つの主体であり、同じ INDEX を同時に書き換える PR が存在しない。
+
+## leaf 文書の要件
+
+更新主体は、追加された実体の文書（ADR・runbook・調査ノートなど）を読んで INDEX の行を起こす。実装 PR が INDEX に載せたい行を持ち回る必要はなく、追加・改名する文書が次の 2 点を満たしていれば、行の情報は失われない。
+
+- 冒頭に `#` 見出しがある（INDEX 行のタイトルになる）
+- 見出しの直後に、その文書が何を扱うかを述べる 1〜3 行のリード文がある。ADR は加えて Status 表（Status / Date）を持つ
+
+新規ディレクトリの `INDEX.md` の新規作成は、既存の表と衝突しないため実装 PR で行ってよい。作成した INDEX は、割当表に行を足して更新主体を決める。
+
+## 経過措置（routine の登録前）
+
+更新主体が routine の INDEX は、その routine が登録されるまで更新されない。登録は repo の外で人間が行うため、登録前の期間は実装 PR が同一 PR で行を更新してよい。routine ごとの運用状態を次の表で管理する。
+
+| 更新主体の routine | 運用状態 |
+|---|---|
+| `/adr-compress` | 経過措置 — TODO(記入方法: `docs/harness/scheduled-operations.md` のカタログどおりに routine を登録し、初回の実行を確認できたら「単一 writer」に書き換える) |
+| `/docs-sync` | 経過措置 — TODO(記入方法: 同上) |
+
+- 運用状態が「経過措置」の routine が更新主体の INDEX では、実装 PR は、追加・改名・削除する文書に対応する行を同一 PR で追加・更新・削除してよい。並列の PR と衝突した場合は rebase で解消する。
+- 運用状態が「単一 writer」の INDEX では、実装 PR は既存の INDEX を変更しない。経過措置の間に実装 PR が書いた行は、routine の初回実行が実体と突合して過不足を直す。
+- 人間と `/promote-memory` が更新主体の INDEX は、登録する routine がないため経過措置の対象外である。
+- 状態の書き換えは、routine の登録を確認した人が行う。導入時の完了報告には、この表の各行を routine 登録の TODO として含める。
+
+## 強制の範囲
+
+並列実装フロー（`/multi-issue`）の検収は、差分に既存の `INDEX.md` の変更が含まれないことを次のコマンドで確認する。出力が空であることが合格条件で、経過措置中の INDEX（上表）の変更は出力から除いて判定する。
+
+```bash
+git diff --name-only --diff-filter=M origin/main...HEAD | grep -E '(^|/)INDEX\.md$'
+```
+
+この検査は並列実装フロー内の検収であり、CI ではない。フロー外の PR（直接指示のメインエージェント判断、人間の PR）には機械強制が及ばないため、規約として守る。

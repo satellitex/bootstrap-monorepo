@@ -1,6 +1,6 @@
 ---
 name: readme-sync
-description: 各 README を origin/main の現状コードと突き合わせ、食い違いがあれば origin/main 起点の専用ブランチで README を更新し PR を作成する
+description: README が origin/main の現状コードと食い違っている疑いがある場合、または routine の定期実行時に使う。README 側が古い食い違いだけを更新する PR にまとめ、実装側の疑いは編集せず PR 本文に記録する。docs 配下は /docs-sync、ソースコメントは /code-sync の担当
 ---
 
 # /readme-sync

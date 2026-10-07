@@ -7,4 +7,4 @@
 | ID | サマリ | 原本 |
 | --- | --- | --- |
 
-> ID は 4 桁連番。1 原本 = 1 サマリ。サマリ追加時は本表へ 1 行追記する（運用は `../README.md`）。
+> ID は 4 桁連番。1 原本 = 1 サマリ。行の更新主体は `docs/harness/skills/shared/index-writer-policy.md` の割当表に従う（運用は `../README.md`）。

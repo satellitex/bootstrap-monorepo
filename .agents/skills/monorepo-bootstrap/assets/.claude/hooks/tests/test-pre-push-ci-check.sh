@@ -4,6 +4,7 @@ set -euo pipefail
 # pre-push-ci-check.sh の hermetic テスト。
 # bash / git / jq のみで動く（実 pnpm / gitleaks 不要、pnpm は PATH stub、
 # gitleaks は PROJ_GITLEAKS_CMD で stub 注入）。
+# push 先の作業ツリーの特定（cd / git -C の解釈、別 worktree からの起動）も同じ構成で検証する。
 # 一時 git repo と一時 HOME を作り、各テスト後にクリーンアップする。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -408,6 +409,277 @@ test10_custom_ref_namespace_is_scanned() {
   echo "PASS test10: secret on custom ref namespace still denies"
 }
 
+# --------------------------------------------------------------------------
+# 以降は push 先の作業ツリーの特定（cd / git -C の静的解釈、解決不能は deny）の検証。
+# hook プロセスの cwd を main checkout にしたまま、別 worktree へ push する起動を再現する。
+# --------------------------------------------------------------------------
+
+# main checkout と、その配下の worktree（.claude/worktrees/wt）を作る。両方に node_modules を置く。
+# 出力: "<main の物理パス>" と "<worktree の物理パス>" を改行区切りで返す。
+make_main_with_worktree() {
+  local tmp main wt
+  tmp="$(mktemp -d)"
+  main="$tmp/main"
+  git init -q "$main"
+  (
+    cd "$main"
+    git config user.email "test@example.com"
+    git config user.name "Test"
+    git config commit.gpgsign false
+    printf 'hello\n' > README.md
+    git add README.md
+    git commit -q -m "init"
+    mkdir -p node_modules
+    git worktree add -q .claude/worktrees/wt -b wt-branch
+    mkdir -p .claude/worktrees/wt/node_modules
+  )
+  main="$(cd -P "$main" && pwd -P)"
+  wt="$(cd -P "$main/.claude/worktrees/wt" && pwd -P)"
+  printf '%s\n%s\n' "$main" "$wt"
+}
+
+# 実行場所を記録する stub を作る。pnpm は cwd（物理パス）と argv を、gitleaks は cwd を
+# "$stub_dir/<name>.cwd" に追記する。どちらも成功（leak なし）で終わる。
+make_recording_stubs() {
+  local stub_dir
+  stub_dir="$(mktemp -d)"
+  cat > "$stub_dir/pnpm" <<STUB
+#!/usr/bin/env bash
+pwd -P >> "$stub_dir/pnpm.cwd"
+printf '%s\n' "\$*" >> "$stub_dir/pnpm.args"
+exit 0
+STUB
+  cat > "$stub_dir/gitleaks" <<STUB
+#!/usr/bin/env bash
+pwd -P >> "$stub_dir/gitleaks.cwd"
+exit 0
+STUB
+  chmod +x "$stub_dir/pnpm" "$stub_dir/gitleaks"
+  printf '%s' "$stub_dir"
+}
+
+# hook を process cwd = $1 で実行し、stdin に command=$2 / cwd=$3（空なら cwd 無し）の JSON を渡す。
+# $4 は pnpm stub の dir、$5 は gitleaks stub の dir（省略時は $4）。
+run_hook_at() {
+  local proc_cwd="$1" command="$2" stdin_cwd="${3:-}" stub_dir="$4" gl_dir="${5:-$4}" json
+  if [[ -n "$stdin_cwd" ]]; then
+    json="$(jq -n --arg c "$command" --arg d "$stdin_cwd" '{tool_input:{command:$c},cwd:$d}')"
+  else
+    json="$(jq -n --arg c "$command" '{tool_input:{command:$c}}')"
+  fi
+  (
+    cd "$proc_cwd"
+    printf '%s' "$json" | PROJ_GITLEAKS_CMD="$gl_dir/gitleaks" PATH="$stub_dir:$PATH" bash "$HOOK"
+  )
+}
+
+# 記録ファイルの全行が期待する作業ツリーのルートであること、かつ 1 行以上あることを確認する。
+assert_ran_only_in() {
+  local file="$1" expected="$2" label="$3" lines
+  [[ -f "$file" ]] || fail "$label: expected checks to run, but $file was not written"
+  lines="$(sort -u "$file")"
+  [[ "$lines" == "$expected" ]] \
+    || fail "$label: checks must run only in $expected, ran in: $lines"
+}
+
+assert_pnpm_steps_ran() {
+  local stub_dir="$1" label="$2" step
+  for step in format:check lint typecheck build; do
+    grep -qxF "$step" "$stub_dir/pnpm.args" \
+      || fail "$label: pnpm step '$step' was not run (args=$(tr '\n' ' ' < "$stub_dir/pnpm.args"))"
+  done
+}
+
+# --------------------------------------------------------------------------
+# Test 11: `cd <worktree> && git push` は worktree のルートで全 step を実行する。
+# hook プロセスの cwd と stdin の cwd が main checkout でも、検査対象は push 先。
+# --------------------------------------------------------------------------
+test11_cd_prefix_checks_target_worktree() {
+  local paths main wt stub_dir out
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  out="$(run_hook_at "$main" "cd $wt && git push origin wt-branch" "$main" "$stub_dir")"
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep -q 'passed' \
+    || fail "test11: expected a pass record (out=$out)"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test11
+  assert_ran_only_in "$stub_dir/gitleaks.cwd" "$wt" test11
+  assert_pnpm_steps_ran "$stub_dir" test11
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test11: cd-prefixed push checks the target worktree"
+}
+
+# --------------------------------------------------------------------------
+# Test 12: `git -C <worktree> push` も同様に push 先の worktree を検査する。
+# グローバルオプション（-c）が前置されても解釈できる。
+# --------------------------------------------------------------------------
+test12_git_dash_c_checks_target_worktree() {
+  local paths main wt stub_dir out
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  out="$(run_hook_at "$main" "git -c core.quotepath=off -C $wt push origin wt-branch" "$main" "$stub_dir")"
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep -q 'passed' \
+    || fail "test12: expected a pass record (out=$out)"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test12
+  assert_pnpm_steps_ran "$stub_dir" test12
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test12: git -C push checks the target worktree"
+}
+
+# --------------------------------------------------------------------------
+# Test 13: 前置なしの `git push` は stdin の cwd（Bash の現在の cwd）の作業ツリーを検査する。
+# hook プロセスの cwd が main checkout でも、stdin の cwd が worktree ならそちらが対象。
+# サブディレクトリが cwd のときも、検査は作業ツリーのルートで行う。
+# --------------------------------------------------------------------------
+test13_stdin_cwd_selects_worktree() {
+  local paths main wt stub_dir out
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  out="$(run_hook_at "$main" "git push origin wt-branch" "$wt" "$stub_dir")"
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep -q 'passed' \
+    || fail "test13: expected a pass record (out=$out)"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test13
+
+  rm -f "$stub_dir/pnpm.cwd" "$stub_dir/pnpm.args"
+  mkdir -p "$wt/sub/dir"
+  out="$(run_hook_at "$main" "git push" "$wt/sub/dir" "$stub_dir")"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test13
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test13: stdin cwd selects the worktree root"
+}
+
+# --------------------------------------------------------------------------
+# Test 14: push 先を静的に決められない形は deny する（検査せず、誤った tree を緑にしない）。
+# --------------------------------------------------------------------------
+test14_unresolvable_target_denies() {
+  local paths main wt stub_dir plain out decision reason cmd
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  plain="$(mktemp -d)"
+  stub_dir="$(make_recording_stubs)"
+  for cmd in \
+    'cd "$WT_DIR" && git push' \
+    'cd $(pwd) && git push' \
+    'git -C ~/work push' \
+    'git -C "$(dirname "$PWD")" push' \
+    'cd .claude/worktrees/* && git push' \
+    "cd $main/does-not-exist && git push" \
+    "git -C $plain push" \
+    "git --git-dir=$main/.git push" \
+    "GIT_DIR=$main/.git git push" \
+    "(cd $wt && git push)" \
+    "cd -P $wt && git push" \
+    "cd $wt && git push && cd $main && git push"; do
+    out="$(run_hook_at "$main" "$cmd" "$main" "$stub_dir")"
+    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
+    [[ "$decision" == "deny" ]] \
+      || fail "test14: unresolvable push target must deny (cmd=$cmd, out=$out)"
+    reason="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')"
+    printf '%s' "$reason" | grep -q '作業ツリー' \
+      || fail "test14: deny reason should explain the target could not be resolved (cmd=$cmd, reason=$reason)"
+  done
+  [[ ! -f "$stub_dir/pnpm.args" && ! -f "$stub_dir/gitleaks.cwd" ]] \
+    || fail "test14: no check may run when the push target is unresolved"
+  rm -rf "$(dirname "$main")" "$stub_dir" "$plain"
+  echo "PASS test14: unresolvable push target is denied without running checks"
+}
+
+# --------------------------------------------------------------------------
+# Test 15: push でない git -C / 複合コマンドは通過し、push を含む複合コマンドは検査する。
+# `Bash(git -C *)` で hook が起動されても、push 以外の操作を妨げない。
+# --------------------------------------------------------------------------
+test15_non_push_and_compound_commands() {
+  local paths main wt stub_dir out cmd
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  for cmd in \
+    "git -C $wt status" \
+    "git -C $wt log --grep push" \
+    "git -C $wt commit -m 'fix push handling'" \
+    "git -C $wt stash push" \
+    "echo git push"; do
+    out="$(run_hook_at "$main" "$cmd" "$main" "$stub_dir")"
+    [[ -z "$out" ]] || fail "test15: non-push command must pass through silently (cmd=$cmd, out=$out)"
+  done
+  [[ ! -f "$stub_dir/pnpm.args" ]] || fail "test15: non-push commands must not run checks"
+
+  out="$(run_hook_at "$main" "git status && git push origin wt-branch" "$wt" "$stub_dir")"
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep -q 'passed' \
+    || fail "test15: a push after another command must still be checked (out=$out)"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test15
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test15: non-push commands pass through, compound pushes are checked"
+}
+
+# --------------------------------------------------------------------------
+# Test 16: symlink 経由の cd 先は物理パスの作業ツリーを検査する。
+# --------------------------------------------------------------------------
+test16_symlinked_target_uses_physical_root() {
+  local paths main wt stub_dir link_parent out
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  link_parent="$(mktemp -d)"
+  ln -s "$wt" "$link_parent/wt-link"
+  out="$(run_hook_at "$main" "cd $link_parent/wt-link && git push" "$main" "$stub_dir")"
+  printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep -q 'passed' \
+    || fail "test16: expected a pass record (out=$out)"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test16
+  rm -rf "$(dirname "$main")" "$stub_dir" "$link_parent"
+  echo "PASS test16: symlinked push target resolves to the physical worktree root"
+}
+
+# --------------------------------------------------------------------------
+# Test 17: 別 repository への push（push 元と共有 git ディレクトリが異なる）は検査対象外。
+# --------------------------------------------------------------------------
+test17_other_repository_is_skipped() {
+  local paths main stub_dir other out
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  stub_dir="$(make_recording_stubs)"
+  other="$(make_repo)"
+  out="$(run_hook_at "$main" "git -C $other push" "$main" "$stub_dir")"
+  [[ -z "$out" ]] || fail "test17: push to another repository must pass through (out=$out)"
+  [[ ! -f "$stub_dir/pnpm.args" && ! -f "$stub_dir/gitleaks.cwd" ]] \
+    || fail "test17: no check may run for another repository"
+  rm -rf "$(dirname "$main")" "$stub_dir" "$other"
+  echo "PASS test17: push to another repository is out of scope"
+}
+
+# --------------------------------------------------------------------------
+# Test 18: push 先の作業ツリーの .gitleaks.toml を使う（hook の cwd 側の設定ではない）。
+# main にだけ .gitleaks.toml がある状態で worktree を検査すると --config は付かない。
+# --------------------------------------------------------------------------
+test18_gitleaks_config_comes_from_target_worktree() {
+  local paths main wt stub_dir gl_stub
+  paths="$(make_main_with_worktree)"
+  main="$(printf '%s\n' "$paths" | sed -n 1p)"
+  wt="$(printf '%s\n' "$paths" | sed -n 2p)"
+  stub_dir="$(make_recording_stubs)"
+  gl_stub="$(make_gitleaks_argv_stub)"
+  printf 'title = "main only"\n' > "$main/.gitleaks.toml"
+  run_hook_at "$main" "git -C $wt push" "$main" "$stub_dir" "$gl_stub" > /dev/null
+  [[ -f "$gl_stub/argv" ]] || fail "test18: gitleaks was not invoked"
+  if grep -qF -- '--config' "$gl_stub/argv"; then
+    fail "test18: the main checkout's .gitleaks.toml must not apply to the worktree (argv=$(cat "$gl_stub/argv"))"
+  fi
+  printf 'title = "worktree"\n' > "$wt/.gitleaks.toml"
+  run_hook_at "$main" "git -C $wt push" "$main" "$stub_dir" "$gl_stub" > /dev/null
+  grep -qF -- '--config .gitleaks.toml' "$gl_stub/argv" \
+    || fail "test18: the worktree's own .gitleaks.toml must be used (argv=$(cat "$gl_stub/argv"))"
+  rm -rf "$(dirname "$main")" "$stub_dir" "$gl_stub"
+  echo "PASS test18: gitleaks config is taken from the target worktree"
+}
+
 test1_non_push_passthrough
 test2_no_node_modules_skip
 test3_all_checks_pass
@@ -418,5 +690,13 @@ test7_gitleaks_scan_scope_limited_to_outgoing
 test8_other_branch_value_does_not_block_push
 test9_non_head_ref_push_is_scanned
 test10_custom_ref_namespace_is_scanned
+test11_cd_prefix_checks_target_worktree
+test12_git_dash_c_checks_target_worktree
+test13_stdin_cwd_selects_worktree
+test14_unresolvable_target_denies
+test15_non_push_and_compound_commands
+test16_symlinked_target_uses_physical_root
+test17_other_repository_is_skipped
+test18_gitleaks_config_comes_from_target_worktree
 
 echo "ALL PASS"

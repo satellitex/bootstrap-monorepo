@@ -1,37 +1,23 @@
 # Issue Lifecycle Reference
 
-この文書は、`monorepo-bootstrap` が issue 単位の計画・記録・承認要否の運用を bootstrap 先に設計するときの参照である。
-issue 資産の実体（README・テンプレート）は書かない（正本台帳は `../assets/MANIFEST.md`）。
-The goal is to make every issue small enough for one focused implementation session while preserving decision history and the approval model.
+この文書は、`monorepo-bootstrap` が issue 単位の粒度・taxonomy・lifecycle・承認要否を bootstrap 先に設計するときの参照である。
+Issue ごとの成果物ファイルは持たない。計画と検証結果は PR 本文の標準節、設計判断は ADR、残タスクは GitHub Issue に置く。
+標準節の定義は `../assets/docs/harness/skills/shared/pr-creation.md`、資産の台帳は `../assets/MANIFEST.md` が正本であり、ここには複製しない。
+目標は、すべての issue を 1 回の実装 session で完了できる大きさに保ちつつ、判断の履歴と承認モデルを維持することである。
 
-## 1. Issue Docs Location
+## 1. Where Things Live
 
-Each implementation issue owns a directory:
+| 内容 | 置き場 | 備考 |
+|------|--------|------|
+| 問題・scope・受入条件・依存 | GitHub Issue 本文 | 受入条件はリポジトリ内で満たせる確定事項で書く。「A か B かを選ぶ」を受入条件にしない（`docs/styles/team-feedback/single-solution.md`） |
+| 実装計画 | 実装を担う worker のプロンプトと PR 本文の「方針と却下案」 | Issue 専用の計画ファイルは作らない |
+| 方針と却下案・スコープ外・リスク | PR 本文の標準節 | 標準節は 背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク |
+| 検証結果 | PR 本文の「検証結果」 | 実行した検証ゲートの名前と結果、未検証の範囲 |
+| 設計判断 | ADR（`docs/adr/`） | 起票基準は §5。PR 本文から ADR へリンクする |
+| 残タスク・スコープ外の追跡 | GitHub Issue | PR 本文の「スコープ外」に Issue 番号を書く |
+| レビュー指摘への対応 | PR コメントの返信 | 設計方針が変わる指摘だけ ADR にする |
 
-```text
-docs/issues/<number>_<scope>/
-```
-
-起点テンプレートは copy 済みの `docs/issues/templates/task-note.md` を使う。
-小さな issue は task-note 1 枚に計画から検証まで収めてよい。大きな issue は次のように分割する。
-
-| File | Purpose |
-|------|---------|
-| `inception.md` | Problem framing, scope, constraints, acceptance criteria, open questions |
-| `plan.md` | Chosen implementation approach, files/modules, test strategy, docs impact |
-| `construction.md` | Execution notes, commands run, deviations from plan |
-| `verification.md` | Local/CI/deploy checks, evidence, residual risk |
-| `review-notes.md` | Review feedback, evaluator notes, follow-up tasks |
-| `traceability.md` | Acceptance criteria to tests/docs/implementation mapping (opt-in:traceability) |
-
-Bootstrap itself is Issue 0:
-
-```text
-docs/issues/000_bootstrap/
-```
-
-Do not keep long-lived bootstrap artifacts in `docs/bootstrap/`.
-If `docs/bootstrap/` is used as a temporary scratch area, migrate durable artifacts into Issue 0 or the normal docs tree before completion.
+Issue の大きさによって置き場は変わらない。大きすぎる Issue は、置き場を増やさずに Issue を分ける（§7）。
 
 ## 2. Issue Taxonomy
 
@@ -49,21 +35,22 @@ Specialize only when the product architecture requires more precise categories.
 | `security` | auth, authorization, secrets, privacy, audit, dependency/security policy |
 | `docs` | docs, runbooks, ADRs, harness docs, public docs projection |
 
-Labels may mirror these values, but label names can follow the target repo's conventions.
-Keep canonical product terms, package names, API names, and GitHub field names in their original spelling.
+ラベル名は導入先の規約に合わせてよい。
+canonical な製品用語、package 名、API 名、GitHub の field 名は原文のまま書く。
 
 ## 3. Lifecycle
 
-| Phase | Required output | Gate |
-|-------|-----------------|------|
-| Inception | `inception.md` with problem, scope, AC, constraints, dependencies | Optional if issue body is already precise |
-| Plan | `plan.md` with approach, topology impact, tests, docs, rollout | 既定で人間 gate なし。未確定点は open questions として記録し PR で提示 |
-| Construction | Code/docs diff and `construction.md` notes for deviations | No new scope without updating plan |
-| Verification | `verification.md` with commands, CI, deploy/smoke, skipped checks | Required before review |
-| Review notes | `review-notes.md` or PR review summary | Required for non-trivial changes |
+| Phase | 出力 | Gate |
+|-------|------|------|
+| Inception | Issue 本文（問題・scope・受入条件・制約・依存） | Issue 本文が既に具体的なら不要 |
+| Plan | worker プロンプトの計画と PR 本文の「方針と却下案」 | 既定で人間 gate なし。未確定点は 1 案に確定して書く |
+| Construction | コード・docs の diff と commit。計画からの逸脱は PR 本文へ追記 | scope を増やす場合は Issue を分ける |
+| Verification | PR 本文の「検証結果」（検証ゲート、CI、deploy / smoke、未検証の範囲） | レビュー依頼の前に必須 |
+| Review | PR コメントへの対応。設計方針が変わるものは ADR | 非自明な変更で必須 |
 
-実装方針が未確定でも作業を止めない。inception を先に仕上げ、未確定点を明記した上で open PR まで自律続行する。
-実装前の人間確認（draft PR gate）を置くのは、人間から明示的に指示があった場合のみとする。
+実装方針が未確定でも作業を止めない。
+既存 docs、一次情報、保守的な既定の順に調べて 1 案に確定し、却下した案と理由を PR 本文の「方針と却下案」に残して、open PR まで自律続行する。
+PR は通常 PR で open する。draft にする規則と、経路ごとの指定は `docs/harness/skills/shared/pr-creation.md` の「draft にしない」が正本である。
 
 ## 4. Approval Rules
 
@@ -75,7 +62,9 @@ PR のマージは人間の操作だが、明示的に指示された場合は�
 - 課金が発生する操作（有償リソースの作成、プラン変更、外部サービス契約）
 - 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）
 
-次の条件に当たる issue は承認の対象ではないが、判断材料を issue-local docs（または ADR）に残し、PR で提示する:
+導入先が、この 2 つに加えて人間へ引き渡す範疇（公開契約の非互換、個人情報の取扱いの変更など）を持つ場合は、`docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」小節に記入する。既定は空である。
+
+次の条件に当たる issue は承認の対象ではないが、判断材料を PR 本文（設計判断は ADR）に残して提示する:
 
 - technology choice is unsettled
 - provider/runtime/database/storage/queue/auth/observability selection may change
@@ -88,23 +77,10 @@ PR のマージは人間の操作だが、明示的に指示された場合は�
 ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
 prod（release）への反映のみ手順を踏む: main の安全性確認 → release への反映手順の確認。
 
-## 5. Draft PR Gate（明示指示があった場合のみ）
+## 5. ADR Triggers
 
-draft PR を実装前の承認 gate として使うのは、人間から明示的に指示があった場合のみとする。
-既定では inception / plan を issue-local docs に残し、実装へ自律続行する。
-
-指示があった場合の手順:
-
-1. Create `inception.md` and `plan.md`.
-2. Open a draft PR or update an existing draft PR with links to the issue docs.
-3. Include proposed files, test plan, docs impact, risks, and explicit open questions.
-4. Wait for human approval before construction.
-
-The draft PR should be used for plan review, not as a substitute for the issue-local docs.
-
-## 6. ADR Triggers
-
-Create an ADR when the issue makes or changes a decision that is:
+起票基準の正本は `../assets/docs/adr/README.md` の「いつ書くか」である（複数の選択肢を比較して決定したとき、既存の方針を撤回・置換するとき、レビュー指摘への対応で設計方針が変わったとき）。
+次の領域の決定は、複数案の比較を伴う場合に ADR になる。技術選定は 1 領域 1 ADR とし、代替案と棄却理由を含める。
 
 - cross-cutting across apps/packages/services
 - hard to reverse
@@ -114,14 +90,14 @@ Create an ADR when the issue makes or changes a decision that is:
 - tied to CI/CD provider, branch deploy, or runner operations
 - tied to public API contracts, data retention, compliance, or security boundaries
 
-ADR is not required for narrow implementation details that are fully local to one issue and easy to reverse.
+1 つの issue に閉じ、元に戻しやすい局所的な実装判断は ADR にせず、PR 本文の「方針と却下案」に書く。
 
-## 7. Remote GitHub Mutation
+## 6. Remote GitHub Mutation
 
 GitHub labels / milestones / Projects / fields / issues / issue relationships の作成・変更は自律実行してよい。
 人間承認が必要なのは、課金が発生する操作と秘密値の挿入・変更のみ。
 
-自律実行した mutation は、判断材料と結果を成果物に残す:
+自律実行した mutation は、判断材料と結果を PR 本文に残す:
 
 - adopted labels and descriptions
 - milestones with entry/exit criteria
@@ -129,9 +105,9 @@ GitHub labels / milestones / Projects / fields / issues / issue relationships �
 - sample issue body
 - 実行した commands / API operations と読み戻し検証の結果
 
-実行できなかった remote setup は `bootstrap-plan.md` に残タスクとして残す。
+実行できなかった remote setup は、GitHub Issue として残タスクに起票する。
 
-## 8. Issue Size
+## 7. Issue Size
 
 Break product completion into issues that a single agent session can complete.
 Good issues usually have:
@@ -149,4 +125,4 @@ Split issues when:
 - prod（release）への反映手順、課金操作、または秘密値の投入が独立の確認を必要とする
 - a changed technical decision invalidates existing issue plans
 
-When a technical decision changes existing issues, comment on or update the affected issue docs and GitHub issues autonomously.
+技術判断の変更が既存 issue に影響する場合は、影響を受ける GitHub issue へ自律的に comment または更新する。

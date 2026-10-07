@@ -10,6 +10,7 @@
 |--------|------|
 | [長期的自動化を最優先](long-term-automation.md) | 短期的な楽な実装は選択肢から除外し、自動化される案を複数パターン検討する。workaround は限定条件下のみ許容 |
 | [自律実行の既定](autonomous-flow.md) | 変更の実装から open PR の提出までは自律実行が既定。人間の明示承認が必須なのは課金と秘密値のみ。main = dev / release = prod |
+| [解決策は 1 案に確定して書く](single-solution.md) | 選択肢を残さず、3 条件（現状の仕様を保つ・根本的・シンプル）で 1 案に決めて理由を記録する。人間へ引き渡す範疇は `OPERATING_MODEL.md` の人間引き渡し境界（既定: なし）が定める |
 | [PR レビューコメントは批判的に評価](review-comments.md) | レビューコメントは鵜呑みにせず、ベストプラクティス / 既存スタイル / 技術正確性 / scope の 4 観点で判定する |
 | [Issue scope を超える指摘は scope 内で対応しない](scope-boundary.md) | scope 外コメントは既存 Issue 追記 or 新規 Issue 起票で追跡する |
 | [PR body に closing keyword を記載](pr-closing-keyword.md) | 起票元 Issue を close する PR は body に `Closes #<num>` を注入。partial PR は `関連: #<親>`、保守 PR は省略 |
@@ -19,7 +20,8 @@
 
 | ガイド | 概要 |
 |--------|------|
-| （未登録） | 実装フローに関する rule が昇格されたらここに追記する |
+| [実装フローの切替](implementation-flow-switch.md) | 判定は Issue 全体の性質。実装 Issue は `/multi-issue`、バグ修正・リファクタ・小規模変更はメインエージェント判断。標準手順 8 項を定める |
+| [共有集約ファイル（INDEX.md）は実装 PR で編集しない](shared-aggregate-single-writer.md) | 既存 INDEX.md は割り当てられた更新主体が更新し、実装 PR は leaf を自己記述にする。routine 登録前は同一 PR 更新を許す経過措置を持つ |
 
 ## プロダクト設計
 
@@ -38,10 +40,9 @@
 
 | ガイド | 概要 | 強制機構 |
 |--------|------|----------|
-| （未登録） | | |
+| [commit 前に format を通す](format-check.md) | format 違反のまま commit・push しない。hook は Claude Code 経由の操作に、CI は全経路に効く | `.claude/hooks/pre-format-check.sh` + `.claude/hooks/pre-push-ci-check.sh` + CI の format job |
 
 <!-- 追記例（強制機構列には実在する hook / CI job / skill を書く）:
-| [format-check.md](format-check.md) | format 違反のままコミット・push しない | `.claude/hooks/pre-format-check.sh` + `pre-push-ci-check.sh` + CI |
 | [doc-comment-internal-refs.md](doc-comment-internal-refs.md) | doc-style コメント内に内部参照を書かない | `/code-sync`（内部参照検出） |
 -->
 

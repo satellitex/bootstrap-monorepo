@@ -49,14 +49,16 @@ make_stub_dir() {
 # $1 stub_dir / $2 コマンド名 / $3 exit code / $4 標準出力に出すメッセージ /
 # $5 終了前の sleep 秒（既定 0、タイムアウト検証用）
 #
-# stub は受領した argv を "<stub>.args" に記録する。出力だけを見ていると seam 化で
-# 引数が落ちる退行（eslint の --no-warn-ignored 欠落など）に気付けないため、引数も pin する。
+# stub は受領した argv を "<stub>.args"、実行時の cwd（物理パス）を "<stub>.cwd" に記録する。
+# 出力だけを見ていると seam 化で引数が落ちる退行（eslint の --no-warn-ignored 欠落など）に
+# 気付けないため、引数も pin する。cwd は、検査が編集対象の作業ツリーで走ったことの確認に使う。
 # argv ゼロでも .args を作れるようリダイレクトはループの外に置く（呼び出し有無の判定に使う）。
 write_stub() {
   local dir="$1" name="$2" code="$3" msg="$4" sleep_sec="${5:-0}"
   cat > "$dir/$name" <<STUB
 #!/usr/bin/env bash
 { for a in "\$@"; do printf '%s\n' "\$a"; done; } >> "$dir/$name.args"
+pwd -P >> "$dir/$name.cwd"
 if [ "$sleep_sec" -gt 0 ]; then
   sleep $sleep_sec
 fi
@@ -84,6 +86,16 @@ run_hook_in() {
   local repo="$1" file="$2"
   (
     cd "$repo"
+    printf '{"tool_input":{"file_path":"%s"}}' "$file" | bash "$HOOK"
+  )
+}
+
+# hook を作業ツリーとは別のディレクトリから実行して stdout を返す。
+# hook の cwd と編集対象の作業ツリーが一致しない起動（別 worktree からの起動など）の再現に使う。
+run_hook_from() {
+  local from="$1" file="$2"
+  (
+    cd "$from"
     printf '{"tool_input":{"file_path":"%s"}}' "$file" | bash "$HOOK"
   )
 }
@@ -266,10 +278,105 @@ $actual"
   echo "PASS test5: default commands and timeouts are unchanged"
 }
 
+# --------------------------------------------------------------------------
+# Test 6: 絶対パス入力でも eslint / typecheck / test が実行される。
+# hook の cwd を作業ツリーとは別のディレクトリにして、検査コマンドが編集対象の作業ツリー
+# （物理パスのルート）を cwd にして呼ばれ、引数がルート基準の相対パスであることを確認する。
+# --------------------------------------------------------------------------
+test6_absolute_path_runs_all_checks_in_file_worktree() {
+  local repo stub_dir other out ctx root f marker
+  repo="$(make_repo)"
+  stub_dir="$(make_stub_dir)"
+  other="$(mktemp -d)"
+  root="$(cd -P "$repo" && pwd -P)"
+  write_stub "$stub_dir" eslint 1 "eslint-stub: lint error"
+  write_stub "$stub_dir" tsc 1 "tsc-stub: type error"
+  write_stub "$stub_dir" pnpm 1 "pnpm-stub: test failed"
+  out="$(HOME="$repo" \
+    PROJ_ESLINT_CMD="$stub_dir/eslint" \
+    PROJ_TSC_CMD="$stub_dir/tsc" \
+    PROJ_PNPM_CMD="$stub_dir/pnpm" \
+    run_hook_from "$other" "$repo/apps/api/src/sample.ts")"
+  ctx="$(ctx_of "$out")"
+  for marker in '[eslint]' '[typecheck]' '[test]'; do
+    printf '%s' "$ctx" | grep -qF "$marker" \
+      || fail "test6: absolute path input must run all three checks (missing '$marker', ctx=$ctx)"
+  done
+  printf '%s' "$(args_of "$stub_dir/eslint.args" test6)" | grep -qF -- '--no-warn-ignored apps/api/src/sample.ts' \
+    || fail "test6: eslint should receive the root-relative path"
+  printf '%s' "$(args_of "$stub_dir/tsc.args" test6)" | grep -qF -- '--noEmit -p apps/api/tsconfig.json' \
+    || fail "test6: tsc should receive the root-relative tsconfig"
+  printf '%s' "$(args_of "$stub_dir/pnpm.args" test6)" | grep -qF -- '--filter @example/api test' \
+    || fail "test6: pnpm should receive the package filter"
+  for f in eslint tsc pnpm; do
+    [[ "$(head -n 1 "$stub_dir/$f.cwd")" == "$root" ]] \
+      || fail "test6: $f must run in the file's worktree root ($root), got: $(head -n 1 "$stub_dir/$f.cwd")"
+  done
+  rm -rf "$repo" "$stub_dir" "$other"
+  echo "PASS test6: absolute path runs all checks in the file's worktree"
+}
+
+# --------------------------------------------------------------------------
+# Test 7: 作業ツリーが symlink 経由のパスで渡されても検査が実行される。
+# ルートは物理パスで決まるため、symlink 経由の絶対パスは物理パスへ揃えてから相対化する。
+# --------------------------------------------------------------------------
+test7_symlinked_worktree_path() {
+  local repo stub_dir link_parent link out f
+  repo="$(make_repo)"
+  stub_dir="$(make_stub_dir)"
+  link_parent="$(mktemp -d)"
+  link="$link_parent/via-link"
+  ln -s "$repo" "$link"
+  write_stub "$stub_dir" eslint 0 ""
+  write_stub "$stub_dir" tsc 0 ""
+  write_stub "$stub_dir" pnpm 0 ""
+  out="$(HOME="$repo" \
+    PROJ_ESLINT_CMD="$stub_dir/eslint" \
+    PROJ_TSC_CMD="$stub_dir/tsc" \
+    PROJ_PNPM_CMD="$stub_dir/pnpm" \
+    run_hook_from "$link_parent" "$link/apps/api/src/sample.ts")"
+  [[ -z "$out" ]] || fail "test7: all-pass must produce no output (out=$out)"
+  for f in eslint tsc pnpm; do
+    [[ -f "$stub_dir/$f.args" ]] \
+      || fail "test7: $f was not invoked for a path given through a symlinked worktree"
+  done
+  rm -rf "$repo" "$stub_dir" "$link_parent"
+  echo "PASS test7: path through a symlinked worktree is checked"
+}
+
+# --------------------------------------------------------------------------
+# Test 8: 作業ツリー外のファイルは検査せず通過する（無出力・外部コマンド未実行）。
+# --------------------------------------------------------------------------
+test8_outside_worktree_passes_through() {
+  local repo stub_dir other out f
+  repo="$(make_repo)"
+  stub_dir="$(make_stub_dir)"
+  other="$(mktemp -d)"
+  printf 'export const x = 1;\n' > "$other/outside.ts"
+  write_stub "$stub_dir" eslint 1 "eslint-stub: should not run"
+  write_stub "$stub_dir" tsc 1 "tsc-stub: should not run"
+  write_stub "$stub_dir" pnpm 1 "pnpm-stub: should not run"
+  out="$(HOME="$repo" \
+    PROJ_ESLINT_CMD="$stub_dir/eslint" \
+    PROJ_TSC_CMD="$stub_dir/tsc" \
+    PROJ_PNPM_CMD="$stub_dir/pnpm" \
+    run_hook_in "$repo" "$other/outside.ts")"
+  [[ -z "$out" ]] || fail "test8: file outside the worktree must pass through (out=$out)"
+  for f in eslint tsc pnpm; do
+    [[ ! -f "$stub_dir/$f.args" ]] \
+      || fail "test8: $f must not run for a file outside the worktree"
+  done
+  rm -rf "$repo" "$stub_dir" "$other"
+  echo "PASS test8: file outside the worktree passes through"
+}
+
 test1_non_target_extension
 test2_ts_all_checks_combined
 test3_ts_all_pass_no_output
 test4_timeout_continues
 test5_default_commands_and_timeouts
+test6_absolute_path_runs_all_checks_in_file_worktree
+test7_symlinked_worktree_path
+test8_outside_worktree_passes_through
 
 echo "ALL PASS"

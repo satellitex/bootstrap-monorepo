@@ -1,59 +1,51 @@
 # adr-compress（ADR コーパスの定期圧縮）
 
-この文書は `/adr-compress` の手順正本である。`docs/adr/` の肥大化を `adr-compactor` agent で検出・圧縮し、変更を 1 PR にまとめる。検出条件・圧縮メカニズム・安全ガードレールの詳細は `.claude/agents/adr-compactor.md` を正本とする（本文書には複製しない）。新規 ADR の起票（`/create-adr` 担当）・ハーネス文書の圧縮（`/gc-scan` 担当）は扱わない。
+この文書は `/adr-compress` の手順正本である。`docs/adr/` の Status 追従・INDEX 再構築・stub 化・本文要約を `adr-compactor` agent で実行し、変更を 1 PR にまとめる。検出と安全ゲートのオーケストレーションは `.claude/agents/adr-compactor.md`、圧縮の規則と形式は `docs/harness/skills/adr-compress/compression-rules.md`、PR 本文の構成と受入条件は `docs/harness/skills/adr-compress/pr-output-format.md` を正本とし、本文書には複製しない。新規 ADR の起票（`/create-adr` 担当）とハーネス文書の整理（`/gc-scan` 担当）は扱わない。
 
 ## Purpose
 
-ADR コーパス（`docs/adr/` の本体・`INDEX.md`）が時間とともに肥大化し、現行の決定を探す
-コストが増えるのを防ぐ。決定（Decision）を失わない形で、無効化済み ADR のスタブ化・INDEX の
-再構築・大型本文の要約を定期実行する。
+ADR コーパス（`docs/adr/` の本体と `INDEX.md`）の鮮度と大きさを保つ。次の 3 点を定期的に実行する。
+
+1. マージ済みなのに Proposed のまま残った ADR の Status を Accepted に追従させる。
+2. `INDEX.md` の唯一の writer として、ADR 本体から行を起こして Status 別に再構築する。
+3. 決定（Decision）を失わない形で、無効化済み ADR の stub 化と大型本文の要約を行う。
 
 ## Source of truth
 
-- `docs/adr/README.md`（ADR の status model・INDEX 規約の正本）
-- 圧縮メカニズムの詳細は `.claude/agents/adr-compactor.md` とその参照先を正本とする
+- `docs/adr/README.md`: ADR の status model と INDEX 規約
+- `docs/harness/skills/adr-compress/compression-rules.md`: カテゴリ別の圧縮規則・stub 形式・INDEX の構造
+- `docs/harness/skills/shared/index-writer-policy.md`: INDEX の更新主体の割当
 
 ## Compared against
 
-`docs/adr/ADR-*.md` の実態（Status・行数・サイズ）と `docs/adr/INDEX.md` の現状構造。
+`origin/main` 上の `docs/adr/ADR-*.md` の実態（Status・行数・サイズ・marker）と、`docs/adr/INDEX.md` の現状の構造。
 
 ## Scope
 
-- 対象は `docs/adr/` 配下のみ（ADR 本体 + `INDEX.md`）。
-- **Proposed の ADR は本体を変更しない**（レビュー進行中）。INDEX 分類のみ行う。
-
-圧縮カテゴリ:
-
-| カテゴリ | 対象 | 性質 |
-|---------|------|------|
-| **I** INDEX 再構築 | `INDEX.md` を Status 別（現行: Accepted / Proposed ／ アーカイブ: Superseded・Deprecated / プロセス記録）に決定的再構築。各行はリンク + 1 行要旨 | lossless |
-| **II** in-place スタブ化 | Superseded / Deprecated、および恒久的決定を含まないプロセス記録を**同パスのまま** stub に置換 | lossless（ファイル移動なし = 参照保全） |
-| **III** 同一 issue 統合 | 同一 issue 番号の複数 ADR を 1 ファイルに統合（原本は in-place stub） | **opt-in**・全 Decision 保持 |
-| **IV** 本文要約圧縮 | サイズ閾値超過の大型 ADR 本体 | lossy（要点に短縮。原文は git 履歴が究極の正本） |
+- 対象は `docs/adr/` 配下のみ（ADR 本体と `INDEX.md`）。
+- 圧縮カテゴリは 0 Status 追従、I INDEX 再構築、II in-place stub 化、III 同一 Issue 統合（opt-in）、IV 本文要約。各カテゴリの検出と手順は compression-rules.md に従う。
+- Proposed の ADR は、0 の Status 追従を除いて本体を変更しない（レビュー進行中の可能性があるため）。
 
 ## Detection
 
-1. Agent tool で `subagent_type: adr-compactor` を起動する（`consolidate` 引数の有無を伝達する）。
-   - 引数なし: I / II / IV を実行（III は無効）
-   - `consolidate`: III も有効化する（「1 ADR = 1 決定」規約の変更を伴うため明示 opt-in）
-2. agent が走査・抑制条件・安全ガードレール検証を行う。主要な安全ガードレール（正本は agent 定義):
-   - **Proposed 不可侵**: Status が読み取れない ADR も Proposed 相当として II / III / IV から除外する
-   - **Decision を消さない**: 有効な Decision が 1 つでも落ちる圧縮は候補から外す
-   - **durable-decision ガード**: プロセス記録に見えても恒久的な設計判断を含むものは stub 化しない
-   - **in-place 維持**: II / III はファイルを移動しない（bare-id 参照・相互リンクを構造的に保つ）
+Agent tool で `subagent_type: adr-compactor` を起動し、`consolidate` 引数の有無を伝える。
+
+| 引数 | 動作 |
+|------|------|
+| なし | 0 / I / II / IV を実行する（III は無効） |
+| `consolidate` | III も有効にする（「1 ADR = 1 決定」の規約を変える操作のため、明示的に指定したときだけ） |
+
+走査・抑制条件・安全ガードレールの検証・圧縮は agent が行う。ガードレールと実行順の正本は agent 定義、各カテゴリの規則は compression-rules.md である。
 
 ## Auto-edit policy
 
-- 実行順は **II → III（opt-in）→ IV → I**（本体変更を先に、INDEX 再構築を最終状態に対して 1 回）。
-- 1 つの ADR が複数カテゴリに該当する場合、優先順位 II > III > IV で最大 1 つが本体を所有する。
-- 各圧縮は idempotent にする（stub は marker を持ち再 stub 化されない / I は決定的再構築で
-  未変更コーパスでは diff なし / IV 要約済みは閾値未満で再検出されない）。
+- 編集してよいのは `docs/adr/` 配下の ADR 本体と `INDEX.md` だけである。
+- カテゴリごとの編集内容、実行順（0 → II → III → IV → I）、カテゴリの所有規則は compression-rules.md に従う。
+- `INDEX.md` を書くのは本 skill だけである。実装 PR は INDEX を変更しないため、行は ADR 本体の冒頭見出しと Status 表から起こす。経過措置として実装 PR が行を足している場合も、再構築は既存行を保つため競合しない。
 
 ## Branch & PR policy
 
-候補 0 件かつ INDEX が既に canonical 形なら「変更なし」を stdout に出力して終了する。
-候補ありの場合は `docs/harness/skills/shared/sync-pr-flow.md` の手順（既存 open PR ガード →
-`origin/main` 基点ブランチ → commit → 通常 PR）に従う。本 skill の差分:
+候補が 0 件で INDEX が既に canonical 形なら、「変更なし」を stdout に出力して終了する。候補がある場合は `docs/harness/skills/shared/sync-pr-flow.md` の手順（既存 open PR ガード → `origin/main` 基点のブランチ → commit → 通常 PR）に従う。本 skill の差分:
 
 | 項目 | 値 |
 |------|-----|
@@ -63,29 +55,20 @@ ADR コーパス（`docs/adr/` の本体・`INDEX.md`）が時間とともに肥
 | commit | `refactor(adr): adr-compress (YYYY-MM-DD)` |
 | PR title | `refactor(adr): adr-compress (YYYY-MM-DD)` |
 | PR ラベル | `harness:harness` |
-| PR body | 下記 Report shape |
+| PR body | `docs/harness/skills/adr-compress/pr-output-format.md` の構成（標準 5 節 + 本 skill の区分） |
 
-1 回の実行で **1 PR**（全カテゴリの候補を 1 PR にまとめる）。既存 open PR ガード発火時は
-新規 PR を作らず既存 PR の番号 / URL を報告して終了する（自動 bypass は設けない。人間が既存 PR を
-merge / close するまで新規 PR は作らない）。
+1 回の実行で 1 PR にまとめる（全カテゴリの候補を同じ PR に入れる）。既存 open PR ガードが発火したときは、新規 PR を作らず既存 PR の番号と URL を報告して終了する。人間が既存 PR をマージまたはクローズするまで、新規 PR は作らない。
 
 ## Validation
 
-docs のみの変更のため `pnpm run format:check`
-（`docs/harness/skills/shared/verification-gates.md` の「docs のみ変更」組合せ）。
-加えて PR 作成前に、IV（lossy）で削除した詳細が git 履歴で追える旨を ADR 本文と PR body の
-双方に明記していることを確認する。
+- `gate:docs`（`docs/harness/skills/shared/verification-gates.md`）を実行する。
+- IV を実行した場合は、要約した ADR ごとに `node tests/harness/check-adr-compression-lossless.mjs <before> <after>` が通ることを確認する。通らない ADR は要約を破棄して PR 本文に記録する（手順は compression-rules.md のカテゴリ IV）。
+- 受入条件は pr-output-format.md のチェックリストを満たす。
 
 ## Report shape
 
-PR body の構成:
-
-1. **カテゴリ別件数**: I / II / III / IV の実行件数
-2. **変更一覧**: 対象 ADR / カテゴリ / 変更内容（stub 化・統合・要約）
-3. **INDEX drift**: 実ファイルと INDEX 行の不整合（file あり / 行なし、行あり / file なし）の一覧
-4. **スキップした候補**: 抑制条件・ガードレール別の理由内訳
+PR body の構成は pr-output-format.md を正本とする。カテゴリ別件数・変更一覧・INDEX drift・Decision 保全の証拠・スキップした候補・受入条件の順に書く。
 
 ## Language
 
-報告・PR body・Issue 本文は project language に従う（正本: `docs/harness/OPERATING_MODEL.md` の言語ポリシー節）。ADR の id・Status キーワード（Accepted / Proposed / Superseded /
-Deprecated）は原文のまま保持する。
+報告・PR body・Issue 本文は project language に従う（正本: `docs/harness/OPERATING_MODEL.md` の言語ポリシー節）。ADR の id と Status キーワード（Accepted / Proposed / Superseded / Deprecated）は原文のまま保つ。

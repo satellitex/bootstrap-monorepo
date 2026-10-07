@@ -40,5 +40,5 @@
 
 ## INDEX の更新
 
-- 要件の追加・改訂・削除時は [`INDEX.md`](./INDEX.md) を同一 PR で更新する（人間が行う）。
+- 要件の追加・改訂・削除時は [`INDEX.md`](./INDEX.md) を同一 PR で更新する。更新主体は人間であり、実装 PR は本 INDEX を変更しない（更新主体の割当 → `docs/harness/skills/shared/index-writer-policy.md`）。
 - 削除・見送りにした要件は INDEX の「Deleted / Scope Out」節に ID・扱い・理由を残し、同じ議論の繰り返しを防ぐ。

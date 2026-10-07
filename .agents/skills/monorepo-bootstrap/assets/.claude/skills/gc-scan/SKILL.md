@@ -1,6 +1,6 @@
 ---
 name: gc-scan
-description: ハーネス文書全体（.claude/agents・.claude/skills・docs/harness/skills）を gc-agent でスキャンし、サイズ超過・Cross-File 重複・孤児/デッド参照の削除修正案をすべて 1 PR にまとめて提案する
+description: ハーネス文書（agent 定義・skill 正本・adapter）に Cross-File 重複や孤児が溜まっている疑いがある場合、または routine の定期実行時に使う。重複の抽出と孤児の削除案を 1 PR にまとめて提案する。サイズや 1:1 対応は CI の機械検査、docs の鮮度は /docs-sync の担当
 ---
 
 # /gc-scan

@@ -43,7 +43,7 @@
 
 ### `docs.md` から流用する要素
 
-- **4 層モデル**（現状層 / 決定層 / 調査層 / 実装計画層）
+- **4 層モデル**（現状層 / 決定層 / 調査層 / 実装記録層）
 - **現状層の 3 原則**:
   - **原則 1: No-Time** — 過去形・経緯・将来形・時系列マーカーの禁止
   - **原則 2: No-Ticket-In-Prose** — Issue / PR 番号を散文中に埋め込まない
@@ -133,7 +133,7 @@ import { parse } from "lib-b";
 
 | カテゴリ | regex 風パターン |
 |---------|----------------|
-| 内部ドキュメントパス | `docs/notes/`, `docs/adr/`, `docs/requirements/`, `docs/issues/`, `docs/customer/`, `docs/runbooks/` |
+| 内部ドキュメントパス | `docs/notes/`, `docs/adr/`, `docs/requirements/`, `docs/customer/`, `docs/runbooks/` |
 | 内部要件 ID | `BR-\d+(-FIX)?`, `IF-\d+(-FIX)?`, `DATA-\d+(-FIX)?`, `FR-\d+(-FIX)?`, `NFR-\d+(-FIX)?`, `SEC-\d+(-FIX)?` |
 | User Story / Acceptance Criteria ID | `US-\d+(-\d+)?`, `AC-\d+(-[\d*]+)*(-FIX)?`（例: `US-001`, `AC-001-01`） |
 | ADR ファイル名 | `ADR-\d{8}_[a-z0-9-]+` |
@@ -211,8 +211,9 @@ export async function createRecord(...) { ... }
 - [ ] 「X は不採用」「Y ではなく Z」と書いていないか？（採用事実のみ書く）
 - [ ] `doc-style` の場合、内部 ADR / 要件 ID / US・AC ID / 内部パス / Issue 番号を含んでいないか？
 - [ ] `doc-style` の場合、利用者がコメントだけで動作・入出力・制約を理解できるか？
+- [ ] 識別子・数値パラメータ・設定キー・パスを名指しするコメントは、同じファイル内の実装と一致しているか？（→ [`docs.md`](docs.md) の「実装整合の原則」）
 
 ## 参考
 
-- [`docs.md`](docs.md) — 検査 1 の SSOT（4 層モデル、3 原則、signal lexicon、退避先判定）
+- [`docs.md`](docs.md) — 検査 1 の SSOT（4 層モデル、3 原則、signal lexicon、退避先判定）と、コメントと実装の食い違いの扱い（実装整合の原則）
 - `docs/harness/skills/code-sync.md` — 本ガイドを検出基準として実行する skill の操作仕様

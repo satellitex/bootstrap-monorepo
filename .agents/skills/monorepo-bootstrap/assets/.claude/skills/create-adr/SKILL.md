@@ -1,6 +1,6 @@
 ---
 name: create-adr
-description: 設計判断や問題発生時に ADR (Architecture Decision Record) を docs/adr/ へ構造的に記録する
+description: 設計判断（複数案からの選択・既存方針の置換や撤回・レビュー指摘による設計変更）が発生した場合に使う。ADR を起票し、既存 ADR を置き換えるときは元 ADR の Status も同一 PR で更新する。Status の追従と圧縮は /adr-compress の担当
 ---
 
 # /create-adr

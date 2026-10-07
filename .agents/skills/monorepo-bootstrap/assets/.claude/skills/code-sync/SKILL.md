@@ -1,6 +1,6 @@
 ---
 name: code-sync
-description: 対象拡張子のソースコメントを origin/main から抽出し、「現状の事実のみ」3 原則違反と doc-style コメント内の内部参照を検出して修正 PR にまとめる
+description: ソースコメントが経緯・チケット番号の混入や実装との食い違いで現状と合っていない疑いがある場合、または routine の定期実行時に使う。コメントだけの編集であることを検証したうえで修正 PR にまとめる。Markdown は /docs-sync、README は /readme-sync の担当
 ---
 
 # /code-sync

@@ -3,7 +3,7 @@
 > **opt-in:renovate** — 本 skill は Renovate を導入済みのリポジトリでのみ採用する。前提:
 > `renovate.json`（または同等の設定ファイル）が存在し、`LGTM` ラベルが repo に作成済みであること。
 
-この文書は `/renovate-sync` の手順正本である。`renovate.json` と `origin/main` 上の依存 pin 箇所を突き合わせて 3 検査を実施し、違反があれば `renovate.json` の修正 PR を作り、open Renovate PR の `LGTM` ラベルを検査結果に同期する。依存の実際の update（Renovate 本体の仕事）・依存定義ファイル自体の編集は扱わない。
+この文書は `/renovate-sync` の手順正本である。`renovate.json` と `origin/main` 上の依存 pin 箇所を突き合わせて 3 検査を実施し、違反があれば `renovate.json` の修正 PR（validator と設定の意味整合の検証つき）を作り、open Renovate PR の `LGTM` ラベルを検査結果に同期する。依存の実際の update（Renovate 本体の仕事）・依存定義ファイル自体の編集は扱わない。
 
 ## Purpose
 
@@ -17,7 +17,7 @@ Renovate が依存 pin 箇所を漏れなく検知できているか、複数 ma
 ## Compared against
 
 - `renovate.json`（または `.github/renovate.json` / `.renovaterc.json` / `.renovaterc`）の
-  `packageRules` / `enabledManagers` / `includePaths` / `customManagers`
+  `packageRules` / `enabledManagers` / `includePaths` / `ignorePaths` / `customManagers`
 - open Renovate PR の changed files
 
 ## Scope
@@ -82,9 +82,30 @@ PR が更新しようとしている依存名を pin する**全ファイル**�
    （`matchPackageNames` / `matchDepNames` での指定）が無ければ「未対策」として記録する
 
 代表例: `pnpm` は `.mise.toml`（mise manager）と root `package.json` の `packageManager`
-（npm manager）の双方で pin される。`matchDepNames` に `["pnpm"]` を入れて同一 PR に束ねる。
-`package.json` の `engines.node` は constraint であり manager 扱いが Renovate のバージョンに
+（npm manager）の双方で pin される。1 つの rule に `matchPackageNames` と `matchDepNames` を併記して
+同一 PR に束ねる。`package.json` の `engines.node` は constraint であり manager 扱いが Renovate のバージョンに
 依存するため、判定保留にして PR body で言及する。
+
+rule を書くときの作法（確認時点の Renovate の挙動であり、バージョンで変わりうる。根拠が必要な点は公式 docs
+`docs.renovatebot.com` を一次情報として確認する）:
+
+- 1 つの rule に書いた複数の matcher は AND で結合される。manager ごとの depName の表記差
+  （接頭辞付きなど）は、`matchPackageNames` と `matchDepNames` の併記で吸収する。
+- `matchPackageNames` は packageName だけを見て、depName にはフォールバックしない。customManager が
+  `packageNameTemplate` で名前を書き換える場合は、書き換えたあとの名前を `matchPackageNames` に含める。
+  含めないと、その rule は一度も適用されない（dead rule）。
+- 脆弱性アラート由来の PR は manager ごとに別の `branchTopic` を要求し、`groupName` による統合を無効にしうる。
+  束ねる rule では `branchTopic` を `groupSlug` に固定する。
+
+```json
+{
+  "description": "pnpm を mise と package.json の packageManager で同一 PR に束ねる",
+  "matchPackageNames": ["pnpm"],
+  "matchDepNames": ["pnpm"],
+  "groupName": "pnpm",
+  "branchTopic": "{{{groupSlug}}}"
+}
+```
 
 ### 検査 3: 未管理 pin 検出
 
@@ -92,16 +113,19 @@ Renovate が現状見ていない pin 箇所（manager 無効・対象 path 範�
 炙り出す。インベントリの「未管理 pin 候補」、`enabledManagers` / `ignorePaths` で除外されている
 manager / path、標準 manager で拾えないリテラルが対象。
 
+`packageRules` の `enabled: false` で意図して更新を止めた pin は、未管理 pin ではなくクリア扱いにする。
+`enabled: false` はそのまま残し（理由は rule の `description` に 1 文で書く）、毎回の PR で外さない。
+
 ## Auto-edit policy
 
 - 編集対象は **`renovate.json` のみ**。実コード・依存定義ファイル（`package.json`・`.mise.toml`・
   workflow 等）は編集しない。
 - 検査 1〜3 の問題はすべて `renovate.json` の編集で吸収する:
-  - 検査 1: 漏れの原因別に吸収（`ignorePaths` 解除 / 検査 2 のグルーピングへ統合 / 検査 3 の
-    `customManagers` へ統合）
-  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchDepNames` + `groupName`）を追加する。
-    既存 rule とのコンフリクトを避けるため、より具体的な rule として配列末尾に置く
-    （Renovate は配列順に評価し、後勝ち）
+  - 検査 1: 漏れの原因別に吸収（`ignorePaths` の除外を狭める / 検査 2 のグルーピングへ統合 / 検査 3 の
+    `customManagers` へ統合）。除外の解除は、除外パターンを狭めて表す。先頭 `!` の否定パターンで表さない
+  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchPackageNames` + `matchDepNames` + `groupName` +
+    `branchTopic`。書き方は検査 2 の作法）を追加する。既存 rule とのコンフリクトを避けるため、
+    より具体的な rule として配列末尾に置く（Renovate は配列順に評価し、後勝ち）
   - 検査 3: ファイル種・pin 形式ごとに `customManagers`（regex manager）エントリを追加する。
     追加後は検査 2 のグルーピング対象として再評価する
 - **LGTM ラベル同期（Step 4）**: 各 open Renovate PR について、検査 1〜3 すべてクリアなら
@@ -123,7 +147,7 @@ manager / path、標準 manager で拾えないリテラルが対象。
 | git add | `renovate.json` のみ |
 | commit | `chore(renovate): renovate.json sync (YYYY-MM-DD)`（body に検査結果サマリ） |
 | PR title | `chore(renovate): renovate.json sync (YYYY-MM-DD)` |
-| PR body | 下記 Report shape |
+| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
 
 PR は必ず `renovate.json` の実変更を含む（報告のみの PR は作らない）。
 
@@ -133,27 +157,40 @@ PR は必ず `renovate.json` の実変更を含む（報告のみの PR は作�
 実行する。console 出力だけだと自動実行時に取りこぼされるため、チーム通知チャネルへ投稿して人間判断を
 仰ぎ、skill は**失敗扱い**で終了する（PR は作成しない）。
 
+- 通知の区分: エスカレーション通知（`docs/harness/skills/shared/notification-contract.md`）。
 - 通知先: `TODO(取得方法: チーム通知チャネル〔chat の webhook 等〕を用意し、URL を環境変数
-  PROJ_RENOVATE_SYNC_ESCALATION_WEBHOOK で注入する。実値はコミットしない)`。未設定の場合は
-  通知をスキップし、その旨を明示して失敗扱いで終了する。
+  PROJ_RENOVATE_SYNC_ESCALATION_WEBHOOK で注入する。実値はコミットしない)`。本 skill 固有のこの変数を
+  最優先で使い、解決順は同契約に従う。未設定の場合は通知をスキップし、その旨を明示して失敗扱いで終了する。
 - メッセージには検査 1〜3 の件数、吸収不能な違反の一覧（依存名 / 理由）、推奨する次の人間判断
-  ステップを含める。
+  ステップを含める。資格情報の扱い（webhook URL を出力に含めない）は同契約に従う。
 - このステップは **open PR ガードが発火して PR 作成が見送られた場合も実行する**（ガードが止めるのは
   PR 作成までで、エスカレーションは止めない）。
 
 ## Validation
 
-編集後、必ず `npx --yes --package=renovate -- renovate-config-validator renovate.json` で検証する。
-`Config validated successfully` が出ない限り commit しない。加えて設定ファイルのみの変更のため
-`pnpm run format:check`（`docs/harness/skills/shared/verification-gates.md`）。
+編集後、次の順で検証する。いずれかが通らない限り commit しない。
+
+1. **validator**: `npx --yes --package=renovate -- renovate-config-validator renovate.json` で
+   `Config validated successfully` を確認する。validator はスキーマへの適合だけを見るため、
+   構文として正しく意味として壊れた設定も通す。次の意味整合を続けて確認する。
+2. **意味整合（必須）**: 挙動は確認時点の Renovate のものであり、バージョンで変わりうる。根拠が必要な点は
+   公式 docs `docs.renovatebot.com` を一次情報として確認する。
+   1. `ignorePaths` に先頭 `!` の要素がない。否定パターンは意図どおりに動かず、1 行で全 manager の検知を止めうる。
+      次の確認を通す: `jq -e '[.ignorePaths[]? | select(startswith("!"))] | length == 0' renovate.json`
+   2. `ignorePaths` が、依存 pin を持つ代表的なファイル（`package.json`・`.mise.toml`・workflow 等、
+      Scope のインベントリに載るもの）を除外していない。意図して置かれた既存の除外は維持されている。
+      glob の判定はインベントリのパスに対して手元で評価し、評価できない形のパターンは除外とみなして不合格にする。
+   3. cross-manager の `packageRules` が、customManager の書き換え後の名前を `matchPackageNames` に含み、
+      `branchTopic` を `groupSlug` に固定している（検査 2 の作法）。
+3. **検証ゲート**: `*.md` 以外の設定ファイルの変更のため、`gate:commit`（`docs/harness/skills/shared/verification-gates.md`）を実行する。
 
 ## Report shape
 
-PR body の構成:
+PR body は標準 5 節に加えて、次の区分で構成する:
 
 1. **Summary**: 問題件数と修正概要
 2. **検査 1〜3 の各結果**: 該当箇所と加えた変更
-3. **Validation**: validator の実行結果
+3. **Validation**: validator と意味整合の実行結果
 4. **Test plan**: 次回 Renovate dashboard 更新時の検証項目
 
 ## Language
@@ -164,5 +201,5 @@ PR body の構成:
 
 - [ ] open Renovate PR を LGTM 有無に関わらず全件検査した
 - [ ] 各 PR の `LGTM` を検査結果に同期した（クリア → 付与 / stale → 剥がし）
-- [ ] 吸収可能な違反はすべて `renovate.json` の変更に反映し、validator が成功した
+- [ ] 吸収可能な違反はすべて `renovate.json` の変更に反映し、validator と意味整合の確認が成功した
 - [ ] 吸収不能な違反があった場合は人間へエスカレーションし PR を作成していない

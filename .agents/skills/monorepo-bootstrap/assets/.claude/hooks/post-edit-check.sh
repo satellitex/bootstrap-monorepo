@@ -7,6 +7,10 @@ set -euo pipefail
 # TypeScript/JavaScript: eslint + typecheck (tsc --noEmit) + test (pnpm test)
 #
 # 各チェックはスクリプト内タイムアウト付きで実行する（既定秒数は timeout_* の定義箇所を参照）。
+#
+# 入力の file_path は絶対パス・相対パスのどちらでもよい。作業ツリーのルートは hook の cwd
+# ではなく入力ファイル側から決め、以降の検査はそのルートを cwd にして行う。ルート外のファイルは
+# 検査せず通過する（解決の規則は ../bin/hook-utils.sh の locate_repo_path）。
 
 ## --- 共通ユーティリティ読み込み ---
 HOOK_UTILS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../bin/hook-utils.sh"
@@ -46,7 +50,22 @@ timeout_typecheck="${PROJ_POST_EDIT_TIMEOUT_SEC:-30}"
 timeout_test="${PROJ_POST_EDIT_TIMEOUT_SEC:-60}"
 
 input="$(cat)"
-file="$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<< "$input")"
+file_raw="$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<< "$input")"
+
+# 入力ファイルが属する作業ツリーのルートと、ルート基準の相対パスを決める。
+# 絶対パスのままだと、パッケージ判定（apps/<name> / packages/<name>）が一致せず
+# typecheck と package 単位の test が無言で skip される。
+locate_repo_path "$file_raw"
+file="$REPO_PATH_REL"
+if [ -z "$file" ]; then
+  exit 0
+fi
+# hook の cwd と作業ツリーが一致しない起動（別 worktree からの起動など）でも、
+# 編集したファイルの作業ツリーで検査する（`cd` が mise の chpwd 関数に差し替えられても
+# 影響を受けないよう builtin を使う）。
+if [ "$(pwd -P)" != "$REPO_PATH_ROOT" ]; then
+  builtin cd "$REPO_PATH_ROOT"
+fi
 
 diag=""
 
@@ -64,10 +83,7 @@ case "$file" in
 
     # test (パッケージ単位)
     test_out=""
-    pkg_dir=""
-    if [[ "$file" =~ ^(apps/[^/]+|packages/[^/]+) ]]; then
-      pkg_dir="${BASH_REMATCH[1]}"
-    fi
+    pkg_dir="$(resolve_package_dir "$file")"
     if [ -n "$pkg_dir" ] && has_test_script "$pkg_dir"; then
       pkg_name="$(resolve_package "$file")"
       if [ -n "$pkg_name" ]; then
