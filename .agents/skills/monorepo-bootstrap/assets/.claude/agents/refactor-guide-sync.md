@@ -30,13 +30,13 @@ refactorer がコード課題を検出するのに対し、本 agent はガイ�
 
 ## インプット
 
-| インプット                          | 役割                                                                              |
-| ----------------------------------- | --------------------------------------------------------------------------------- |
-| `docs/styles/coding_guide/INDEX.md` | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象                                |
-| `docs/styles/coding_guide/**/*.md`  | Glob で全件取得（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
-| `docs/styles/refactoring_guide.md`  | 突合の相手。検出基準テーブル・承認済み観点を抽出する                              |
+| インプット                          | 役割                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `docs/styles/coding_guide/INDEX.md` | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象                                                   |
+| `docs/styles/coding_guide/**/*.md`  | `origin/main` の tree から全件列挙（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
+| `docs/styles/refactoring_guide.md`  | 突合の相手。検出基準テーブル・承認済み観点を抽出する                                                 |
 
-比較・更新の基準は `origin/main` に固定する（現在の HEAD が作業ブランチでも結果がぶれないため）。
+開始時に `docs/harness/skills/shared/sync-prelude.md` の手順で `git fetch origin main` を行い、比較・更新の基準を `origin/main` に固定する（現在の HEAD が作業ブランチでも結果がぶれないため）。列挙は `git ls-tree -r --name-only origin/main`、読み出しは `git show origin/main:<path>` で行い、HEAD と作業ツリーは参照しない。
 
 ## プロセス
 
@@ -44,7 +44,7 @@ refactorer がコード課題を検出するのに対し、本 agent はガイ�
 
 ### Stage 1: 正本（coding_guide）インベントリ構築
 
-`docs/styles/coding_guide/**/*.md` を全件列挙し、各ガイドを 2 モード（原則 ID 型 / ルール散文型）で解析して `{ID or 見出し, タイトル, ガイドパス}` のインベントリを作る。どのガイドがどちらのモードかは、実行のたびに内容を読んで確認する。
+`origin/main` の tree から `docs/styles/coding_guide/**/*.md` を全件列挙し、各ガイドを 2 モード（原則 ID 型 / ルール散文型）で解析して `{ID or 見出し, タイトル, ガイドパス}` のインベントリを作る。どのガイドがどちらのモードかは、実行のたびに内容を読んで確認する。
 
 ### Stage 2: ガイド側（refactoring_guide）インベントリ構築
 
@@ -81,7 +81,7 @@ PR body の構成は `.claude/agents/references/refactor-guide-sync-output.md` �
 
 PR 作成前または「差分なし」終了前に以下を確認する:
 
-- [ ] `Glob docs/styles/coding_guide/**/*.md` で全規約を列挙し、INDEX 未掲載・サブディレクトリも含めて全件読んだ
+- [ ] `git fetch origin main` 後に `git ls-tree -r --name-only origin/main` で `docs/styles/coding_guide/**/*.md` の全規約を列挙し、INDEX 未掲載・サブディレクトリも含めて `git show origin/main:<path>` で全件読んだ
 - [ ] 各ガイドを原則 ID 型 / ルール散文型の 2 モードで突合し、規約 ID/見出し ↔ リファクタガイド参照を対応付けた
 - [ ] 追加候補にはすべて規約側の根拠（ガイドパス + 原則 ID または見出し）を付け、該当カテゴリ表に行を追記した
 - [ ] 削除候補は規約側で該当原則が完全に消えたことを確認し、リネーム/更新候補は削除ではなく ID 更新として扱った

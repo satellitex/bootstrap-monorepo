@@ -169,7 +169,7 @@ They should not include:
 - duplicated workflow bodies
 - product-specific research summaries
 
-Claude の入口は 1 か所に置く。新規 bootstrap ではルートの `CLAUDE.md` を使う。既存 repo が `.claude/CLAUDE.md` を使っている場合は、そこへ pointer 節を追記し、ルートに重複して作らない（`harness-adopt` の入口の置き場の規則）。
+Claude の入口は 1 か所に置く。新規 bootstrap ではルートの `CLAUDE.md` を使う。既存 repo が `.claude/CLAUDE.md` を使っている場合は、そこへ pointer 節を追記し、ルートに重複して作らない（`harness-adopt` の入口の置き場の規則）。導入前から両方にある repo では、両方へ同じ pointer 節を追記し、統合は別 Issue にする。
 既存の adapter を持つ導入先では、既存の記述を優先する。
 
 Claude slash commands or subagents may exist, but they should point to shared docs instead of becoming the only source of truth.

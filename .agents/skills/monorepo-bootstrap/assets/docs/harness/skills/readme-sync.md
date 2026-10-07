@@ -20,7 +20,7 @@ README が言及するコマンド・構成・ファイルが実体と食い違�
 ## Scope
 
 - INCLUDE: リポジトリ内の全 README（root / `apps/*` / `packages/*` / `docs/` 配下等）
-- EXCLUDE: `node_modules/`、ビルド成果物ディレクトリ（`dist/` 等）、`.git/`、`.claude/worktrees/`
+- EXCLUDE: `node_modules/`、ビルド成果物ディレクトリ（`dist/` 等）、`.git/`、`.claude/worktrees/`、人間が管理する区画（`docs/requirements/**` など。→ `docs/README.md`「運用ルール」）
 
 対象ファイルの列挙は `origin/main` の tree に対して行う
 （`docs/harness/skills/shared/sync-prelude.md` の規約）。

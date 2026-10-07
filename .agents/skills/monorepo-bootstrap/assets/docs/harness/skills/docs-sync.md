@@ -47,6 +47,7 @@
 | `docs/harness/*.md`（直下の運用正本）                                                                | `docs/postmortems/**`（opt-in 区画採用時。インシデント記録は時系列の経緯を書く場）                                                                                                               |
 | `.claude/rules/*.md`                                                                                 | `docs/requirements/**` / `docs/customer/**`（AI 編集対象外の正本）                                                                                                                               |
 | リポジトリ root 直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離）                                                                                                                                                  |
+|                                                                                                      | `docs/product/PUBLIC_*.md`（`/public-arch-sync` 専管の射影物。opt-in 区画採用時）                                                                                                                |
 |                                                                                                      | `docs/styles/coding_guide/docs.md`（本 skill の SSOT 自身。違反例・lexicon を verbatim に含むため 3 原則 scan の対象外。リポジトリ内パスの実在検査は per-file 対象）                             |
 |                                                                                                      | `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**`（操作仕様文書。手順例の `#N` 等を含むため対象外。重複は `/gc-scan` 担当、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
 |                                                                                                      | `node_modules/`、ビルド成果物、`.git/`、`.claude/worktrees/`                                                                                                                                     |
@@ -155,7 +156,7 @@ EXCLUDE スコープには 3 原則違反の編集を行わない（per-file 対
 | 変更なしメッセージ | `[docs-sync] 変更なし。現状層ドキュメントは origin/main の現状と整合しています。`                               |
 | ブランチ           | `agent/docs-sync-{YYYY-MM-DD}`                                                                                  |
 | git add            | 更新した文書ファイル（INCLUDE スコープ・per-file 対象・`docs/runbooks/` 配下・INDEX 所管対象の `INDEX.md`）のみ |
-| commit             | `docs: sync current-state docs with current code (YYYY-MM-DD)`                                                  |
+| commit             | `docs: sync docs with current code (YYYY-MM-DD)`                                                                |
 | PR title           | `docs: docs-sync (YYYY-MM-DD)`                                                                                  |
 | PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の 6 区分を加える                 |
 

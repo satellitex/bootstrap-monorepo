@@ -1,6 +1,6 @@
 ---
 name: multi-issue
-description: 複数（単一も可）の GitHub Issue を実装する場合に使う。Planner–Worker のエージェントスウォームで worktree 隔離の TDD 実装を並列に行い、Issue ごとに 1 本の PR を作成する。Issue の起票は /create-issue、PR の LGTM までの反復対応は /review-cycle の担当
+description: 新機能・仕様変更・ハーネス整備など複数ファイルにまたがる実装 Issue（複数・単一とも可。バグ修正・リファクタ・小規模変更は対象外）を実装する場合に使う。Planner–Worker のエージェントスウォームで worktree 隔離の TDD 実装を並列に行い、Issue ごとに 1 本の PR を作成する。Issue の起票は /create-issue、PR の LGTM までの反復対応は /review-cycle の担当
 ---
 
 # /multi-issue

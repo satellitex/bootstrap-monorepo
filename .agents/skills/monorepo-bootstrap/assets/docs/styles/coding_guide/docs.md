@@ -27,6 +27,7 @@ per-file 鮮度検証（実コード・設定との突合）の対象ファイ�
 | `docs/postmortems/**`（opt-in 区画採用時）                           | インシデント記録。時系列の経緯を書く場であり、責務が異なる                                                                                                         |
 | `docs/customer/**`（opt-in 区画採用時）                              | 顧客資料。AI 自動編集の対象外                                                                                                                                      |
 | `**/README.md`                                                       | `/readme-sync` が担当する責務領域。docs-sync は重複を避けて対象外                                                                                                  |
+| `docs/product/PUBLIC_*.md`（opt-in 区画採用時）                      | `/public-arch-sync` が専管する公開射影物。直接編集せず内部正本から射影で更新するため、docs-sync は重複を避けて対象外                                               |
 | `docs/styles/coding_guide/docs.md`                                   | 本ガイド自身（違反例・lexicon を verbatim に含むため自己検査の対象外）                                                                                             |
 | `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**` | skill / agent の操作仕様文書（手順文中の「代わりに」等 instructional な語彙を含むため対象外。重複は `/gc-scan`、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
 

@@ -43,7 +43,7 @@ Planner は Issue ごとに任意の凍結パスを計画で指定できる（�
   ├── Step 2: 方針確定・提示（承認ゲートなし・待たずに続行）
   ├── Step 3: 実装ループ（wave 単位: worktree → worker → 検収）
   ├── Step 4: 仕上げ（Issue ごと: /simplify → 独立 review pass → Architecture Sync → 衝突検査 → PR 作成）
-  └── Step 5: /review-cycle（open PR 群へ round-robin）→ 完了報告
+  └── Step 5: /review-cycle（対話 run のみ。open PR 群へ round-robin）→ 完了報告
 ```
 
 ## Step 0: セットアップ
@@ -132,7 +132,7 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
 
 ## Step 5: /review-cycle と完了処理
 
-1. PR は作成され次第 `/review-cycle`（`docs/harness/skills/review-cycle.md`）の対象に加える。open PR が複数ある間は 1 PR の LGTM まで直列で回さず、各イテレーション（CI 待機 → 判定表 → 対応）を open PR 群へ round-robin で適用する（1 PR の CI・レビュー待ちの間に他 PR を先へ進める）。
+1. PR は作成され次第 `/review-cycle`（`docs/harness/skills/review-cycle.md`）の対象に加える。open PR が複数ある間は 1 PR の LGTM まで直列で回さず、各イテレーション（CI 待機 → 判定表 → 対応）を open PR 群へ round-robin で適用する（1 PR の CI・レビュー待ちの間に他 PR を先へ進める）。無人 run では `/review-cycle` を起動せず、open PR の一覧を完了報告に載せて返る（扱いは実行モードによる → `docs/harness/skills/shared/unattended-contract.md`）。
 2. 完了報告: Issue → PR 対応表 / 対象外とした Issue と理由 / 保留した PR と衝突予測の相手 / deferred とした後続 Issue / 起票した派生 Issue / worker・sub-planner・Reviewer の起動回数と差し戻し回数。
 3. マージ済み Issue の worktree を `git worktree remove` で後片付けする（未マージ分は残す）。
 
@@ -212,6 +212,6 @@ worker の最終報告は、Planner が PR 本文の標準節に取り込む（�
 - PR の base は常に既定ブランチ。直列の後続は前 PR のマージ後に `origin/main` 起点で着手する
 - 衝突回避は 2 段で行う: 計画時の対象ファイル突合（Step 1.3）と、PR を open する前の衝突検査（Step 4.4）
 - worker は push・PR 作成・Issue 操作をしない: `/simplify` → 独立 review pass が PR 前に入る規約のため、PR 作成は仕上げ完了後に Planner が行う
-- Planner は実装しない: 修正が必要なら worker への差し戻しが原則。例外は Step 4 の `/simplify` による振る舞い不変の簡素化のみ。レビュー指摘の修正は Reviewer、構造マップの同期は architecture-sync が subagent として行う
+- Planner は実装しない: 修正が必要なら worker への差し戻しが原則。例外は Step 4 の `/simplify` による振る舞い不変の簡素化、3.2 の書き込み代行、3.3 の INDEX.md の hunk の巻き戻しに限る。レビュー指摘の修正は Reviewer、構造マップの同期は architecture-sync が subagent として行う
 - 単発の Read / Grep は Planner が直接行う。subagent への委譲は、並列実行・隔離コンテキスト・独立したワークストリームが必要な場合に使う
 - 受入条件が実装時に不可能・陳腐化と判明した場合は、無理に満たさず、根拠を Issue にコメントして記録し、人間判断（merge）に委ねる
