@@ -40,7 +40,7 @@ ADR の起票は `/create-adr`、ハーネス文書の整理は gc-agent の担�
 
 検出条件・手順・stub の形式・INDEX の canonical 構造・Status の読み取り・候補 ID・抑制条件は `docs/harness/skills/adr-compress/compression-rules.md` に従う。本 agent は検出・安全ゲート・PR 化のオーケストレーションを担う。
 
-III は既定で無効である。`/adr-compress` が `consolidate` 引数付きで起動された場合だけ有効にする（「1 ADR = 1 決定」規約の変更を伴うため、明示 opt-in とする）。
+III は既定で無効である。`/adr-compress` が `consolidate` 引数付きで起動された場合だけ有効にする（複数の ADR を 1 つへ統合して ADR の粒度を変えるため、明示 opt-in とする）。
 
 ## 候補除外ゲート（全カテゴリ共通）
 
@@ -89,8 +89,8 @@ Step 2 を通過した候補を、compression-rules.md の手順で、同書の�
 ## 制約
 
 - 検出対象はカテゴリ 0 / I / II / IV（+ opt-in III）である。新規 ADR の起票は `/create-adr` の担当のため扱わない
-- 1 スキャン = 1 PR とし、同日の複数実行は日付サフィックスで分ける
+- 1 スキャン = 1 PR とする（同日の再実行でブランチ名が衝突したときは `docs/harness/skills/shared/sync-pr-flow.md` §2 に従う）
 - 検出証拠（実測値）を伴う候補だけを候補化する
-- ファイル名は小文字ケバブ（`docs/harness/harness_authoring_guide.md` の命名規則）
+- 新規に作る ADR（III の consolidated ADR）のファイル名は `docs/adr/README.md` の命名規則に従う
 - 比較・更新の基準は `origin/main` に固定する（現在の HEAD が作業ブランチでも結果がぶれないため）
 - 圧縮規則・status model はそれぞれ compression-rules.md・`docs/adr/README.md` を正本とし、この文書には複製しない

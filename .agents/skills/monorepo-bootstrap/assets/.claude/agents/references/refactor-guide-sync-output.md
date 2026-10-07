@@ -35,10 +35,7 @@ stdout には PR URL・スキップ内訳を出す。
 ### PR body テンプレート
 
 ```markdown
-## 概要
-
-`docs/styles/coding_guide/`（正本）と `refactoring_guide.md`（派生）のメタ整合性検証の結果、
-以下の追加・削除・根拠パス修正・リネーム更新を `refactoring_guide.md` の検出基準テーブルに反映する。
+（標準節: `docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」。「背景」には、`docs/styles/coding_guide/`（正本）と `refactoring_guide.md`（派生）のメタ整合性検証の結果、以下の追加・削除・根拠パス修正・リネーム更新を `refactoring_guide.md` の検出基準テーブルに反映することを書く）
 
 > 要レビュー: 追加観点の課題説明・優先度・検出方法はエージェントの提案値であり、
 > レビューで検証してほしい（coding_guide に情報が無いため推論で埋めている）。
@@ -74,10 +71,6 @@ stdout には PR URL・スキップ内訳を出す。
 - [ ] 削除した観点は規約側で原則が完全消失していることを確認済み（リネームは含まない）
 - [ ] 編集は `refactoring_guide.md` の検出基準テーブルのみ。`RG-NNNN` 承認済み観点セクション・コード・他規約は変更していない
 - [ ] 検証ゲート（`gate:docs`。定義 → `docs/harness/skills/shared/verification-gates.md`）が PASS
-
----
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 > 候補が無いセクションは PR body から省略してよい（該当 0 件のセクションを空表のまま残さない）。

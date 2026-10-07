@@ -65,7 +65,7 @@ main の最新内容を release へ反映する手順。release 反映 PR を作
 不変条件:
 
 - release へ直接 push しない。hotfix 用の別 PR も作らない。head は常に main とする（反映内容に余計な変更が混ざらないようにするため）。履歴の分岐からの復旧（下記）だけが例外。
-- マージ方式は merge commit のみとする。squash や rebase でマージすると release の履歴が main から分岐し、次回の反映 PR が conflict 状態になって、PR を契機に起動する CI が動かなくなる。リポジトリ全体の既定マージ方式が squash の場合も、反映 PR のマージでは merge commit を明示して選ぶ。ブランチ保護で release ブランチに限って許可マージ方式を merge commit のみに制限できる場合は、制限する。
+- マージ方式は merge commit のみとする。squash や rebase でマージすると release の履歴が main から分岐し、次回の反映 PR が conflict 状態になって、PR を契機に起動する CI が動かなくなる。リポジトリ全体の既定マージ方式が squash の場合も、反映 PR のマージでは merge commit を明示して選ぶ。リポジトリの ruleset（Require a pull request before merging ルール）で release ブランチに限って許可マージ方式を merge commit のみに制限できる場合は、制限する。
 - release 反映 PR は draft にしない。
 - 照会が失敗したら判定を続けず停止する（`docs/harness/skills/shared/gh-query-fail-closed.md`）。
 

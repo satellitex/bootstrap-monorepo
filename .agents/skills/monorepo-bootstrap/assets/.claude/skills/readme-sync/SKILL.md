@@ -1,6 +1,6 @@
 ---
 name: readme-sync
-description: README が origin/main の現状コードと食い違っている疑いがある場合、または routine の定期実行時に使う。README 側が古い食い違いだけを更新する PR にまとめ、実装側の疑いは編集せず PR 本文に記録する。docs 配下は /docs-sync、ソースコメントは /code-sync の担当
+description: README が origin/main の現状コードと食い違っている疑いがある場合、または routine の定期実行時に使う。README 側が古い食い違いだけを更新する PR にまとめ、実装側の疑いは編集せず PR 本文に記録する。README 以外の docs は /docs-sync、ソースコメントは /code-sync の担当
 ---
 
 # /readme-sync

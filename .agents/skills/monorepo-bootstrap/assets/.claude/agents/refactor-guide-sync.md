@@ -26,16 +26,15 @@ refactorer がコード課題を検出するのに対し、本 agent はガイ�
    → refactoring_guide.md を修正する 1 PR（追加・削除・根拠修正・リネーム更新） → [PR レビューで検証]
 ```
 
-本 agent は検出基準テーブル（`docs/styles/refactoring_guide.md` の `## 検出観点` 節。言語・パターン別に追加した表を含む）への追記・削除・修正を 1 PR で行い、承認は PR レビューが担う。`RG-NNNN` の「承認済み観点」セクションは別フロー（Issue → `refactor:approved` → refactorer 承認 → 追記）の管轄のため、本 agent は触れない。追記する追加観点の課題説明・優先度・検出方法は coding_guide に情報が無いためエージェント推論の提案値であり、PR レビューが検証ゲートになる。
+本 agent は検出基準テーブル（`docs/styles/refactoring_guide.md` の `## 検出観点` 節。言語・パターン別に追加した表を含む）への追記・削除・修正を 1 PR で行い、承認は PR レビューが担う。`RG-NNNN` の「承認済み観点」セクションは別フロー（Issue → `refactor:approved` ラベル（着手指示）→ 実装 PR での追記）の管轄のため、本 agent は触れない。追記する追加観点の課題説明・優先度・検出方法は coding_guide に情報が無いためエージェント推論の提案値であり、PR レビューが検証ゲートになる。
 
 ## インプット
 
-| インプット                                | 役割                                                                              |
-| ----------------------------------------- | --------------------------------------------------------------------------------- |
-| `docs/styles/coding_guide/INDEX.md`       | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象                                |
-| `docs/styles/coding_guide/**/*.md`        | Glob で全件取得（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
-| `docs/styles/refactoring_guide.md`        | 突合の相手。検出基準テーブル・承認済み観点を抽出する                              |
-| `docs/harness/harness_authoring_guide.md` | 自己制約（本 agent md のサイズ上限・命名規則）                                    |
+| インプット                          | 役割                                                                              |
+| ----------------------------------- | --------------------------------------------------------------------------------- |
+| `docs/styles/coding_guide/INDEX.md` | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象                                |
+| `docs/styles/coding_guide/**/*.md`  | Glob で全件取得（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
+| `docs/styles/refactoring_guide.md`  | 突合の相手。検出基準テーブル・承認済み観点を抽出する                              |
 
 比較・更新の基準は `origin/main` に固定する（現在の HEAD が作業ブランチでも結果がぶれないため）。
 
@@ -88,4 +87,3 @@ PR 作成前または「差分なし」終了前に以下を確認する:
 - [ ] 削除候補は規約側で該当原則が完全に消えたことを確認し、リネーム/更新候補は削除ではなく ID 更新として扱った
 - [ ] 編集は `refactoring_guide.md` の検出基準テーブルだけで、`RG-NNNN` 承認済み観点セクションは触れていない
 - [ ] 候補があれば 1 PR で出力し（既存 open PR ガード発火時は PR を作らず既存 PR 番号・URL を報告）、0 件なら「差分なし」を stdout に出力して正常終了した
-- [ ] 本ファイルが `docs/harness/harness_authoring_guide.md` の agent md サイズ上限以内である

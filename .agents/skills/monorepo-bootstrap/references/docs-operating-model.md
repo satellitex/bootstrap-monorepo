@@ -144,7 +144,7 @@ Each sync workflow must define source of truth, compared-against target, include
 ## 8. Templates To Copy
 
 docs / harness / styles / CI のテンプレート資産一覧は `../assets/MANIFEST.md` が正本であり、この文書では一覧を重複管理しない。
-bootstrap 時は MANIFEST の「使い方」に従い、core 資産の copy → 明示 token 置換 → TODO の充填（MANIFEST「TODO 記法」に従う） → 不要な opt-in グループの除外 → PJ 固有化、の順で適用する。
+bootstrap 時は MANIFEST の「使い方」に従い、core 資産の copy → opt-in グループの採否（不採用グループは copy しない） → 明示 token 置換 → TODO の充填（MANIFEST「TODO 記法」に従う） → PJ 固有化、の順で適用する。
 `docs/README.md` のディレクトリマップは、opt-in と付記した行のうち不採用グループの行を削除し、表の直前の HTML コメントも削除する（所属グループは MANIFEST のグループ節で確認する）。
 
 MANIFEST に含まれない bootstrap 固有の成果物は、専用ファイルとして作らない。PR 本文の節に書き、確定した内容を既存の層へ移す。節構成と移管先文書のテンプレートは `references/bootstrap-artifacts.md` にある。
@@ -170,7 +170,7 @@ They should not include:
 - product-specific research summaries
 
 Claude の入口は 1 か所に置く。新規 bootstrap ではルートの `CLAUDE.md` を使う。既存 repo が `.claude/CLAUDE.md` を使っている場合は、そこへ pointer 節を追記し、ルートに重複して作らない（`harness-adopt` の入口の置き場の規則）。
-正本（OPERATING_MODEL）と矛盾した場合に正本を優先する旨の 1 文は、新規に作成する adapter にだけ置く。既存の adapter を持つ導入先では、既存の記述を優先する。
+既存の adapter を持つ導入先では、既存の記述を優先する。
 
 Claude slash commands or subagents may exist, but they should point to shared docs instead of becoming the only source of truth.
 

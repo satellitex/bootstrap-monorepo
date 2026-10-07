@@ -22,7 +22,7 @@ ADR コーパスの圧縮は adr-compactor、コード課題の検出は refacto
 - `.claude/agents/*.md` — 走査対象（重複・孤児判定）
 - `.claude/skills/*/SKILL.md` — 走査対象（薄い adapter）
 - `docs/harness/skills/**/*.md` — 走査対象（skill 手順の正本。重複・デッド参照）
-- `.claude/agents/references/` / `.claude/skills/*/references/` — 参照整合チェック用（孤児判定からは除外。詳細は検出手順の文書）
+- `.claude/agents/references/` / `.claude/skills/*/references/` — 参照整合チェック用（inbound 参照の無いファイルは孤児候補になる。profile などの除外は検出手順の文書に従う）
 - `docs/harness/harness_authoring_guide.md` — 分離原則・命名規則・サイズ上限の正本（抑制条件の算定と配置先の判断に使う）
 - `docs/harness/skills/gc-scan.md` — 起動エントリポイントと、Step 4 の PR 差分表・PR body 構成
 
@@ -78,11 +78,11 @@ Step 2 で抽出先を決めた後、変更を実行する前に次を全て確�
 
 ### Step 3: 配置先の決定（抽出先が references/ 系の場合）
 
-| 条件                                    | 配置先                                                                                               |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 特定の agent に紐づく宣言的内容         | `.claude/agents/references/`                                                                         |
-| 特定の skill に紐づく宣言的内容         | 当該正本 `docs/harness/skills/<name>.md` への追記。PJ 固有値なら `.claude/skills/<name>/references/` |
-| 複数の skill / agent が参照する汎用内容 | `docs/harness/skills/shared/`                                                                        |
+| 条件                                    | 配置先                                                                                                                                                                                        |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 特定の agent に紐づく宣言的内容         | `.claude/agents/references/`                                                                                                                                                                  |
+| 特定の skill に紐づく宣言的内容         | 当該正本 `docs/harness/skills/<name>.md` への追記。tool-neutral な詳細（判定表・出力形式など）なら `docs/harness/skills/<name>/<topic>.md`、PJ 固有値なら `.claude/skills/<name>/references/` |
+| 複数の skill / agent が参照する汎用内容 | `docs/harness/skills/shared/`                                                                                                                                                                 |
 
 既存ファイルと内容が重複しないか確認する。既存ファイルへの追記で解決できる場合は新規ファイルを作らない。
 
@@ -119,7 +119,7 @@ Step 2 で抽出先を決めた後、変更を実行する前に次を全て確�
 
 - B1 / B2 の孤児ファイルは削除（`git rm`）、B3 のデッド参照は修正（正しいパスへの書き換え、または参照行の削除）として、同じブランチに含める
 - Issue は起票せず、カテゴリ A と同じ 1 PR で提案する
-- 削除・修正の採否は PR レビューで人間が判断する。PR body の「要判断」節に候補 ID・検出証拠（inbound 参照の探索範囲を含む）・推奨アクションを列挙し、部分的に revert しやすいよう候補単位で説明する
+- 削除・修正の採否は PR レビューで人間が判断する。PR body の「削除・修正の提案（孤児）」区分に候補 ID・検出証拠（inbound 参照の探索範囲を含む）・推奨アクションを列挙し、部分的に revert しやすいよう候補単位で説明する
 
 #### 4-5. commit / push / PR 作成
 

@@ -52,6 +52,7 @@ PR 本文の標準節と、bootstrap / adopt の PR に加える 2 節（承認�
 - Core flows（最初に動くべき 1-3 個）:
 - Data and trust（中心 entity、機密性、保持期間、監査要件）:
 - Interfaces（Web / API / batch / webhook / SDK / external agent）:
+- Operations（deploy 頻度、監視、障害対応、権限管理）:
 - Constraints（技術 / provider / 組織 / cost / compliance / timeline）:
 - Non-goals:
 - Project language と、運用文書の言語の扱い（収録言語のまま導入するか、翻訳するか）:
@@ -300,10 +301,7 @@ workflow 一覧と project language の扱いは、ADR ではなく `docs/harnes
 
 ### 2.6 Project / ラベルの実値（`.claude/skills/create-issue/references/project-fields.md`）
 
-GitHub から検証した値だけを書く。検証前の値は TODO 記法（`TODO(取得方法: ...)`）のまま残す。
-
-| Constant | Value | How it was obtained | Last verified |
-|----------|-------|---------------------|---------------|
+GitHub から検証した値だけを、同ファイルの表の該当行に書く。検証前の値は TODO 記法（`TODO(取得方法: ...)`）のまま残す。
 
 規則:
 

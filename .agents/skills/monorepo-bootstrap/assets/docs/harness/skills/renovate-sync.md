@@ -26,7 +26,8 @@ Renovate が依存 pin 箇所を漏れなく検知できているか、複数 ma
 
 | Manager                    | 走査対象                                                                     | 抽出キー                                                       |
 | -------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `mise`                     | `.mise.toml`, `.tool-versions`                                               | `[tools]` 配下の各エントリ                                     |
+| `mise`                     | `.mise.toml`                                                                 | `[tools]` 配下の各エントリ                                     |
+| `asdf`                     | `.tool-versions`                                                             | 各行のツール名と先頭の version                                 |
 | `npm` (packageManager)     | root `package.json` の `"packageManager"`                                    | `pnpm@X.Y.Z` 形式から dep 名と version                         |
 | `npm` (deps)               | `**/package.json` の `dependencies` / `devDependencies` / `peerDependencies` | キーと version                                                 |
 | その他の manager（採用時） | プロジェクトで有効にした manager の対象ファイル                              | manager が抽出する pin                                         |
@@ -81,15 +82,16 @@ PR が更新しようとしている依存名を pin する**全ファイル**�
    （`matchPackageNames` / `matchDepNames` での指定）が無ければ「未対策」として記録する
 
 代表例: `pnpm` は `.mise.toml`（mise manager）と root `package.json` の `packageManager`
-（npm manager）の双方で pin される。1 つの rule に `matchPackageNames` と `matchDepNames` を併記して
+（npm manager）の双方で pin される。1 つの rule に `matchPackageNames` と `groupName` を書いて
 同一 PR に束ねる。`package.json` の `engines.node` は constraint であり manager 扱いが Renovate のバージョンに
 依存するため、判定保留にして PR body で言及する。
 
 rule を書くときの作法（確認時点の Renovate の挙動であり、バージョンで変わりうる。根拠が必要な点は公式 docs
 `docs.renovatebot.com` を一次情報として確認する）:
 
-- 1 つの rule に書いた複数の matcher は AND で結合される。manager ごとの depName の表記差
-  （接頭辞付きなど）は、`matchPackageNames` と `matchDepNames` の併記で吸収する。
+- 1 つの rule に書いた複数の matcher は AND で、1 つの matcher の配列に並べた値は OR で結合される。
+  `matchPackageNames` と `matchDepNames` を併記すると両方に一致する依存だけが対象になるため、manager ごとの
+  名前の表記差（接頭辞付きなど）は、1 つの matcher の配列に表記を並べて吸収する。
 - `matchPackageNames` は packageName だけを見て、depName にはフォールバックしない。customManager が
   `packageNameTemplate` で名前を書き換える場合は、書き換えたあとの名前を `matchPackageNames` に含める。
   含めないと、その rule は一度も適用されない（dead rule）。
@@ -100,7 +102,6 @@ rule を書くときの作法（確認時点の Renovate の挙動であり、�
 {
   "description": "pnpm を mise と package.json の packageManager で同一 PR に束ねる",
   "matchPackageNames": ["pnpm"],
-  "matchDepNames": ["pnpm"],
   "groupName": "pnpm",
   "branchTopic": "{{{groupSlug}}}"
 }
@@ -122,7 +123,7 @@ manager / path、標準 manager で拾えないリテラルが対象。
 - 検査 1〜3 の問題はすべて `renovate.json` の編集で吸収する:
   - 検査 1: 漏れの原因別に吸収（`ignorePaths` の除外を狭める / 検査 2 のグルーピングへ統合 / 検査 3 の
     `customManagers` へ統合）。除外の解除は、除外パターンを狭めて表す。先頭 `!` の否定パターンで表さない
-  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchPackageNames` + `matchDepNames` + `groupName` +
+  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchPackageNames` + `groupName` +
     `branchTopic`。書き方は検査 2 の作法）を追加する。既存 rule とのコンフリクトを避けるため、
     より具体的な rule として配列末尾に置く（Renovate は配列順に評価し、後勝ち）
   - 検査 3: ファイル種・pin 形式ごとに `customManagers`（regex manager）エントリを追加する。

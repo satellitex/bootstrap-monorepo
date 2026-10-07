@@ -87,7 +87,7 @@ EXCLUDE grep の 2 段フィルタをかける形でよい。`@generated` 等の
   3. 残りの原則 1 / 3 に、`docs/harness/skills/shared/sync-noise-filter.md` の「違反の退避先の既存性を確認する」
      手順を適用し、`delete` / `replace_with_link` / `needs_new_doc` を割り当てる。
 - **Step 5（検査 2）**: `kind: doc-style` かつ非テストファイルのコメントに、`code-comments.md` の
-  「検出すべき内部参照」regex（内部ドキュメントパス / 要件 ID / ADR ID / Issue・PR 番号）を適用し、
+  「検出すべき内部参照」の表にある全カテゴリの regex を適用し、
   `fix_action: needs_user_facing_rewrite` として蓄積する。**検査 2 の検出箇所は自動編集しない**
   （利用者向け要約への書き換えは文脈判断が必要なため PR body に記録するに留める）。
   doc-style 構文を持たない言語（YAML）には検査 2 を適用しない。

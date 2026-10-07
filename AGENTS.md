@@ -27,7 +27,7 @@ Codex で実行するときは各正本の SKILL.md を読み、定義された�
 
 - `AGENTS.md` と `CLAUDE.md` は薄い adapter とし、詳細手順を二重管理しない。
 - skill 本文、`references/`、`assets/` を変更する場合は、`.agents/skills/` 側を編集する。
-- `assets/` を変更したら `bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh`（テンプレート専用の整合検査）を実行する。使い方は `README.md` の「テンプレートの整合検査」を参照する。
+- `SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら `bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh`（テンプレート専用の整合検査）を実行する。使い方は `README.md` の「テンプレートの整合検査」を参照する。
 - `.claude/skills/` 配下の link を実体ファイルに置き換えない。
 - bootstrap 先 repository では、共通正本を `docs/harness/OPERATING_MODEL.md` など neutral な場所へ置き、`AGENTS.md` と `CLAUDE.md` から参照する。
 

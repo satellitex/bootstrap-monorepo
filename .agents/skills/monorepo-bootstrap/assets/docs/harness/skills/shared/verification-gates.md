@@ -9,14 +9,14 @@ skill 文書・agent 定義・hook のコメントが検証コマンドを必要
 root `package.json` の scripts として以下の名前で提供する。実装（背後のツール）は自由だが、
 **名前はこの 6 本を契約として保つ**。
 
-| コマンド                | 役割                                                                                     |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| `pnpm run format`       | フォーマットの適用（書き換える）。hook（pre-format-check）が staged ファイルに対して使う |
-| `pnpm run format:check` | フォーマット差分の検査（書き換えない）                                                   |
-| `pnpm run lint`         | 静的解析（lint）                                                                         |
-| `pnpm run typecheck`    | 型検査                                                                                   |
-| `pnpm run test`         | テスト実行                                                                               |
-| `pnpm run build`        | ビルド                                                                                   |
+| コマンド                | 役割                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm run format`       | フォーマットの適用（書き換える）。作業者が commit 前の整形に使う（pre-format-check hook はこの script を呼ばず、staged ファイルに formatter を直接実行する） |
+| `pnpm run format:check` | フォーマット差分の検査（書き換えない）                                                                                                                       |
+| `pnpm run lint`         | 静的解析（lint）                                                                                                                                             |
+| `pnpm run typecheck`    | 型検査                                                                                                                                                       |
+| `pnpm run test`         | テスト実行                                                                                                                                                   |
+| `pnpm run build`        | ビルド                                                                                                                                                       |
 
 ## 名前付き組合せ
 
@@ -41,7 +41,7 @@ root `package.json` の scripts として以下の名前で提供する。実装
 - CI の test job は `gate:ci` の `test` に加えて、hooks のテストとハーネス機械検査（`pnpm harness:test`）を実行する。ハーネス文書・設定・workflow を変更する作業者は、`gate:commit` に加えて `harness:test` を実行する。`harness:test` は 6 本の契約に含めない補助 script である。
 - hook は Claude Code 経由の操作にだけ効き、`--no-verify` や Claude Code 外の端末からの push は素通りする。CI は PR と `main` への push の全経路に効く。したがって `lint` / `typecheck` と、pre-push hook が実行する秘密検知（CI では実行しない）は、hook にだけ置かれ、hook の効かない経路では担保されない。CI にも課す場合は `gate:ci` に足し、`ci.yml` と本書を同一 PR で更新する。
 - docs と設定が混在する変更など、`*.md` 以外のファイルを 1 つでも含む変更は `gate:docs` ではなく `gate:commit` を使う。`gate:docs` は検査の対象が `*.md` だけのときの縮約であり、設定や実装の変更を検査から外すためのものではない。
-- いずれの組合せでも、hook が失敗したら原因を直して再実行する。`--no-verify` で回避すると、同じ失敗が CI で初めて赤くなり、修正の往復が増える。
+- いずれの組合せでも、hook が失敗したら原因を直して再実行する。`--no-verify` で回避すると、`format:check` / `build` の失敗は CI で初めて赤くなって修正の往復が増え、`lint` / `typecheck` / 秘密検知の失敗は CI がこれらを実行しないため検出されないまま残り得る。
 
 ## 変更時の注意
 

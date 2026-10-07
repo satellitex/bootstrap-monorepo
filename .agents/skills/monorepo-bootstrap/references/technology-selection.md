@@ -109,7 +109,7 @@ Suggested output:
 Decision:
 Rationale:
 Risks:
-ADR needed: Yes / No
+ADR: <link to the ADR that records the confirmed topology>
 ```
 
 ## 6. CSS / UI Styling Strategy

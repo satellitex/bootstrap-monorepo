@@ -16,7 +16,7 @@ description: /refactor-sync から起動された場合に使う。リファク�
                                               ↓
 [refactor:approved ラベルの付与]（= 実装への着手指示）
                                               ↓
-refactoring_guide.md の「承認済み観点」に追記 → 実装フロー（メインエージェント判断: TodoWrite + TDD）
+refactoring_guide.md の「承認済み観点」に追記 → 実装フロー（メインエージェント判断: TDD）
 ```
 
 起動元は `/refactor-sync` skill である。routine（定期実行）と人間の手動起動は同じ入口を使う。
@@ -90,9 +90,9 @@ Refactorer は Issue を生成するだけで、実装には関与しない。�
 
 Issue に `refactor:approved` ラベルが付いたら（= 実装への着手指示）:
 
-1. 人間（または Refactorer への手動指示）が `docs/styles/refactoring_guide.md` の「承認済み観点」セクションにエントリを追記する
+1. 実装 PR の変更として、`docs/styles/refactoring_guide.md` の「承認済み観点」セクションにエントリを追記する
 2. Issue はメインエージェント判断で実装する
-   - `docs/styles/refactoring_guide.md` の承認済み観点を読み、対象箇所を TodoWrite で列挙する
+   - `docs/styles/refactoring_guide.md` の承認済み観点を読み、対象箇所を列挙する
    - 既存テスト全 PASS を維持しながら全対象箇所をリファクタリングする（振る舞い不変）
    - 完了後にセルフレビューと検証ゲート（`docs/harness/skills/shared/verification-gates.md` に定義）の全 PASS を確認する
    - リファクタは振る舞いを変えず新規受入条件が無いため、実装フロー skill を使わずメインエージェント判断で行う

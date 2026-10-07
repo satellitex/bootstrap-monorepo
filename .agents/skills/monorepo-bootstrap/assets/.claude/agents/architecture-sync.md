@@ -52,19 +52,19 @@ description: 実装が完了し検証ゲートを通過した後、PR 作成前�
 
 ### 構造変更の検出
 
-- Dependency Flow に影響する import/依存の変更があれば図を更新する
-- Architectural Invariants に影響する変更があれば該当箇所を更新する
+- コンポーネント間の依存に影響する import/依存の変更があれば、`docs/product/ARCHITECTURE.md` の構成図を更新する
+- 設計上の分離原則に影響する変更があれば、`docs/product/ARCHITECTURE.md` の該当箇所を更新する
 
 ## アウトプット
 
 - 更新された、変更対象に最も近い `README.md`
-- 必要な場合だけ、Dependency Flow または Architectural Invariants を更新した `docs/product/ARCHITECTURE.md`
+- 必要な場合だけ、構成図または分離原則を更新した `docs/product/ARCHITECTURE.md`
 - git コミットされた変更
 
 ## 制約
 
-- `docs/product/ARCHITECTURE.md` は内部設計の正本のため、Dependency Flow と Architectural Invariants に実質変更がある場合だけ編集する
-- 編集は README.md の構造マップまたはディレクトリマップの該当行に限る
+- `docs/product/ARCHITECTURE.md` は内部設計の正本のため、構成図と分離原則に実質変更がある場合だけ編集する
+- README.md の編集は構造マップまたはディレクトリマップの該当行に限る
 - 下位階層の詳細は、より近い README がある場合はそちらに書く（親 README に戻すと責務が重複するため）
 - 構造マップは主要ディレクトリ・公開 API 面・bounded context の単位で書く。個別ファイル、テスト、migration は更新のたびに陳腐化するため一覧に載せない
 - `ARCHITECTURE.md` も同様に、個別ファイル一覧や実装履歴を載せない

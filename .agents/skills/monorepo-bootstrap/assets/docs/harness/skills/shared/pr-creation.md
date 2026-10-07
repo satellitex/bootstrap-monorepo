@@ -10,7 +10,7 @@
 
 1. 検証ゲートを実行する（`gate:commit`。`*.md` の編集だけの変更は `gate:docs`。組合せの定義 → `docs/harness/skills/shared/verification-gates.md`）。`format:check` が NG なら整形を適用してから再検査する
 2. `git add`（更新したファイルのみ個別指定）+ `git commit`（Conventional Commits 形式。type は呼び出し側指定）
-3. `git push -u origin <current-branch>`（`--no-verify` を付けない。hook が失敗したら原因を直して再実行する。hook が担う検査を迂回すると、CI で初めて赤くなり往復が増えるため）
+3. `git push -u origin <current-branch>`（`--no-verify` を付けない。hook が失敗したら原因を直して再実行する。hook が担う検査を迂回すると、`format:check` / `build` の失敗は CI で初めて赤くなって往復が増え、`lint` / `typecheck` / 秘密検知の失敗は CI が実行しないため検出されないまま残り得るため）
 4. **base を確認する**（「## PR の base」に従う）。
 5. **open 前の衝突検査**を行う（「## open 前の衝突検査」に従う）。
 6. PR 本文を組み立てる。構成は「## PR 本文の標準節」に呼び出し側が指定する節を加えたものとし、Issue との linkage は「## closing keyword の注入」に従って**決定的に**埋める（placeholder のまま残さない）。
@@ -97,7 +97,7 @@ PR merge 時の Issue auto-close と Projects の Status 自動更新は、PR bo
 
 ## 書き込みの経路
 
-GraphQL が使えない run や `gh` が無い run では、読み取りの経路切替（判定表と canary → `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5）に合わせて、PR 作成・ラベル付与・コメント投稿も同じ run で REST（`gh api`）または MCP に揃える。読み取りだけを切り替えると、最後の書き込みが GraphQL 前提で失敗し、検出済みの成果が PR 化されない。REST に相当する操作がないもの（Projects V2 への追加など）は切り替えず、省いたことを完了報告に書く。
+GraphQL が使えない run や `gh` が無い run では、読み取りの経路切替（判定表と canary → `docs/harness/skills/shared/gh-query-fail-closed.md` 規約 5）に合わせて、PR 作成・ラベル付与・コメント投稿も同じ run で REST（`gh api`）または MCP に揃える。読み取りだけを切り替えると、最後の書き込みが GraphQL 前提で失敗し、検出済みの成果が PR 化されない。REST に相当する操作がないものは切り替えず、省いたことを完了報告に書く。
 
 REST は次の API で行う。
 

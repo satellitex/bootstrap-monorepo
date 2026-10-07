@@ -180,7 +180,7 @@ Context と Consequences は圧縮済みである。省略した詳細は git �
 
 ## カテゴリ III: 同一 Issue の統合（opt-in・Decision 全保持）
 
-`/adr-compress consolidate` で起動したときだけ実行する。「1 ADR = 1 決定」の規約を変える操作のため、既定では無効である。
+`/adr-compress consolidate` で起動したときだけ実行する。複数の ADR を 1 つへ統合して ADR の粒度を変える操作のため、既定では無効である。
 
 - **検出**: 同一グループの ADR が 3 件以上で、全件が non-Proposed。グループのキーは、`{branch-slug}` に Issue 番号を含む命名規約ではその番号、含まない規約では `{branch-slug}` 自体とする。
 - **手順**: 各 Decision を節に分けて 1 つの consolidated ADR に統合する。ファイル名は README の規則に従い、`{branch-slug}` を `consolidated`、`{topic-slug}` をグループのキーにする。Status は Accepted、Author は `adr-compactor (consolidation)`。原本は同じパスのまま `Superseded by ADR-<consolidated-id>` の stub にする（形式は II の full stub に従う）。
