@@ -1,9 +1,11 @@
 ---
 name: architecture-sync
-description: 変更対象に最も近い README.md の構造マップを実コードと同期する。実装完了後・PR 作成前に呼び出される
+description: 実装が完了し検証ゲートを通過した後、PR 作成前に使う。実装差分に最も近い README.md の構造マップを実コードと同期する。README 全体の定期点検は /readme-sync の担当
 ---
 
 # Architecture Sync Agent
+
+> 役割: 実装差分に最も近い README.md の構造マップを実コードと同期し、内部設計の正本（`docs/product/ARCHITECTURE.md`）は構造に実質変更がある場合だけ更新する。
 
 > この文書は architecture-sync agent の同期基準（何を・どこまで README に反映するか）の正本である。README の書式規約や docs 全体の層構造は書かない（`docs/styles/coding_guide/docs.md`・`docs/README.md` が正本）。
 
@@ -16,12 +18,12 @@ description: 変更対象に最も近い README.md の構造マップを実コ�
 
 ## トリガー
 
-実装が完了し検証ゲート（`docs/harness/skills/shared/verification-gates.md` に定義）が全 PASS した後、PR 作成前に呼び出される。
+実装が完了し検証ゲート（`docs/harness/skills/shared/verification-gates.md` に定義）が全て PASS した後、PR 作成前に呼び出される。
 
 ## インプット
 
 - 実装のコード diff（`origin/main` 起点）
-- 呼び出し元からの引き継ぎ情報（対象ファイル・禁止事項・正本パス）。実装フローによっては渡されないことがあり、その場合は diff のみから判断する
+- 呼び出し元からの引き継ぎ情報（対象ファイル・禁止事項・正本パス）。実装フローによっては渡されないことがあり、その場合は diff だけから判断する
 
 ## プロセス
 
@@ -45,7 +47,7 @@ description: 変更対象に最も近い README.md の構造マップを実コ�
 
 ### 変更ファイル (M)
 
-- ファイルの diff を読み、コンポーネントまたはディレクトリの責務が変わった場合のみ説明を更新する
+- ファイルの diff を読み、コンポーネントまたはディレクトリの責務が変わった場合だけ説明を更新する
 - 軽微な変更（バグ修正、リファクタリング等）では説明を触らない
 
 ### 構造変更の検出
@@ -56,18 +58,18 @@ description: 変更対象に最も近い README.md の構造マップを実コ�
 ## アウトプット
 
 - 更新された、変更対象に最も近い `README.md`
-- 必要な場合のみ、Dependency Flow または Architectural Invariants を更新した `docs/product/ARCHITECTURE.md`
+- 必要な場合だけ、Dependency Flow または Architectural Invariants を更新した `docs/product/ARCHITECTURE.md`
 - git コミットされた変更
 
 ## 制約
 
 - `docs/product/ARCHITECTURE.md` は内部設計の正本のため、Dependency Flow と Architectural Invariants に実質変更がある場合だけ編集する
-- README.md の構造マップまたはディレクトリマップの該当行のみ編集する
-- 親 README に下位階層の詳細を戻さず、より近い README がある場合はそちらを更新する
-- 個別ファイル一覧、テスト一覧、migration 一覧を追加しない
-- `ARCHITECTURE.md` に個別ファイル一覧や実装履歴を追加しない
-- 既存の説明文は責務が変わっていなければ保持する
-- 設定ファイル（*.config.*, tsconfig.json, package.json 等）は、主要ディレクトリや公開面の責務変更がある場合のみ反映する
-- 推測で説明を書かない（ファイルの中身を必ず読む）
+- 編集は README.md の構造マップまたはディレクトリマップの該当行に限る
+- 下位階層の詳細は、より近い README がある場合はそちらに書く（親 README に戻すと責務が重複するため）
+- 構造マップは主要ディレクトリ・公開 API 面・bounded context の単位で書く。個別ファイル、テスト、migration は更新のたびに陳腐化するため一覧に載せない
+- `ARCHITECTURE.md` も同様に、個別ファイル一覧や実装履歴を載せない
+- 責務が変わっていない既存の説明文は保持する
+- 設定ファイル（`*.config.*`, tsconfig.json, package.json 等）は、主要ディレクトリや公開面の責務変更がある場合だけ反映する
+- 説明はファイルの中身を読んで書く（推測で書いた説明は README の信頼性を下げるため）
 - `.claude/` と `docs/harness/` 配下のファイルは同期対象外とする（ハーネスの正本は `docs/harness/OPERATING_MODEL.md`）
-- 引き継ぎ情報で不足した場合だけ正本ドキュメントの該当範囲を読む。Issue 単位の計画成果物（`docs/issues/<number>_<scope>/` 配下）の全文 Read は既定では行わない
+- 引き継ぎ情報で不足した場合だけ、正本ドキュメントの該当範囲を読む（全文を読むとコンテキストを圧迫するため）

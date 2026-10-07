@@ -1,6 +1,6 @@
 ---
 name: handle-review
-description: PR レビューコメントを批判的に評価し、自律的に修正・push・ADR 記録まで行う
+description: PR のレビューコメントに対応する場合に使う。ADR 既決を最優先にする判定表で批判的に評価し、修正・push・スレッドへの返信と resolve・ADR 記録までを自律的に行う。LGTM までの反復・conflict 解消・CI 失敗の修正は /review-cycle の担当
 ---
 
 # /handle-review

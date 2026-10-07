@@ -1,6 +1,6 @@
 ---
 name: public-arch-sync
-description: 内部正本 docs/product/ARCHITECTURE.md を射影ルールで docs/product/PUBLIC_ARCHITECTURE.md（公開版）に追従させ、未反映の設計変更とサービス名リークを検出して PR を作成する（opt-in:public-site）
+description: docs/product/ARCHITECTURE.md が変わった場合、または routine の定期実行時に使う。射影ルールを適用して PUBLIC_ARCHITECTURE.md への未反映変更とサービス名のリークを検出し、公開版だけを更新する PR にまとめる。docs と実コードの鮮度は /docs-sync の担当
 ---
 
 # /public-arch-sync

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-start.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh",
             "timeout": 900,
             "statusMessage": "Installing mise toolchain / workspace deps..."
           }
@@ -18,17 +18,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-format-check.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-format-check.sh",
             "if": "Bash(git commit *)",
             "timeout": 120,
             "statusMessage": "Formatting staged files before commit..."
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-push-ci-check.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-format-check.sh",
+            "if": "Bash(git -C *)",
+            "timeout": 120,
+            "statusMessage": "Formatting staged files before commit..."
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-push-ci-check.sh",
             "if": "Bash(git push *)",
             "timeout": 900,
-            "statusMessage": "Running pre-push CI check (secret scan / format:check / lint / typecheck / build)..."
+            "statusMessage": "Running pre-push CI check..."
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-push-ci-check.sh",
+            "if": "Bash(git -C *)",
+            "timeout": 900,
+            "statusMessage": "Running pre-push CI check..."
           }
         ]
       }
@@ -39,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-edit-check.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-check.sh",
             "timeout": 120
           }
         ]

@@ -2,94 +2,38 @@
 set -euo pipefail
 
 # pre-push-ci-check.sh の hermetic テスト。
-# bash / git / jq のみで動く（実 pnpm / gitleaks 不要、pnpm は PATH stub、
+# bash / git / jq のみで動く（実 pnpm / gitleaks 不要。pnpm は PROJ_PNPM_CMD、
 # gitleaks は PROJ_GITLEAKS_CMD で stub 注入）。
-# 一時 git repo と一時 HOME を作り、各テスト後にクリーンアップする。
+# push 先の作業ツリーの特定（cd / git -C の解釈、別 worktree からの起動）も同じ構成で検証する。
+# 解釈の規則そのものは test-hook-utils.sh の resolve_git_target のテストで検証する。
+# 一時 git repo を作り、各テスト後にクリーンアップする。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../pre-push-ci-check.sh"
 
-if [[ ! -f "$HOOK" ]]; then
-  echo "FAIL: hook not found: $HOOK" >&2
-  exit 1
-fi
-
-fail() {
-  echo "FAIL: $1" >&2
-  exit 1
-}
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+require_hook
 
 # 隔離した一時 repo を作る（node_modules ありの install 済み状態を模倣）
-make_repo() {
+make_installed_repo() {
   local tmp
-  tmp="$(mktemp -d)"
-  (
-    cd "$tmp"
-    git init -q
-    git config user.email "test@example.com"
-    git config user.name "Test"
-    git config commit.gpgsign false
-    printf 'hello\n' > README.md
-    git add README.md
-    git commit -q -m "init"
-    mkdir -p node_modules
-  )
+  tmp="$(make_repo)"
+  mkdir -p "$tmp/node_modules"
   printf '%s' "$tmp"
 }
 
-# pnpm + gitleaks stub を作る（第1引数: pnpm の exit code、第2引数: pnpm の出力）。
-# pnpm は PATH 前置、gitleaks は常に成功 stub（leak なし）を作り PROJ_GITLEAKS_CMD で
-# 注入する。hook が PATH に mise shims / /opt/homebrew/bin を前置するため、テスト環境に
-# 実 gitleaks（mise shim）が存在すると PATH stub が shadow され得る。command 注入 seam
-# 経由でのみ実 gitleaks 非依存に保てる。
-make_pnpm_stub() {
-  local exit_code="${1:-0}"
-  local msg="${2:-}"
+# pnpm と gitleaks（常に成功する stub。leak なし）の stub を置いた dir を作る。
+# 第1引数は pnpm の exit code、第2引数は pnpm の出力。
+# pnpm は PROJ_PNPM_CMD、gitleaks は PROJ_GITLEAKS_CMD で注入する。hook が PATH に mise shims /
+# /opt/homebrew/bin を前置するため、テスト環境に実 pnpm・実 gitleaks（mise shim など）が存在すると
+# PATH 上の stub が shadow され得る。command 注入 seam 経由でのみ実コマンド非依存に保てる。
+# stub は argv と cwd を "<stub>.args" / "<stub>.cwd" に記録する（lib.sh の write_stub）。
+make_stubs() {
   local stub_dir
   stub_dir="$(mktemp -d)"
-  cat > "$stub_dir/pnpm" <<STUB
-#!/usr/bin/env bash
-if [ -n "$msg" ]; then
-  printf '%s\n' "$msg"
-fi
-exit $exit_code
-STUB
-  chmod +x "$stub_dir/pnpm"
-  printf '#!/usr/bin/env bash\nexit 0\n' > "$stub_dir/gitleaks"
-  chmod +x "$stub_dir/gitleaks"
-  printf '%s' "$stub_dir"
-}
-
-# gitleaks の挙動だけを差し替える stub dir を作る（第1引数: exit code、第2引数: stderr 出力）。
-# 生成した "$dir/gitleaks" を PROJ_GITLEAKS_CMD で hook に注入して挙動を制御する
-# （make_pnpm_stub の gitleaks(exit 0) を上書きしたいテストで使う）。
-make_gitleaks_stub() {
-  local exit_code="${1:-0}"
-  local stderr_msg="${2:-}"
-  local stub_dir
-  stub_dir="$(mktemp -d)"
-  cat > "$stub_dir/gitleaks" <<STUB
-#!/usr/bin/env bash
-if [ -n "$stderr_msg" ]; then
-  printf '%s\n' "$stderr_msg" >&2
-fi
-exit $exit_code
-STUB
-  chmod +x "$stub_dir/gitleaks"
-  printf '%s' "$stub_dir"
-}
-
-# gitleaks に渡された argv を記録するだけの stub を作る（leak なしで exit 0）。
-# 記録先は "$stub_dir/argv"。スキャン範囲の指定漏れを検出するために使う。
-make_gitleaks_argv_stub() {
-  local stub_dir
-  stub_dir="$(mktemp -d)"
-  cat > "$stub_dir/gitleaks" <<STUB
-#!/usr/bin/env bash
-printf '%s\n' "\$*" > "$stub_dir/argv"
-exit 0
-STUB
-  chmod +x "$stub_dir/gitleaks"
+  write_stub "$stub_dir" pnpm "${1:-0}" "${2:-}"
+  write_stub "$stub_dir" gitleaks 0 ""
   printf '%s' "$stub_dir"
 }
 
@@ -117,7 +61,7 @@ else
   # shellcheck disable=SC2086
   out="$(git log -p $range 2>/dev/null || true)"
 fi
-if printf '%s' "$out" | grep -q 'PLANTED_SECRET'; then
+if grep -q 'PLANTED_SECRET' <<< "$out"; then
   exit 99
 fi
 exit 0
@@ -133,15 +77,9 @@ make_repo_with_remote() {
   local tmp
   tmp="$(mktemp -d)"
   git init -q --bare "$tmp/remote.git"
-  git init -q "$tmp/work"
+  init_git_repo "$tmp/work"
   (
     cd "$tmp/work"
-    git config user.email "test@example.com"
-    git config user.name "Test"
-    git config commit.gpgsign false
-    printf 'hello\n' > README.md
-    git add README.md
-    git commit -q -m "init"
     mkdir -p node_modules
     git remote add origin "$tmp/remote.git"
     git push -q origin HEAD:refs/heads/main
@@ -164,24 +102,49 @@ make_repo_with_remote() {
   printf '%s' "$tmp/work"
 }
 
-run_hook_json() {
-  local json="$1"
-  printf '%s' "$json" | bash "$HOOK"
+# hook を process cwd = $1 で実行し、stdin に command=$2 / cwd=$3（空なら cwd 無し）の JSON を渡す。
+# $4 は pnpm stub の dir、$5 は gitleaks stub の dir（省略時は $4）。
+run_hook_at() {
+  local proc_cwd="$1" command="$2" stdin_cwd="${3:-}" stub_dir="$4" gl_dir="${5:-$4}" json
+  if [[ -n "$stdin_cwd" ]]; then
+    json="$(jq -n --arg c "$command" --arg d "$stdin_cwd" '{tool_input:{command:$c},cwd:$d}')"
+  else
+    json="$(jq -n --arg c "$command" '{tool_input:{command:$c}}')"
+  fi
+  (
+    cd "$proc_cwd"
+    printf '%s' "$json" | PROJ_GITLEAKS_CMD="$gl_dir/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash "$HOOK"
+  )
+}
+
+# 記録ファイルの全行が期待する作業ツリーのルートであること、かつ 1 行以上あることを確認する。
+assert_ran_only_in() {
+  local file="$1" expected="$2" label="$3" lines
+  [[ -f "$file" ]] || fail "$label: expected checks to run, but $file was not written"
+  lines="$(sort -u "$file")"
+  [[ "$lines" == "$expected" ]] \
+    || fail "$label: checks must run only in $expected, ran in: $lines"
+}
+
+assert_pnpm_steps_ran() {
+  local stub_dir="$1" label="$2" step
+  for step in format:check lint typecheck build; do
+    grep -qxF "$step" "$stub_dir/pnpm.args" \
+      || fail "$label: pnpm step '$step' was not run (args=$(args_of "$stub_dir/pnpm.args" "$label"))"
+  done
 }
 
 # --------------------------------------------------------------------------
 # Test 1 (防御ガード): git push 以外のコマンドは即通過し、出力なし。
 # --------------------------------------------------------------------------
 test1_non_push_passthrough() {
-  local repo
-  repo="$(make_repo)"
-  (
-    cd "$repo"
-    local out
-    out="$(run_hook_json '{"tool_input":{"command":"git status"}}')"
-    [[ -z "$out" ]] || fail "test1: non-push command must pass through with no output (out=$out)"
-  )
-  rm -rf "$repo"
+  local repo stub_dir out
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  out="$(run_hook_at "$repo" "git status" "" "$stub_dir")"
+  [[ -z "$out" ]] || fail "test1: non-push command must pass through with no output (out=$out)"
+  [[ ! -f "$stub_dir/pnpm.args" ]] || fail "test1: non-push command must not run checks"
+  rm -rf "$repo" "$stub_dir"
   echo "PASS test1: non-push command passthrough"
 }
 
@@ -189,18 +152,14 @@ test1_non_push_passthrough() {
 # Test 2: node_modules が無い場合は skip して additionalContext を返す。
 # --------------------------------------------------------------------------
 test2_no_node_modules_skip() {
-  local repo stub_dir
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 0)"
-  (
-    cd "$repo"
-    rm -rf node_modules
-    local out ctx
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
-    ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-    [[ -n "$ctx" ]] || fail "test2: missing node_modules must return additionalContext (out=$out)"
-    printf '%s' "$ctx" | grep -qi 'skip' || fail "test2: skip message expected (ctx=$ctx)"
-  )
+  local repo stub_dir out ctx
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  rm -rf "$repo/node_modules"
+  out="$(run_hook_at "$repo" "git push origin main" "" "$stub_dir")"
+  ctx="$(hook_ctx "$out")"
+  [[ -n "$ctx" ]] || fail "test2: missing node_modules must return additionalContext (out=$out)"
+  grep -qi 'skip' <<< "$ctx" || fail "test2: skip message expected (ctx=$ctx)"
   rm -rf "$repo" "$stub_dir"
   echo "PASS test2: no node_modules returns skip"
 }
@@ -209,19 +168,11 @@ test2_no_node_modules_skip() {
 # Test 3: 全 CI チェック通過で additionalContext の通過記録を返す（deny でない）。
 # --------------------------------------------------------------------------
 test3_all_checks_pass() {
-  local repo stub_dir
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 0)"
-  (
-    cd "$repo"
-    local out ctx decision
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
-    ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-    [[ -n "$ctx" ]] || fail "test3: all-pass must return additionalContext (out=$out)"
-    printf '%s' "$ctx" | grep -q 'passed' || fail "test3: pass message expected (ctx=$ctx)"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" != "deny" ]] || fail "test3: must not deny on all-pass (out=$out)"
-  )
+  local repo stub_dir out
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  out="$(run_hook_at "$repo" "git push origin main" "" "$stub_dir")"
+  assert_passed "$out" test3
   rm -rf "$repo" "$stub_dir"
   echo "PASS test3: all checks pass returns additionalContext"
 }
@@ -230,45 +181,35 @@ test3_all_checks_pass() {
 # Test 4: CI チェック失敗で deny + 失敗ステップ名（format:check）が理由に含まれる。
 # --------------------------------------------------------------------------
 test4_check_failure_deny() {
-  local repo stub_dir
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 1 "lint error: something is wrong")"
-  (
-    cd "$repo"
-    local out decision reason
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" == "deny" ]] \
-      || fail "test4: CI failure must deny push (decision=$decision, out=$out)"
-    reason="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')"
-    printf '%s' "$reason" | grep -q 'format:check' \
-      || fail "test4: deny reason should contain failing step name (reason=$reason)"
-  )
+  local repo stub_dir out reason
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs 1 "lint error: something is wrong")"
+  out="$(run_hook_at "$repo" "git push origin main" "" "$stub_dir")"
+  [[ "$(hook_decision "$out")" == "deny" ]] \
+    || fail "test4: CI failure must deny push (out=$out)"
+  reason="$(hook_reason "$out")"
+  grep -q 'format:check' <<< "$reason" \
+    || fail "test4: deny reason should contain failing step name (reason=$reason)"
   rm -rf "$repo" "$stub_dir"
   echo "PASS test4: CI failure returns deny with step name"
 }
 
 # --------------------------------------------------------------------------
 # Test 5: gitleaks の実行失敗（例: mise shim の「No version is set」で exit 1）は
-# leak 検出と区別して skip し、deny せず後続チェックまで通過する。
+# leak 検出と区別して skip し、deny せず後続チェックまで通過する。skip は stderr に残る。
 # --------------------------------------------------------------------------
 test5_gitleaks_execution_error_skip() {
-  local repo stub_dir gl_stub
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 0)"
-  gl_stub="$(make_gitleaks_stub 1 "No version is set for shim: gitleaks")"
-  (
-    cd "$repo"
-    local out decision ctx
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" != "deny" ]] \
-      || fail "test5: gitleaks execution error must not deny push (out=$out)"
-    ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-    printf '%s' "$ctx" | grep -q 'passed' \
-      || fail "test5: must continue to remaining checks after gitleaks execution error (ctx=$ctx)"
-  )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  local repo stub_dir gl_stub out errlog
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  gl_stub="$(mktemp -d)"
+  errlog="$(mktemp)"
+  write_stub "$gl_stub" gitleaks 1 "No version is set for shim: gitleaks"
+  out="$(run_hook_at "$repo" "git push origin main" "" "$stub_dir" "$gl_stub" 2> "$errlog")"
+  assert_passed "$out" "test5: must continue to remaining checks after gitleaks execution error"
+  grep -q 'gitleaks skipped' "$errlog" \
+    || fail "test5: the skipped secret scan must be reported on stderr (stderr=$(cat "$errlog"))"
+  rm -rf "$repo" "$stub_dir" "$gl_stub" "$errlog"
   echo "PASS test5: gitleaks execution error skips and continues"
 }
 
@@ -276,21 +217,17 @@ test5_gitleaks_execution_error_skip() {
 # Test 6: gitleaks の leak 検出（--exit-code 99 で rc=99）は deny する。
 # --------------------------------------------------------------------------
 test6_gitleaks_leak_deny() {
-  local repo stub_dir gl_stub
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 0)"
-  gl_stub="$(make_gitleaks_stub 99 "")"
-  (
-    cd "$repo"
-    local out decision reason
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" == "deny" ]] \
-      || fail "test6: gitleaks leak (rc=99) must deny push (out=$out)"
-    reason="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')"
-    printf '%s' "$reason" | grep -qi 'gitleaks' \
-      || fail "test6: deny reason should mention gitleaks (reason=$reason)"
-  )
+  local repo stub_dir gl_stub out reason
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  gl_stub="$(mktemp -d)"
+  write_stub "$gl_stub" gitleaks 99 ""
+  out="$(run_hook_at "$repo" "git push origin main" "" "$stub_dir" "$gl_stub")"
+  [[ "$(hook_decision "$out")" == "deny" ]] \
+    || fail "test6: gitleaks leak (rc=99) must deny push (out=$out)"
+  reason="$(hook_reason "$out")"
+  grep -qi 'gitleaks' <<< "$reason" \
+    || fail "test6: deny reason should mention gitleaks (reason=$reason)"
   rm -rf "$repo" "$stub_dir" "$gl_stub"
   echo "PASS test6: gitleaks leak returns deny"
 }
@@ -302,50 +239,43 @@ test6_gitleaks_leak_deny() {
 # --------------------------------------------------------------------------
 test7_gitleaks_scan_scope_limited_to_outgoing() {
   local repo stub_dir gl_stub
-  repo="$(make_repo)"
-  stub_dir="$(make_pnpm_stub 0)"
-  gl_stub="$(make_gitleaks_argv_stub)"
-  (
-    cd "$repo"
-    PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK" > /dev/null
-    [[ -f "$gl_stub/argv" ]] \
-      || fail "test7: gitleaks was not invoked at all"
-    grep -qF -- '--log-opts=--all --not --remotes' "$gl_stub/argv" \
-      || fail "test7: gitleaks must be scoped to unpushed local refs (argv=$(cat "$gl_stub/argv"))"
-  )
+  repo="$(make_installed_repo)"
+  stub_dir="$(make_stubs)"
+  gl_stub="$(mktemp -d)"
+  write_stub "$gl_stub" gitleaks 0 ""
+  run_hook_at "$repo" "git push origin main" "" "$stub_dir" "$gl_stub" > /dev/null
+  grep -qF -- '--log-opts=--all --not --remotes' <<< "$(args_of "$gl_stub/gitleaks.args" test7)" \
+    || fail "test7: gitleaks must be scoped to unpushed local refs (argv=$(args_of "$gl_stub/gitleaks.args" test7))"
   rm -rf "$repo" "$stub_dir" "$gl_stub"
   echo "PASS test7: gitleaks scan scope limited to unpushed local refs"
 }
 
 # --------------------------------------------------------------------------
 # Test 8: 既に remote 上にある他 branch のみに存在する検出値は push を止めない
-# （他 branch の誤検知 1 件で当該 checkout の全 push が止まる事象の回帰防止）。
-# 一方で自分の未 push commit に含まれる値は従来どおり deny する（検知力の担保）。
+# （他 branch の誤検知 1 件で当該 checkout の全 push が止まらないことの検証。）
+# 一方で自分の未 push commit に含まれる値は deny する（検知力の担保）。
 # --------------------------------------------------------------------------
 test8_other_branch_value_does_not_block_push() {
-  local repo stub_dir gl_stub
+  local repo stub_dir gl_stub out
   repo="$(make_repo_with_remote)"
-  stub_dir="$(make_pnpm_stub 0)"
+  stub_dir="$(make_stubs)"
   gl_stub="$(make_gitleaks_range_stub)"
+  out="$(run_hook_at "$repo" "git push origin mywork" "" "$stub_dir" "$gl_stub")"
+  [[ "$(hook_decision "$out")" != "deny" ]] \
+    || fail "test8: value only on another already-pushed branch must not block push (out=$out)"
+
+  # 同じ値を自分の未 push commit に入れると deny されること（範囲限定が検知力を
+  # 落としていないことの確認）
   (
     cd "$repo"
-    local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" != "deny" ]] \
-      || fail "test8: value only on another already-pushed branch must not block push (out=$out)"
-
-    # 同じ値を自分の未 push commit に入れると deny されること（範囲限定が検知力を
-    # 落としていないことの確認）
     printf 'PLANTED_SECRET\n' > mine-leak.txt
     git add mine-leak.txt
     git commit -q -m "feat: oops"
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" == "deny" ]] \
-      || fail "test8: value in own unpushed commit must still deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  out="$(run_hook_at "$repo" "git push origin mywork" "" "$stub_dir" "$gl_stub")"
+  [[ "$(hook_decision "$out")" == "deny" ]] \
+    || fail "test8: value in own unpushed commit must still deny push (out=$out)"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test8: other-branch value passes, own unpushed value denies"
 }
 
@@ -356,9 +286,9 @@ test8_other_branch_value_does_not_block_push() {
 # 送れてしまい、hook を素通りして remote に公開できる。
 # --------------------------------------------------------------------------
 test9_non_head_ref_push_is_scanned() {
-  local repo stub_dir gl_stub
+  local repo stub_dir gl_stub out
   repo="$(make_repo_with_remote)"
-  stub_dir="$(make_pnpm_stub 0)"
+  stub_dir="$(make_stubs)"
   gl_stub="$(make_gitleaks_range_stub)"
   (
     cd "$repo"
@@ -368,14 +298,11 @@ test9_non_head_ref_push_is_scanned() {
     git add sneaky.txt
     git commit -q -m "feat: sneak"
     git checkout -q mywork
-
-    local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin secret-branch:secret-branch\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" == "deny" ]] \
-      || fail "test9: secret on a non-HEAD unpushed branch must deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  out="$(run_hook_at "$repo" "git push origin secret-branch:secret-branch" "" "$stub_dir" "$gl_stub")"
+  [[ "$(hook_decision "$out")" == "deny" ]] \
+    || fail "test9: secret on a non-HEAD unpushed branch must deny push (out=$out)"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test9: secret on non-HEAD unpushed ref still denies"
 }
 
@@ -385,9 +312,9 @@ test9_non_head_ref_push_is_scanned() {
 # branch/tag だけを列挙すると素通りする。
 # --------------------------------------------------------------------------
 test10_custom_ref_namespace_is_scanned() {
-  local repo stub_dir gl_stub
+  local repo stub_dir gl_stub out
   repo="$(make_repo_with_remote)"
-  stub_dir="$(make_pnpm_stub 0)"
+  stub_dir="$(make_stubs)"
   gl_stub="$(make_gitleaks_range_stub)"
   (
     cd "$repo"
@@ -397,15 +324,162 @@ test10_custom_ref_namespace_is_scanned() {
     git commit -q -m "feat: sneak"
     git update-ref refs/changes/secret HEAD
     git reset -q --hard HEAD~1
-
-    local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin refs/changes/secret:refs/heads/secret\"}}" | bash '"$HOOK")"
-    decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
-    [[ "$decision" == "deny" ]] \
-      || fail "test10: secret reachable only from a custom ref must deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  out="$(run_hook_at "$repo" "git push origin refs/changes/secret:refs/heads/secret" "" "$stub_dir" "$gl_stub")"
+  [[ "$(hook_decision "$out")" == "deny" ]] \
+    || fail "test10: secret reachable only from a custom ref must deny push (out=$out)"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test10: secret on custom ref namespace still denies"
+}
+
+# --------------------------------------------------------------------------
+# 以降は push 先の作業ツリーの特定（cd / git -C の静的解釈、解決不能は deny）の検証。
+# hook プロセスの cwd を main checkout にしたまま、別 worktree へ push する起動を再現する。
+# main checkout と worktree は lib.sh の make_main_with_worktree が作る。
+# --------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------
+# Test 11: `cd <worktree> && git push` は worktree のルートで全 step を実行する。
+# hook プロセスの cwd と stdin の cwd が main checkout でも、検査対象は push 先。
+# --------------------------------------------------------------------------
+test11_cd_prefix_checks_target_worktree() {
+  local main wt stub_dir out
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  out="$(run_hook_at "$main" "cd $wt && git push origin wt-branch" "$main" "$stub_dir")"
+  assert_passed "$out" test11
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test11
+  assert_ran_only_in "$stub_dir/gitleaks.cwd" "$wt" test11
+  assert_pnpm_steps_ran "$stub_dir" test11
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test11: cd-prefixed push checks the target worktree"
+}
+
+# --------------------------------------------------------------------------
+# Test 12: `git -C <worktree> push` も同様に push 先の worktree を検査する。
+# グローバルオプション（-c）が前置されても解釈できる。
+# --------------------------------------------------------------------------
+test12_git_dash_c_checks_target_worktree() {
+  local main wt stub_dir out
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  out="$(run_hook_at "$main" "git -c core.quotepath=off -C $wt push origin wt-branch" "$main" "$stub_dir")"
+  assert_passed "$out" test12
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test12
+  assert_pnpm_steps_ran "$stub_dir" test12
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test12: git -C push checks the target worktree"
+}
+
+# --------------------------------------------------------------------------
+# Test 13: 前置なしの `git push` は stdin の cwd（Bash の現在の cwd）の作業ツリーを検査する。
+# hook プロセスの cwd が main checkout でも、stdin の cwd が worktree ならそちらが対象。
+# サブディレクトリが cwd のときも、検査は作業ツリーのルートで行う。
+# --------------------------------------------------------------------------
+test13_stdin_cwd_selects_worktree() {
+  local main wt stub_dir out
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  out="$(run_hook_at "$main" "git push origin wt-branch" "$wt" "$stub_dir")"
+  assert_passed "$out" test13
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test13
+
+  rm -f "$stub_dir/pnpm.cwd" "$stub_dir/pnpm.args"
+  mkdir -p "$wt/sub/dir"
+  run_hook_at "$main" "git push" "$wt/sub/dir" "$stub_dir" > /dev/null
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test13
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test13: stdin cwd selects the worktree root"
+}
+
+# --------------------------------------------------------------------------
+# Test 14: push 先を静的に決められない形は deny する（検査せず、誤った tree を緑にしない）。
+# 決められない形の一覧は test-hook-utils.sh の resolve_git_target のテストで検証する。
+# ここでは deny の配線（理由の文面と、検査コマンドを呼ばないこと）を代表の形で確認する。
+# --------------------------------------------------------------------------
+test14_unresolvable_target_denies() {
+  local main wt stub_dir out reason cmd
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  for cmd in 'cd "$WT_DIR" && git push' "cd $main/does-not-exist && git push" "(cd $wt && git push)"; do
+    out="$(run_hook_at "$main" "$cmd" "$main" "$stub_dir")"
+    [[ "$(hook_decision "$out")" == "deny" ]] \
+      || fail "test14: unresolvable push target must deny (cmd=$cmd, out=$out)"
+    reason="$(hook_reason "$out")"
+    grep -q '作業ツリー' <<< "$reason" \
+      || fail "test14: deny reason should explain the target could not be resolved (cmd=$cmd, reason=$reason)"
+  done
+  [[ ! -f "$stub_dir/pnpm.args" && ! -f "$stub_dir/gitleaks.cwd" ]] \
+    || fail "test14: no check may run when the push target is unresolved"
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test14: unresolvable push target is denied without running checks"
+}
+
+# --------------------------------------------------------------------------
+# Test 15: push でない git -C / 複合コマンドは通過し、push を含む複合コマンドは検査する。
+# `Bash(git -C *)` で hook が起動されても、push 以外の操作を妨げない。
+# --------------------------------------------------------------------------
+test15_non_push_and_compound_commands() {
+  local main wt stub_dir out cmd
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  for cmd in \
+    "git -C $wt status" \
+    "git -C $wt commit -m 'fix push handling'" \
+    "echo git push"; do
+    out="$(run_hook_at "$main" "$cmd" "$main" "$stub_dir")"
+    [[ -z "$out" ]] || fail "test15: non-push command must pass through silently (cmd=$cmd, out=$out)"
+  done
+  [[ ! -f "$stub_dir/pnpm.args" ]] || fail "test15: non-push commands must not run checks"
+
+  out="$(run_hook_at "$main" "git status && git push origin wt-branch" "$wt" "$stub_dir")"
+  assert_passed "$out" "test15: a push after another command must still be checked"
+  assert_ran_only_in "$stub_dir/pnpm.cwd" "$wt" test15
+  rm -rf "$(dirname "$main")" "$stub_dir"
+  echo "PASS test15: non-push commands pass through, compound pushes are checked"
+}
+
+# --------------------------------------------------------------------------
+# Test 16: 別 repository への push（push 元と共有 git ディレクトリが異なる）は検査対象外。
+# --------------------------------------------------------------------------
+test16_other_repository_is_skipped() {
+  local main wt stub_dir other out
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  other="$(make_installed_repo)"
+  out="$(run_hook_at "$main" "git -C $other push" "$main" "$stub_dir")"
+  [[ -z "$out" ]] || fail "test16: push to another repository must pass through (out=$out)"
+  [[ ! -f "$stub_dir/pnpm.args" && ! -f "$stub_dir/gitleaks.cwd" ]] \
+    || fail "test16: no check may run for another repository"
+
+  # 同じ repository の worktree への push は、共有 git ディレクトリが同じなので検査する。
+  out="$(run_hook_at "$main" "git -C $wt push" "$main" "$stub_dir")"
+  assert_passed "$out" "test16: a worktree of the same repository must be checked"
+  rm -rf "$(dirname "$main")" "$stub_dir" "$other"
+  echo "PASS test16: push to another repository is out of scope"
+}
+
+# --------------------------------------------------------------------------
+# Test 17: push 先の作業ツリーの .gitleaks.toml を使う（hook の cwd 側の設定ではない）。
+# main にだけ .gitleaks.toml がある状態で worktree を検査すると --config は付かない。
+# --------------------------------------------------------------------------
+test17_gitleaks_config_comes_from_target_worktree() {
+  local main wt stub_dir gl_stub
+  { read -r main; read -r wt; } < <(make_main_with_worktree)
+  stub_dir="$(make_stubs)"
+  gl_stub="$(mktemp -d)"
+  write_stub "$gl_stub" gitleaks 0 ""
+  printf 'title = "main only"\n' > "$main/.gitleaks.toml"
+  run_hook_at "$main" "git -C $wt push" "$main" "$stub_dir" "$gl_stub" > /dev/null
+  if grep -qF -- '--config' <<< "$(args_of "$gl_stub/gitleaks.args" test17)"; then
+    fail "test17: the main checkout's .gitleaks.toml must not apply to the worktree (argv=$(args_of "$gl_stub/gitleaks.args" test17))"
+  fi
+  printf 'title = "worktree"\n' > "$wt/.gitleaks.toml"
+  run_hook_at "$main" "git -C $wt push" "$main" "$stub_dir" "$gl_stub" > /dev/null
+  grep -qF -- '--config .gitleaks.toml' <<< "$(args_of "$gl_stub/gitleaks.args" test17)" \
+    || fail "test17: the worktree's own .gitleaks.toml must be used (argv=$(args_of "$gl_stub/gitleaks.args" test17))"
+  rm -rf "$(dirname "$main")" "$stub_dir" "$gl_stub"
+  echo "PASS test17: gitleaks config is taken from the target worktree"
 }
 
 test1_non_push_passthrough
@@ -418,5 +492,12 @@ test7_gitleaks_scan_scope_limited_to_outgoing
 test8_other_branch_value_does_not_block_push
 test9_non_head_ref_push_is_scanned
 test10_custom_ref_namespace_is_scanned
+test11_cd_prefix_checks_target_worktree
+test12_git_dash_c_checks_target_worktree
+test13_stdin_cwd_selects_worktree
+test14_unresolvable_target_denies
+test15_non_push_and_compound_commands
+test16_other_repository_is_skipped
+test17_gitleaks_config_comes_from_target_worktree
 
 echo "ALL PASS"
