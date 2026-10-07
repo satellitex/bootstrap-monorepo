@@ -1,7 +1,6 @@
 ---
 name: harness-adopt
 description: 既存 repository に運用テンプレート（docs 規約 / skills / agents / rules / hooks / 基礎 CI）を導入する。既存スタック・既存規約を優先し、非破壊マージで assets を展開して open PR まで自律実行する。人間承認が必須なのは課金と秘密値のみ
-user_invocable: true
 ---
 
 # Harness Adopt Skill (Codex / Claude)

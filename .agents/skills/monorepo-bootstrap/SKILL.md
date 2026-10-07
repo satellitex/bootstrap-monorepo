@@ -1,7 +1,6 @@
 ---
 name: monorepo-bootstrap
 description: Codex/Claude両対応で任意のモノレポをbootstrapする。技術選定調査、docs運用正本、ハーネス/環境/CI/CD整備、初期実装、deploy検証までを自律実行する。人間承認が必須なのは課金と秘密値のみ
-user_invocable: true
 ---
 
 # Monorepo Bootstrap Skill (Codex / Claude)
