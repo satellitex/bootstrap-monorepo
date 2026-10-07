@@ -48,7 +48,7 @@ PR 本文の節構成は、標準節と、導入の PR に加える 2 節（承�
 | 成果物 | PR 本文の節 | 内容 |
 |--------|-------------|------|
 | 棚卸し表 | 背景 | 既存資産の状態と導入資産との関係（衝突 / 併存 / 不在）、token 値、opt-in 採否 |
-| マージ判断 | 方針と却下案 | 衝突ごとのマージ方針と、既存優先にした判断の理由。既存規約とテンプレートが矛盾して既存優先にした判断は、ADR（`docs/adr/`）に 1 本記録して PR 本文から参照する |
+| マージ判断 | 方針と却下案 | 衝突ごとのマージ方針と、既存優先にした判断の理由。既存規約とテンプレートが矛盾して既存優先にした判断は、ADR（Step 3 のマージ規則で正本にした置き場。既存の置き場が無ければ `docs/adr/`）に 1 本記録して PR 本文から参照する |
 | スキップ一覧 | スコープ外 | 同名スキップ、不採用の opt-in グループ、不採用の core 資産と理由。既存文書の移行は別 Issue として起票し、番号を書く |
 | 検証結果 | 検証結果 | hooks テスト、検証ゲート、ハーネスの機械検査、既存の失敗と導入起因の切り分け、導入した検査が起動することの確認 |
 | 残 TODO | リスク | routine 登録、TODO のままの値（`TODO(` の一覧）、秘密値が必要な設定、required check への登録 |
@@ -116,23 +116,23 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 
 | 衝突対象 | マージ規則 |
 |----------|-----------|
-| 既存 `AGENTS.md` / `CLAUDE.md` | 上書きしない（索引の entry-adapters）。assets の `AGENTS.md` / `CLAUDE.md` の箇条書き（運用正本への pointer、作業ブランチ、承認モデルの要旨、言語ポリシー、secret 非 commit）を、既存の入口へ「運用正本」節として逐語で追記する。作業ブランチ行の既定ブランチ名は導入先に合わせる。既存記述と矛盾する場合は既存優先とし、矛盾点を PR 本文に列挙する。正本と矛盾した場合に正本を優先する旨の 1 文は、既存の adapter には足さない。ルートの `README.md` は、既存があれば「開発スタイル」の pointer だけを追記し、無い場合だけ骨格を新規作成する |
+| 既存 `AGENTS.md` / `CLAUDE.md` | 上書きしない（索引の entry-adapters）。assets の `AGENTS.md` / `CLAUDE.md` の各節の箇条書きをすべて（冒頭の説明文は除く）、既存の入口へ「運用正本」節として逐語で追記する。作業ブランチ行の既定ブランチ名は導入先に合わせる。既存記述と矛盾する場合は既存優先とし、矛盾点を PR 本文に列挙する。ルートの `README.md` は、既存があれば「開発スタイル」の pointer だけを追記し、無い場合だけ骨格を新規作成する |
 | Claude の入口が `.claude/CLAUDE.md` にある | pointer 節を `.claude/CLAUDE.md` へ追記し、ルートの `CLAUDE.md` を新規作成しない。ルートと `.claude/` の両方に `CLAUDE.md` がある場合は、どちらも改変せず、重複を PR 本文に記録する |
 | 片方の adapter のみ存在 | 無い側を assets の雛形から新規作成し、両者の重要ルールを対称にする。既存の `AGENTS.md` があり `CLAUDE.md` を新規作成する場合は、`CLAUDE.md` が存在すると Claude Code は既定では `AGENTS.md` を読まないため、新規の `CLAUDE.md` に `@AGENTS.md` の import 行を含める（挙動は Claude Code の版により異なるため、導入時に公式 docs「How Claude remembers your project」の AGENTS.md の節で確認する） |
-| 既存 `.claude/settings.json`（索引の hook-wiring） | 既存の hook 配線・permissions を保持したまま、テンプレートの hook 配線を追記マージする。同一イベント・同一 matcher に既存 hook がある場合は既存を先に実行する順で併記する。pre-push の `if` に既存の `Bash(git push *)` がある場合は、`Bash(git -C *)` の条件を追加する。commit 系の hook（pre-format-check と、採用していれば pre-commit-submodule-guard）も同じ理由で `Bash(git commit *)` に加えて `Bash(git -C *)` の条件を併記する（`if` は `git -C <dir> <subcommand>` の形を `git push *` や `git commit *` と照合しないため） |
+| 既存 `.claude/settings.json`（索引の hook-wiring） | 既存の hook 配線・permissions を保持したまま、テンプレートの hook 配線を追記マージする。同一イベント・同一 matcher に既存 hook がある場合は、テンプレートの hook を併記する（一致した hook は並列に実行され、配列の順序は実行順を定めない）。既存 hook とテンプレートの hook が同じファイルを書き換える場合は、分担を PR 本文に記録する。pre-push の `if` に既存の `Bash(git push *)` がある場合は、`Bash(git -C *)` の条件を追加する。commit 系の hook（pre-format-check と、採用していれば pre-commit-submodule-guard）も同じ理由で `Bash(git commit *)` に加えて `Bash(git -C *)` の条件を併記する（`if` は `git -C <dir> <subcommand>` の形を `git push *` や `git commit *` と照合しないため） |
 | 既存 `.claude/skills/` / `.claude/rules/` / `.claude/agents/` に同名あり | 導入をスキップし、PR 本文の「スコープ外」に「同名スキップ」と記録する（既存優先）。別名で内容が重複する場合は併存させ、統合提案のみ残す |
 | 既存のルート設定（索引の root-config に載るファイル） | 上書きしない。不足している script 名・pipeline 定義・ignore パターン・設定項目のみを追記マージし、既存の dependencies / packageManager / 既存設定はすべて保持する。`.gitleaks.toml` の雛形は `[allowlist]` をコメントアウトした形であり、空の `[allowlist]` を持つ設定は gitleaks が設定エラーにするため、コメントアウトのまま追記する |
 | 既存の docs 規約文書（`docs/README.md` / `docs/runbooks/README.md` / `docs/audit/README.md` / `docs/adr/template.md`） | 上書きしない。assets の節を節単位で追記マージする。`docs/README.md` のマップへは、導入した資産のディレクトリ行を追記し、不採用グループの行は追記しない |
-| 既存の root scripts 名が 6 契約（build / test / lint / typecheck / format / format:check）と異なる | 既存 scripts を rename しない。「既定スタックと差し替え点」の pnpm + turbo の行に従い、検証ゲートの定義と hooks を既存名に合わせて書き換える。契約に無い check（例: typecheck が無い）は「未導入」と `docs/harness/skills/shared/verification-gates.md` に明記する |
+| 既存の root scripts 名が 6 契約（build / test / lint / typecheck / format / format:check）と異なる | 既存 scripts を rename しない。「既定スタックと差し替え点」の pnpm + turbo の行に従い、検証ゲートの定義と hooks を既存名に合わせて書き換える。契約に無い check（例: typecheck が無い）は、`docs/harness/skills/shared/verification-gates.md` のコマンド定義表の行と組合せから外し、未導入であることと理由を同書の本文に書く。hook の `CI_CHECK_STEPS` と hook のテストも同時に更新する（定義表に行を残すと `pnpm harness:test` が package.json に無い script として失敗し、`CI_CHECK_STEPS` に残すと pre-push hook が push を止める） |
 | package manager が pnpm 以外 / task runner が turbo 以外 | MANIFEST「既定スタックと差し替え点」に従い、hooks / ci.yml / verification-gates のコマンドを既存スタックへ差し替える。`package.json` / `turbo.json` / `pnpm-workspace.yaml` の雛形は copy しない |
 | workspace レイアウトが `apps/*` / `packages/*` でない | 「既定スタックと差し替え点」の pnpm workspace の行に従い、hooks の package 解決と領域別 rule の `paths:` を既存レイアウトへ書き換える。単一 package repo なら package 解決を root 固定にする（放置すると post-edit-check の package 単位検査が黙って skip される） |
 | 既存 CI がある | `ci.yml` を無条件に追加しない。test 相当の job が無条件に起動する場合は、hooks のテスト（`.claude/hooks/tests/run-all.sh`）とハーネスの機械検査（`pnpm harness:test`）の step をその workflow へ追加する提案にとどめる。format / test / build 相当が揃っていない場合は、不足 check を既存 workflow へ追加するか `ci.yml` を併設するかを判断して記録する。test 相当の job が条件付き（trigger filter、job の `if`、変更検出 job への `needs`、matrix の skip、cache）の場合は、step をその job に入れず、paths 条件を持たない単独 job・単独 check 名の専用 workflow を併設し、既存 workflow は変更しない（条件付きの job に足すと、検査入力だけを変えた PR で検査が無言で skip されるため）。専用 workflow の check 名は required check に登録されるまで強制にならない。登録は branch protection の設定変更なので PR に含めず、PR 本文の「リスク」に人間への引き継ぎとして書く |
 | 導入先に既存違反がある（既存 check が fail する） | 検査を無効にして導入しない。次のどちらかを選び、判断を PR 本文の「方針と却下案」に記録する（承認は不要）。(a) 違反件数を機械的に数えられる検査（違反単位で列挙でき、安定して diff 比較できる出力）は、baseline ratchet で導入する（`../monorepo-bootstrap/references/ci-cd-runner-deploy.md` §2.4）。baseline と検査 script は導入先固有の実装で、assets からは copy できない。(b) 数えられない検査は「未導入」として `verification-gates.md` に記録し、pre-push の step から外す。外すときは、hook の `CI_CHECK_STEPS`、`verification-gates.md`、hook のテストを同時に更新する |
 | 既存の git hooks 機構（husky 等）がある | 既存機構を残す。`.claude/hooks/` は Claude Code セッション用として併存導入し、同一検査の二重実行が問題になる場合のみ既存側との分担を PR 本文に記録する |
-| ハーネスの機械検査（`tests/harness/`） | 導入先の `package.json` に `harness:test` が無ければ `"harness:test": "node tests/harness/run.mjs"` を追記する（Node 22 以上が前提）。pnpm 以外、または `package.json` が無い導入先は、既存 CI から `node tests/harness/run.mjs` を直接呼ぶ。導入先に既存違反がある検査は、`tests/harness/README.md` の除外定数表（`SIZE_ALLOWLIST` / `MISSING_PATH_EXCLUSIONS` / `DIRECT_COMMAND_ALLOWED`）へ理由付きで登録して green の状態で導入するか、不要な検査の `*.test.mjs` を削除する。導入先のルートに別用途の `MANIFEST.md` が既にある場合、検査はルートをテンプレート資産とみなして未置換 token の検査を緩めるため、置換漏れは `rg` で手動確認する |
+| ハーネスの機械検査（`tests/harness/`） | 導入先の `package.json` に `harness:test` が無ければ `"harness:test": "node tests/harness/run.mjs"` を追記する（Node 22 以上が前提）。pnpm 以外、または `package.json` が無い導入先は、既存 CI から `node tests/harness/run.mjs` を直接呼ぶ。導入先に既存違反がある検査は、`tests/harness/README.md` の除外定数表（`SIZE_ALLOWLIST` / `MISSING_PATH_EXCLUSIONS`）へ理由付きで登録して green の状態で導入するか、不要な検査の `*.test.mjs` を削除する。未置換 token の検査は `docs/` 配下の markdown だけを見るため、それ以外（ルート直下の文書・設定など）の置換漏れは `rg` で手動確認する |
 | 既存 ADR の置き場、Issue ごとの計画・成果物の置き場がある | 既存の置き場を維持する。ADR は、既存置き場を正本として維持するか `docs/adr/` へ切り替えるかを判断して記録し、切り替える場合も既存文書は移動せず、「この日以降の新規文書は新置き場」と README に注記する。既存文書の移行は別 Issue。assets は Issue ごとの成果物ファイルを持たない（計画と検証結果は PR 本文に置く）旨を PR 本文に注記する |
 | tool version 管理（mise 不在・別ツールあり） | mise 不在なら `.mise.toml` を導入する。asdf 等の既存ツールがあるなら既存を優先し、`.mise.toml` は導入せず、hooks の mise 依存区画を既存ツールに合わせて調整する（「既定スタックと差し替え点」の gitleaks + mise の行） |
-| ブランチモデルが main=dev / release=prod と異なる | 既存フローを優先し、索引の branch-model に載る全資産（`deploy-verify` の release 反映の節を含む）を導入先の実態で置換する（テンプレート既定を押し付けない）。既定ブランチ名が `main` でない場合は、索引の default-branch に載る資産も置換する。置換後、索引の検索コマンドで取り残しが無いことを確認する |
+| ブランチモデルが main=dev / release=prod と異なる | 既存フローを優先し、索引の branch-model に載る全資産（`deploy-verify` の release 反映の節を含む）を導入先の実態で置換する（テンプレート既定を押し付けない）。既定ブランチ名が `main` でない場合は、索引の default-branch に載る資産も置換する。置換後、索引の検索コマンドで取り残しが無いことを確認する（索引の表の中の検索コマンドは、縦棒の前に表のエスケープのバックスラッシュが付いている。実行するときは外す。付けたままでは何も一致せず、取り残しが 0 件に見える） |
 
 置換 token（`{{PRODUCT_NAME}}` `{{GITHUB_ORG}}` `{{REPO_NAME}}` `{{PROJECT_LANGUAGE}}`）は対象 repo の実値で置換する。TODO は MANIFEST「TODO 記法」に従って充填し、埋められなかった TODO は残して、PR 本文の「リスク」に列挙する。
 
@@ -140,7 +140,7 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 
 不採用の opt-in グループと、不採用にした core 資産（`deploy-verify` / infra 向け rule など）は copy しない。core 側に残る参照は、MANIFEST の「グループ除去チェックリスト」で処理する（既存の文書は編集せず、導入した資産の側だけを直す）。
 
-導入しなかった skill（同名スキップ・不採用 opt-in・不採用 core）の行は、`docs/harness/OPERATING_MODEL.md` の skill コマンド一覧から削除する（デッド参照を導入初日から作らない。`harness-development.md` rule の「skill 増減時は一覧を同一 PR で更新」と同じ扱い）。導入しなかった rule（IaC が無い場合の infra 向け rule など）の行も、`OPERATING_MODEL.md` の「領域別 rule の読み場面」表から削除する。
+導入しなかった skill（同名スキップ・不採用 opt-in・不採用 core）の行は、`docs/harness/OPERATING_MODEL.md` の skill コマンド一覧から削除する（デッド参照を導入初日から作らない。`harness-development.md` rule の「同時更新と確認」と同じ扱い）。導入しなかった rule（IaC が無い場合の infra 向け rule など）の行も、`OPERATING_MODEL.md` の「領域別 rule の読み場面」表から削除する。
 
 ## Step 4: 検証
 
@@ -149,7 +149,7 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 3. `docs/harness/skills/shared/verification-gates.md` の `gate:commit` を実際に実行し、既存 scripts 名とのマッピングが正しいことを確認する（fail する check は「既存の失敗」か「導入起因」かを切り分け、導入起因のみ修正する）。
 4. MANIFEST の Self-check を全項目実施する。
 5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、Claude の入口が 1 か所のみであること、post-edit-check が対象 repo の実ファイルで package を解決できること。
-6. 導入した検査が実際の PR で起動すること: 対象 workflow の trigger と `if` 条件を読み、検査入力だけを変更した PR で起動するかを確認して PR 本文の「検証結果」に記録する。検査入力は、hooks のテストが読む `.claude/hooks/**`・`.claude/settings.json`・root scripts・`.mise.toml`、ハーネスの機械検査が読む `docs/**`・`.claude/**`・`.github/workflows/**`・ルート直下の `*.md`・`package.json`・`tests/harness/**` である。
+6. 導入した検査が実際の PR で起動すること: 対象 workflow の trigger と `if` 条件を読み、検査入力だけを変更した PR で起動するかを確認して PR 本文の「検証結果」に記録する。検査入力は、hooks のテストが読む `.claude/hooks/**`・`.claude/bin/**`、ハーネスの機械検査が走査する `docs/**`・`.claude/**`・`.github/**`・`scripts/**`・ルート直下の `*.md`・`package.json`・`.mise.toml`・`.gitignore`・`tests/harness/**` と、ハーネス文書が参照するパスである（走査範囲の正本は `tests/harness/` の各検査の冒頭コメント）。
 
 ## Step 5: 完了処理と open PR
 

@@ -15,7 +15,7 @@
 | ルート直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` など） | 同上                                |
 | `.claude/rules/*.md`                                                                         | 同上                                |
 
-per-file 鮮度検証（実コード・設定との突合）の対象ファイルは `.claude/skills/docs-sync/references/freshness-policy.md`（プロジェクト profile）で定義する。既定は `docs/product/{ARCHITECTURE,TECH_STACK,TERMS}.md`（TERMS.md の「初出」列は例外、後述）。
+per-file 鮮度検証（実コード・設定との突合）の対象ファイルは `.claude/skills/docs-sync/references/freshness-policy.md`（プロジェクト profile）で定義する。TERMS.md の「初出」列の扱いは後述の例外規定に従う。
 
 以下のパスは本ガイドの 3 原則の対象外。各層の役割（次節）に従う。
 

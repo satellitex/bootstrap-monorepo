@@ -4,7 +4,7 @@
 
 ## 目的
 
-個人 memory（`~/.claude/projects/<project-slug>/memory/feedback_*.md`）に蓄積された feedback のうち team-shared 性質のものを `docs/styles/team-feedback/` に正本化し、`.claude/rules/` から pointer を貼り、個人 memory を pointer のみに置換して drift を防ぐ。1 回の実行で 1 件のみ昇格し、1 件 1 PR とする。
+個人 memory（`~/.claude/projects/<project-slug>/memory/`）に蓄積された feedback（frontmatter の type が `feedback` の memory）のうち team-shared 性質のものを `docs/styles/team-feedback/` に正本化し、`.claude/rules/` から pointer を貼り、個人 memory を pointer のみに置換して drift を防ぐ。1 回の実行で 1 件のみ昇格し、1 件 1 PR とする。
 
 ## 入力
 
@@ -16,7 +16,7 @@
 
 ### Step 1: 昇格候補の確定
 
-引数指定があればそれを採用。省略時は `~/.claude/projects/<project-slug>/memory/feedback_*.md` を列挙し、次を除外して候補を絞る:
+引数指定があればそれを採用。省略時は `~/.claude/projects/<project-slug>/memory/` 配下から frontmatter の type が `feedback` の memory を列挙し、次を除外して候補を絞る:
 
 - 既に `docs/styles/team-feedback/` に正本がある（drift の sync は本 skill の責務外）
 - 個人作業環境固有（エージェントセッション固有制約、ローカル開発手順）
@@ -47,16 +47,18 @@
 ```markdown
 # <人間が読める rule タイトル>
 
+> この文書は team-shared rule の 1 つ。<この rule が定める範囲>のみを定め、<詳細手順など他所に書く内容>は <正本のパス> に書く。
+
 <rule 本文 — 命令形 / 宣言形で 1〜3 段落>
+
+## Why
+
+<理由 — 現状の事実として記述する>
 
 ## How to apply
 
 - <適用ガイド 1>
 - <適用ガイド 2>
-
-## Why
-
-<理由 — 現状の事実として記述する>
 
 ## 関連
 

@@ -3,9 +3,10 @@
 //
 //   1. list 系の照会に取得上限（--limit / -L）を明示する。省略時の既定件数を超えた分は無言に
 //      切り捨てられ、絞り込み前の集合が欠けたまま「0 件」と解釈されるため。
-//   2. `gh issue list` / `gh pr list` に search 系フィルタ（--search / --label / --milestone
-//      とその短縮形）を付けない。search 経路はリポジトリの移管・リネームを追わず、エラーにも
-//      ならず空配列を返すため。plain list + `--json` + ローカル絞り込みで書く。
+//   2. `gh issue list` / `gh pr list` に search 系フィルタ（両方の --search / --label、
+//      `gh issue list` の --milestone / --type、`gh pr list` の --author / --app / --assignee /
+//      --draft と、それらの短縮形）を付けない。search 経路はリポジトリの移管・リネームを追わず、
+//      エラーにもならず空配列を返すため。plain list + `--json` + ローカル絞り込みで書く。
 //   3. `--repo <owner>/<repo>` と `repos/<owner>/<repo>` に owner を直書きしない。移管のたびに
 //      全箇所の手当てが必要になり、漏れが 2 の無言故障に化けるため。
 //
@@ -36,12 +37,22 @@ import {
 const LIST_COMMAND_RE =
   /\bgh\s+(?:(issue|pr|label|release|run|repo)\s+list|project\s+(list|item-list|field-list)|search\s+(issues|prs|repos|code|commits))\b/g;
 
-/** search 経路に落ちるフィルタを禁止するコマンド。 */
-const SEARCH_FLAG_COMMANDS = new Set(["gh issue list", "gh pr list"]);
+/**
+ * search 経路に落ちるフィルタ（コマンドごと）。`gh issue list` の --author / --assignee は
+ * search 経路に落ちないため、`gh pr list` と分けて持つ。
+ */
+const SEARCH_FLAG_RES = new Map([
+  [
+    "gh issue list",
+    /(?:^|\s)(?:--search|--label|--milestone|--type)(?:[\s=]|$)|(?:^|\s)-[Slm](?=\s|=|$|["'\w])/,
+  ],
+  [
+    "gh pr list",
+    /(?:^|\s)(?:--search|--label|--milestone|--author|--app|--assignee|--draft)(?:[\s=]|$)|(?:^|\s)-[SlmAad](?=\s|=|$|["'\w])/,
+  ],
+]);
 
 const LIMIT_FLAG_RE = /(?:^|\s)(?:--limit|-L)(?:[\s=\d]|$)/;
-const SEARCH_FLAG_RE =
-  /(?:^|\s)(?:--search|--label|--milestone)(?:[\s=]|$)|(?:^|\s)-[Slm](?=\s|=|$|["'\w])/;
 
 // ---- 純関数 -----------------------------------------------------------------
 
@@ -129,12 +140,9 @@ function findGhViolations(unit) {
     if (!LIMIT_FLAG_RE.test(region)) {
       out.push(`${name} に --limit が無い。取得上限を明示する`);
     }
-    if (
-      SEARCH_FLAG_COMMANDS.has(name) &&
-      SEARCH_FLAG_RE.test(stripQuoted(region))
-    ) {
+    if (SEARCH_FLAG_RES.get(name)?.test(stripQuoted(region))) {
       out.push(
-        `${name} に search 系フィルタ（--search / --label / --milestone）がある。plain list + --json + ローカル絞り込みにする`,
+        `${name} に search 系フィルタ（--search / --label など）がある。plain list + --json + ローカル絞り込みにする`,
       );
     }
   }
@@ -331,6 +339,20 @@ describe("gh 使用 gate: 自己テスト", () => {
     );
     assert.equal(
       violationsOf("a.sh", "gh label list --limit 5 --search x").length,
+      0,
+    );
+    assert.equal(
+      violationsOf(
+        "a.sh",
+        "gh pr list --limit 100 --author app/renovate --json number",
+      ).length,
+      1,
+    );
+    assert.equal(
+      violationsOf(
+        "a.sh",
+        "gh issue list --limit 100 --author someone --json number",
+      ).length,
       0,
     );
   });

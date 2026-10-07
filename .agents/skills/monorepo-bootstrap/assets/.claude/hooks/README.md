@@ -56,7 +56,7 @@ hook プロセスの cwd は、操作対象の作業ツリーと一致すると�
 
 1. `pre-commit-submodule-guard.sh` 冒頭の `WATCH_PATH` 既定値を実際の submodule 親パスに変更する。
 2. `session-start.sh` の「opt-in: submodule 採用時に有効化」区画のコメントアウトを外し、同じパスを渡す（セッション開始時の自動初期化が第一防御、本 hook が誤コミットへの二重防御）。
-3. `.claude/settings.json` の `PreToolUse` → `matcher: "Bash"` の `hooks` 配列に以下の 2 件を追加する（pre-format-check より**前**に置く。`if` を 2 本にする理由は「検査対象の作業ツリー」節に書く）:
+3. `.claude/settings.json` の `PreToolUse` → `matcher: "Bash"` の `hooks` 配列に以下の 2 件を追加する（`if` を 2 本にする理由は「検査対象の作業ツリー」節に書く）:
 
 ```json
 [
