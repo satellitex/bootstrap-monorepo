@@ -21,6 +21,7 @@
 | `harness-adopt` | 既存 repo へ運用ハーネスのみ導入（既存優先・非破壊マージ） | `.agents/skills/harness-adopt/SKILL.md` | `.claude/skills/harness-adopt/SKILL.md` |
 
 テンプレート資産の実体は `.agents/skills/monorepo-bootstrap/assets/`（台帳は `assets/MANIFEST.md`）で、両 skill が共用する。
+他の repository で使う場合は、両 skill を skill installer で同じ skills ディレクトリへ install する（手順 → `README.md`「インストール」）。
 Codex で実行するときは各正本の SKILL.md を読み、定義された手順どおり進める。
 
 ## 両対応の保守ルール

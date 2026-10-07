@@ -298,7 +298,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 ## テンプレート自身の保守（配布しない）
 
-assets を変更したら、テンプレート repository のルートから次を実行する。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
+assets を変更したら、テンプレート repository の checkout のルートから次を実行する。skill installer で install した Skill や、bootstrap / adopt の実行中には実行しない（Self-check の対象でもない）。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
 
 ```bash
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh

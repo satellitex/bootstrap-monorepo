@@ -2,11 +2,11 @@
 
 この文書は、`../assets/` に収録したハーネス資産の**設計根拠**と、target repo の規模・team・deploy 先・規制要件・project language に合わせた**縮約判断**の指針である。
 資産ファイルの一覧・区分（core / opt-in）はここに書かない。正本台帳は `../assets/MANIFEST.md`。
-copy と置換の手順も書かない（手順は SKILL.md Step 5 と MANIFEST の「使い方」）。
+copy と置換の手順も書かない（手順は `../SKILL.md` Step 5 と MANIFEST の「使い方」）。
 
 ## 1. Repository Knowledge Map
 
-`assets/` は「bootstrap 先のディレクトリ構造をミラーしたコピー元」であり、入口を薄く、正本を `docs/` に置く構造を前提にしている。
+`../assets/` は「bootstrap 先のディレクトリ構造をミラーしたコピー元」であり、入口を薄く、正本を `docs/` に置く構造を前提にしている。
 両入口（`AGENTS.md` / `CLAUDE.md`）に同じ詳細を複製せず、docs 正本へ参照させる。
 
 | 収録資産（assets 内の相対パス） | 設計上の役割 |
@@ -112,7 +112,7 @@ prod リリースの手順の具体は `deploy-verify` の「release 反映（pr
 
 ## 5. CI/CD Baseline
 
-CI の既定は基礎 CI 1 本のみ（`assets/.github/workflows/ci.yml`）。
+CI の既定は基礎 CI 1 本のみ（`../assets/.github/workflows/ci.yml`）。
 
 - format:check / test / build（`gate:ci`）
 - test job 内で hooks の bash テストとハーネスの機械検査（`pnpm harness:test`）を実行する。job は増やさず、step を足すだけにする
@@ -176,7 +176,7 @@ bootstrap 直後の PR checklist:
 
 ## 9. PR Contract
 
-PR 本文は標準節を既定とする。定義と各節に書くことは `assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」が正本である。
+PR 本文は標準節を既定とする。定義と各節に書くことは `../assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」が正本である。
 bootstrap / adopt の PR は、これに「承認ログ（課金・秘密値）」と「移管先の文書」の 2 節を加える。節構成のテンプレートは `bootstrap-artifacts.md` にある。
 
 PR 本文に最低限入れる情報と、その置き場:
@@ -191,7 +191,7 @@ PR 本文に最低限入れる情報と、その置き場:
 | 課金操作・秘密値投入の承認ログ | 承認ログ（課金・秘密値） |
 | 成果を移した文書 | 移管先の文書 |
 
-PR の作成規約は `assets/docs/harness/skills/shared/pr-creation.md` が正本である。base は常に既定ブランチ、draft にしない、open 前に他の open PR との衝突を検査する。
+PR の作成規約は `../assets/docs/harness/skills/shared/pr-creation.md` が正本である。base は常に既定ブランチ、draft にしない、open 前に他の open PR との衝突を検査する。
 closing keyword の規則は `docs/styles/team-feedback/pr-closing-keyword.md` を正本にする。
 
 ## 10. Avoid Tool / Provider Lock-in

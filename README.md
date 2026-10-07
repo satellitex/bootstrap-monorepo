@@ -5,9 +5,33 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 ## 使い方
 
+### インストール
+
+Codex 同梱の skill-installer（`$skill-installer`）で、2 つの skill を 1 回のコマンドでまとめて install する。Codex に「satellitex/bootstrap-monorepo の `.agents/skills/monorepo-bootstrap` と `.agents/skills/harness-adopt` を install して」と頼んでもよいし、次のスクリプトを直接実行してもよい。
+
+```bash
+INSTALLER=~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py
+
+# Codex（既定の install 先は $CODEX_HOME/skills）
+python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
+  --path .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt
+
+# Claude Code（personal skills へ install）
+python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
+  --path .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt \
+  --dest ~/.claude/skills
+```
+
+- `--path` には `.agents/skills/` 側の実体を指定する。`.claude/skills/` 側は skill の外を指す link を含むため、installer が拒否する。
+- 2 つは必ず同じ `--dest` に install し、`--name` で改名しない。harness-adopt は兄弟ディレクトリ `../monorepo-bootstrap/` の `assets/` をコピー元に使う。
+- install 後、Codex は次のターンから認識する（出ない場合は再起動する）。Claude Code はセッション中でも認識する。ただし `~/.claude/skills` がセッション開始時に無かった場合は `/reload-skills` を実行する。
+- 呼び出しは、Claude Code では `/monorepo-bootstrap` `/harness-adopt`、Codex では `$monorepo-bootstrap` `$harness-adopt`。
+- 更新: installer は install 先が既にあると中断し、上書きしない。古い 2 つのディレクトリを削除してから、同じコマンドで install し直す（例: `rm -rf ~/.claude/skills/monorepo-bootstrap ~/.claude/skills/harness-adopt`）。版を固定するときは `--ref <tag または commit>` を付ける。
+- テンプレートを保守するときの注意: この repository 内で起動すると、repo の `.claude/skills/`（Claude Code）と `.agents/skills/`（Codex）の skill も読み込まれる。Claude Code では personal（`~/.claude/skills`）が project より優先されるため、install 済みの古い版が編集中の版を隠す。Codex では同名の skill が 2 つ並ぶ。保守中は install 済みの版を外すか、どちらの版が動いているかに注意する。
+
 ### 前提（共通）
 
-- この repository をローカルに clone する（skill と資産のコピー元になる）。
+- 2 つの skill を同じ skills ディレクトリへ install する（手順は「インストール」）。片方だけの install では harness-adopt が動かない。この repository の clone は、テンプレートを保守する場合だけ必要。
 - `gh` CLI が認証済みであること（Issue / PR / repo 操作に使う）。
 - 承認モデル: 人間の明示承認が必須なのは課金と秘密値のみで、それ以外は open PR の提出まで自律実行される（定義 → `.agents/skills/monorepo-bootstrap/assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
 
@@ -15,7 +39,7 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 技術選定・モノレポ基盤・ハーネス・CI/CD・初期実装・deploy 検証までを一気通貫で行う。
 
-1. この repository で Claude Code（または Codex）を起動する。
+1. 作成先のディレクトリ（新規の空ディレクトリ、または作成先 repo の checkout）で Claude Code（または Codex）を起動する。
 2. `/monorepo-bootstrap <product overview>` を実行し、作成先（ローカルパス or GitHub repo 名）、制約（provider / DB / 納期など）、project language、deploy 目標を伝える。
 3. 以降は自律実行される: 技術調査 → Gate A（選定を領域ごとの ADR と TECH_STACK に確定）→ 実装計画 → 基盤 scaffold → `assets/` からの copy + placeholder 置換 → 環境 / CI → 初期実装 → deploy 検証 → open PR。
 4. 人間がやること: 課金・秘密値の承認、PR レビューとマージ、routine 登録（生成された `docs/harness/scheduled-operations.md` のカタログ参照）。
@@ -24,8 +48,8 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 既存のスタック・コード・CI を維持したまま、運用ハーネス（docs 規約 / skills / agents / rules / hooks / 基礎 CI）だけを導入する。
 
-1. この repository で Claude Code（または Codex）を起動する。Claude Code の場合は対象 repo を追加作業ディレクトリにする（例: `claude --add-dir /path/to/target-repo`）。
-2. `/harness-adopt <対象 repo の絶対パス>` を実行する。必要なら project language と opt-in 採否（opt-in グループの一覧は `assets/MANIFEST.md`）を添える。
+1. 導入先 repo の checkout で Claude Code（または Codex）を起動する。別の場所から起動する場合だけ、Claude Code では対象 repo を追加作業ディレクトリにする（例: `claude --add-dir /path/to/target-repo`）。
+2. `/harness-adopt` を実行する（cwd が導入先なら引数は不要。別の場所から起動した場合だけ、対象 repo の絶対パスを渡す）。必要なら project language と opt-in 採否（opt-in グループの一覧は monorepo-bootstrap skill の `assets/MANIFEST.md`）を添える。
 3. 以降は自律実行される: 現状棚卸し（棚卸し表を PR 本文に作成）→ 導入計画 → `assets/` からの copy + 既存資産との非破壊マージ（既存優先。既存ファイルの削除・移動はしない）→ 検証 → open PR。
 4. 人間がやること: A と同じ（承認・レビュー・routine 登録・TODO 値の充填）。
 
@@ -46,7 +70,7 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
   - `assets/`: bootstrap / adopt 先へ copy する実体テンプレート資産。台帳は `assets/MANIFEST.md`
   - `scripts/check-assets.sh`: テンプレート専用の整合検査。bootstrap / adopt 先へは配布しない
 - `.agents/skills/harness-adopt/`: 既存 repo 導入 skill の正本（資産は monorepo-bootstrap の `assets/` を共用）
-- `.claude/skills/`: Claude 向け入口。中身は `.agents` 側へ link
+- `.claude/skills/`: この repository 内で使う Claude 向け入口。中身は `.agents` 側へ link（skill installer の `--path` には指定しない）
 
 ### テンプレートの整合検査
 

@@ -17,16 +17,16 @@ description: 既存 repository に運用テンプレート（docs 規約 / skill
 
 ## 前提
 
-- 本 Skill はテンプレート repo（この repository）の checkout から実行し、対象 repo への書き込みアクセスを持つこと（Claude Code では対象 repo を追加作業ディレクトリにする）。
-- 資産のコピー元は `../monorepo-bootstrap/assets/`、台帳は `../monorepo-bootstrap/assets/MANIFEST.md`（以下 MANIFEST）。
-- 対象 repo は git 管理下にあり、既定 branch へ PR を出せること。
-- git / gh 操作はすべて対象 repo を作業ディレクトリとして実行する（`git -C <target>` / `gh -R <owner>/<repo>`）。テンプレート repo 側には commit / branch / PR を作らない。
+- 本 Skill は skill installer などで install した Skill として実行できる（テンプレート repo の checkout は不要）。兄弟 Skill `monorepo-bootstrap` が同じ skills ディレクトリに install されていること（資産のコピー元に使う。確認は Step 0）。
+- 本書の `../monorepo-bootstrap/...` は、この SKILL.md があるディレクトリ（以下 `<SKILL_DIR>`。Claude Code では skill 起動時に示される base directory）からの相対パスであり、作業ディレクトリ（cwd）や対象 repo からの相対ではない。資産のコピー元は `<SKILL_DIR>/../monorepo-bootstrap/assets/`、台帳は `<SKILL_DIR>/../monorepo-bootstrap/assets/MANIFEST.md`（以下 MANIFEST）。copy は「コピー元の `assets/<path>` → 対象 repo の `<path>`」で行う。
+- 対象 repo は git 管理下にあり、既定 branch へ PR を出せること。作業ディレクトリは対象 repo を既定とする。対象 repo の外で起動した場合だけ Target repo path を受け取り、Claude Code では対象 repo を追加作業ディレクトリにする（`--add-dir <target>`）。
+- git / gh 操作はすべて対象 repo に対して実行する（cwd が対象 repo でなければ `git -C <target>` / `gh -R <owner>/<repo>`）。Skill の install 先（`<SKILL_DIR>` とその兄弟ディレクトリ）には何も書き込まない。
 
 ## 入力
 
 | 項目 | 必須 | 説明 | 例 |
 |------|------|------|----|
-| Target repo path | Yes | 導入先 repository の絶対パス | `/path/to/existing-repo` |
+| Target repo path | No（cwd が対象 repo なら省略可） | 導入先 repository の絶対パス。省略時は cwd の repo root（`git rev-parse --show-toplevel`）。cwd が git repo でなければユーザーに確認する | `/path/to/existing-repo` |
 | Project language | No | Issue / PR / docs の既定言語。未指定なら既存 docs から推定。assets の運用文書は日本語で収録されており、既存 docs が日本語以外でも収録言語のまま導入する。翻訳は明示された場合のみ行い、決定を PR 本文に記録する（`../monorepo-bootstrap/SKILL.md` の Language Policy） | `日本語` |
 | Token 値 | No | `{{PRODUCT_NAME}}` `{{GITHUB_ORG}}` `{{REPO_NAME}}` の値。未指定なら repo から推定して確認提示 | — |
 | Opt-in 採否 | No | opt-in グループ（一覧は MANIFEST）の採否 | `renovate のみ採用` |
@@ -58,13 +58,27 @@ PR 本文の節構成は、標準節と、導入の PR に加える 2 節（承�
 ## フロー図
 
 ```text
-harness-adopt <target repo path>
+harness-adopt [<target repo path>]
+  +-- 0. 前提検査（兄弟 Skill monorepo-bootstrap の資産の存在）
   +-- 1. Intake と現状棚卸し（棚卸し表を PR 本文の作業用ファイルに作成）
   +-- 2. 導入計画（opt-in 採否・衝突ごとのマージ方針を確定）
   +-- 3. copy + 置換 + 非破壊マージ（MANIFEST 手順 + 本書のマージ規則）
   +-- 4. 検証（hooks テスト・機械検査・検証ゲート・Self-check）
   +-- 5. 完了処理と open PR（routine 登録 TODO の引き継ぎ）
 ```
+
+## Step 0: 前提検査（兄弟 Skill の資産）
+
+対象 repo に触れる前に、`<SKILL_DIR>/../monorepo-bootstrap/` に次のファイルがあることを確認する。
+
+- `SKILL.md`
+- `assets/MANIFEST.md`
+- `assets/docs/harness/OPERATING_MODEL.md`
+- `assets/docs/harness/skills/shared/pr-creation.md`
+- `references/bootstrap-artifacts.md`
+- `references/ci-cd-runner-deploy.md`
+
+1 つでも無い場合は、対象 repo を変更せずに停止し、無いパスと次の案内をユーザーに伝える。「harness-adopt は兄弟 Skill monorepo-bootstrap の assets をコピー元に使う。2 つの Skill を同じ skills ディレクトリに install する（手順はテンプレート repo の README.md「インストール」）」。資産を手で再作成したり、Web から部分的に取得したりしない。
 
 ## Step 1: Intake と現状棚卸し
 
@@ -145,7 +159,7 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 ## Step 4: 検証
 
 1. `.claude/hooks/tests/run-all.sh` を対象 repo で実行し green を確認する（hooks を導入した場合）。
-2. `pnpm harness:test`（`pnpm` を使わない導入先は `node tests/harness/run.mjs`）を実行し green を確認する。失敗の読み方は `../monorepo-bootstrap/assets/tests/harness/README.md`「検査一覧」に従う。導入起因は直し、既存違反は Step 3 の規則で扱う。
+2. `pnpm harness:test`（`pnpm` を使わない導入先は `node tests/harness/run.mjs`）を実行し green を確認する。失敗の読み方は、対象 repo に copy した `tests/harness/README.md`「検査一覧」に従う。導入起因は直し、既存違反は Step 3 の規則で扱う。
 3. `docs/harness/skills/shared/verification-gates.md` の `gate:commit` を実際に実行し、既存 scripts 名とのマッピングが正しいことを確認する（fail する check は「既存の失敗」か「導入起因」かを切り分け、導入起因のみ修正する）。
 4. MANIFEST の Self-check を全項目実施する。
 5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、Claude の入口が 1 か所のみであること、post-edit-check が対象 repo の実ファイルで package を解決できること。
@@ -162,11 +176,12 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 
 - 対象 repo の既存ファイルを削除・移動・一括改稿しない（置き換えは提案に留める）。
 - 対象 repo の既存規約とテンプレートが矛盾する場合は既存規約を優先する。
-- テンプレート資産をスクラッチで再作成しない。必ず `../monorepo-bootstrap/assets/` から copy する。
+- テンプレート資産をスクラッチで再作成しない。必ず `<SKILL_DIR>/../monorepo-bootstrap/assets/` から copy する。見つからない場合は Step 0 の前提エラーで停止する（自作・Web からの部分取得で代替しない）。
 - secrets、tokens、個人情報を成果物・棚卸し結果に書かない。
 
 ## Self-check
 
+- [ ] Step 0 の前提検査を通過し、資産のコピー元は `<SKILL_DIR>/../monorepo-bootstrap/assets/` だけである。Skill の install 先ディレクトリに変更を加えていない
 - [ ] Step 4 の 1〜6 を実施し、結果を PR 本文の「検証結果」に記録した（既存ファイルの削除・移動・リネームが無いこと、既存 adapter の記述が保持され Claude の入口が 1 か所のみであること、導入した検査が起動することを含む）。専用 workflow を併設した場合、required check への登録が人間への引き継ぎに載っている
 - [ ] PR 本文に棚卸し表、衝突一覧、マージ判断、opt-in 採否、token 値がある
 - [ ] 既存のルート設定（`package.json` / `turbo.json` / `.gitignore` 等）を上書きしておらず、追記マージのみである。既存 adapter は pointer 節の追記のみである（新規作成の場合は両 adapter が対称）
