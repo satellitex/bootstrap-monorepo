@@ -22,7 +22,7 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
   --dest ~/.claude/skills
 ```
 
-- `--path` には `.agents/skills/` 側の実体を指定する。`.claude/skills/` 側は skill の外を指す link を含むため、installer が拒否する。
+- `--path` には `.agents/skills/` 側の実体を指定する。`.claude/skills/` 側は link なので指定しない。既定の download 方式では、link が「link 先のパスだけを書いたテキストファイル」として install され、エラーにならないまま skill として動かない（git 方式では installer が拒否する）。
 - 2 つは必ず同じ `--dest` に install し、`--name` で改名しない。harness-adopt は兄弟ディレクトリ `../monorepo-bootstrap/` の `assets/` をコピー元に使う。
 - install 後、Codex は次のターンから認識する（出ない場合は再起動する）。Claude Code はセッション中でも認識する。ただし `~/.claude/skills` がセッション開始時に無かった場合は `/reload-skills` を実行する。
 - 呼び出しは、Claude Code では `/monorepo-bootstrap` `/harness-adopt`、Codex では `$monorepo-bootstrap` `$harness-adopt`。
