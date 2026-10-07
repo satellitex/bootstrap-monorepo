@@ -24,15 +24,14 @@ Renovate が依存 pin 箇所を漏れなく検知できているか、複数 ma
 
 依存 pin インベントリの走査対象（既定。プロジェクトで使う manager に合わせて調整する）:
 
-| Manager | 走査対象 | 抽出キー |
-|---|---|---|
-| `mise` | `.mise.toml`, `.tool-versions` | `[tools]` 配下の各エントリ |
-| `npm` (packageManager) | root `package.json` の `"packageManager"` | `pnpm@X.Y.Z` 形式から dep 名と version |
-| `npm` (deps) | `**/package.json` の `dependencies` / `devDependencies` / `peerDependencies` | キーと version |
-| `dockerfile` | `**/Dockerfile*` | `FROM` 行の image:tag |
-| `docker-compose` | `**/docker-compose*.{yml,yaml}` | `image:` 値 |
-| `github-actions` | `.github/workflows/**/*.{yml,yaml}` | `uses:` の `owner/repo@ref`（SHA pin は隣接コメントの `# vN`） |
-| その他 | シェルスクリプト内の `tool_X.Y.Z` / `tool@X.Y.Z` 等のリテラル pin を grep | 「未管理 pin 候補」として記録 |
+| Manager                    | 走査対象                                                                     | 抽出キー                                                       |
+| -------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `mise`                     | `.mise.toml`, `.tool-versions`                                               | `[tools]` 配下の各エントリ                                     |
+| `npm` (packageManager)     | root `package.json` の `"packageManager"`                                    | `pnpm@X.Y.Z` 形式から dep 名と version                         |
+| `npm` (deps)               | `**/package.json` の `dependencies` / `devDependencies` / `peerDependencies` | キーと version                                                 |
+| その他の manager（採用時） | プロジェクトで有効にした manager の対象ファイル                              | manager が抽出する pin                                         |
+| `github-actions`           | `.github/workflows/**/*.{yml,yaml}`                                          | `uses:` の `owner/repo@ref`（SHA pin は隣接コメントの `# vN`） |
+| その他                     | シェルスクリプト内の `tool_X.Y.Z` / `tool@X.Y.Z` 等のリテラル pin を grep    | 「未管理 pin 候補」として記録                                  |
 
 除外: `node_modules/`、ビルド成果物、`.git/`、`.claude/worktrees/`、lock ファイル
 （version 以外の hash 行）。
@@ -140,14 +139,14 @@ manager / path、標準 manager で拾えないリテラルが対象。
 全検査で違反 0 件なら何も作らず終了する（sync-prelude の規約）。違反ありの場合は
 `docs/harness/skills/shared/sync-pr-flow.md` を Read してその手順に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[renovate-sync] 変更なし。依存 pin 箇所は Renovate の検知範囲と整合しています。` |
-| ブランチ | `agent/renovate-sync-{YYYY-MM-DD}` |
-| git add | `renovate.json` のみ |
-| commit | `chore(renovate): renovate.json sync (YYYY-MM-DD)`（body に検査結果サマリ） |
-| PR title | `chore(renovate): renovate.json sync (YYYY-MM-DD)` |
-| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
+| 項目               | 値                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[renovate-sync] 変更なし。依存 pin 箇所は Renovate の検知範囲と整合しています。`            |
+| ブランチ           | `agent/renovate-sync-{YYYY-MM-DD}`                                                           |
+| git add            | `renovate.json` のみ                                                                         |
+| commit             | `chore(renovate): renovate.json sync (YYYY-MM-DD)`（body に検査結果サマリ）                  |
+| PR title           | `chore(renovate): renovate.json sync (YYYY-MM-DD)`                                           |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
 
 PR は必ず `renovate.json` の実変更を含む（報告のみの PR は作らない）。
 
@@ -159,7 +158,7 @@ PR は必ず `renovate.json` の実変更を含む（報告のみの PR は作�
 
 - 通知の区分: エスカレーション通知（`docs/harness/skills/shared/notification-contract.md`）。
 - 通知先: `TODO(取得方法: チーム通知チャネル〔chat の webhook 等〕を用意し、URL を環境変数
-  PROJ_RENOVATE_SYNC_ESCALATION_WEBHOOK で注入する。実値はコミットしない)`。本 skill 固有のこの変数を
+PROJ_RENOVATE_SYNC_NOTIFY_WEBHOOK_URL で注入する。実値はコミットしない)`。本 skill 固有のこの変数を
   最優先で使い、解決順は同契約に従う。未設定の場合は通知をスキップし、その旨を明示して失敗扱いで終了する。
 - メッセージには検査 1〜3 の件数、吸収不能な違反の一覧（依存名 / 理由）、推奨する次の人間判断
   ステップを含める。資格情報の扱い（webhook URL を出力に含めない）は同契約に従う。

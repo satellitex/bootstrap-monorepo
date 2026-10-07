@@ -75,4 +75,4 @@ sync 系（`/readme-sync` / `/docs-sync` / `/code-sync` 等）を含む全コマ
 - **レビューでは遠慮なく修正指示を出す** — AI は再生成するだけなのでコストは低い。設計段階で方向修正するほうが手戻りが少ない
 - **設計判断は ADR に残す** — `/create-adr` で「なぜこの設計にしたか」を記録すると後から振り返れる
 - **複数タスクは worktree で並行** — 各 worktree は独立した作業コピーで、互いに干渉しない
-- **INDEX は更新主体に任せる** — 実装 PR は既存の `INDEX.md` を編集しない。並列に進む PR の衝突を避けるためで、行は定期実行の routine が実体から起こす（正本 → `docs/harness/skills/shared/index-writer-policy.md`）
+- **INDEX は更新主体に任せる** — 実装 PR は既存の `INDEX.md` を編集しない。並列に進む PR の衝突を避けるためで、行は更新主体が実体から起こす。更新主体の routine を登録するまでは、実装 PR が同一 PR で更新してよい（正本 → `docs/harness/skills/shared/index-writer-policy.md`）

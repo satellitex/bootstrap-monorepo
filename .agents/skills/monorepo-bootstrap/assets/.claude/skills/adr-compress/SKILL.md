@@ -7,3 +7,5 @@ description: docs/adr/ の肥大化や、マージ済みなのに Proposed の�
 
 正本は `docs/harness/skills/adr-compress.md`。これを読み、記載の手順どおり実行する。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。
+
+実行基盤の注記（Claude Code）: adr-compactor は Agent tool の `subagent_type: adr-compactor` で起動する。

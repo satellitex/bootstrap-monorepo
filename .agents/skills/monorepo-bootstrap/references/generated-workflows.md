@@ -51,7 +51,7 @@ Claude 側は `.claude/skills/<name>/SKILL.md` を薄い adapter とし、正本
 ## 3. `create-issue` Specialization
 
 `create-issue` の手順正本は copy 済みの `docs/harness/skills/create-issue.md` である。
-product brief、roadmap、`references/issue-lifecycle.md` に従い、taxonomy・milestone・Project の対応を PJ 固有化する。
+Intake の整理（PR 本文の「背景」と `docs/product/ARCHITECTURE.md` の概要）、roadmap、`references/issue-lifecycle.md` に従い、taxonomy・milestone・Project の対応を PJ 固有化する。
 
 Required behavior:
 
@@ -88,7 +88,7 @@ Keep label names, code identifiers, package names, API names, and GitHub field n
 
 ## 4. Product-Derived Taxonomy
 
-Start from this neutral taxonomy and specialize it from the product brief.
+Start from this neutral taxonomy and specialize it from the Intake summary (the PR body background and `docs/product/ARCHITECTURE.md`).
 
 ### Required Issue Types
 

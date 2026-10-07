@@ -25,6 +25,5 @@ paths:
 - rule の追加・削除: `docs/harness/OPERATING_MODEL.md` の「領域別 rule の読み場面」表を同一 PR で更新する
 - 入口 adapter（`AGENTS.md` / `CLAUDE.md`）・rules・skill 一覧を変更したら、adapter が `docs/harness/OPERATING_MODEL.md` とずれていないか確認する
 - ハーネス文書・設定・workflow を変更したら、`pnpm harness:test` を実行する。検査の一覧と追加手順は `tests/harness/README.md`
-- テンプレート資産台帳（bootstrap 元 skill の MANIFEST）を持つリポジトリでは、その台帳も同時に更新し、MANIFEST の「テンプレート自身の保守」節の検査を実行する
 
 横断的な team rule は [team-policy.md](team-policy.md) を参照。

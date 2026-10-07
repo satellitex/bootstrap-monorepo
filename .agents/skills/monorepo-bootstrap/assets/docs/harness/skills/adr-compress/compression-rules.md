@@ -58,35 +58,35 @@ Status の表記は揺れうるため、次の手順で正規化する。
 ### Accepted（確定した決定）
 
 | ADR | 要旨 | Date |
-|-----|------|------|
+| --- | ---- | ---- |
 
 ### Proposed（PR レビュー中・未確定）
 
 | ADR | 要旨 | Date |
-|-----|------|------|
+| --- | ---- | ---- |
 
 ## アーカイブ
 
 ### Superseded / Deprecated（無効化済み）
 
 | ADR | 要旨 | 後継 / 無効化理由 |
-|-----|------|------------------|
+| --- | ---- | ----------------- |
 
 ### プロセス記録（durable-decision を含まない手続き記録）
 
 | ADR | 要旨 | Date |
-|-----|------|------|
+| --- | ---- | ---- |
 ```
 
 各表は見出し行と区切り行のあとに ADR 1 件 1 行を置く。表の列幅の整形はフォーマットの適用（`docs/harness/skills/shared/verification-gates.md`）に任せ、行は最小形で書いてよい。
 
 **分類**（Status と marker から決定的に決める）:
 
-| 条件（上から順に判定し、最初に合致した行を使う） | 配置先 |
-|------|--------|
-| marker `adr-compress:process-record` を持つ | アーカイブ / プロセス記録 |
-| Status が Accepted | 現行 / Accepted |
-| Status が Proposed、または `status-unparseable` | 現行 / Proposed |
+| 条件（上から順に判定し、最初に合致した行を使う）       | 配置先                               |
+| ------------------------------------------------------ | ------------------------------------ |
+| marker `adr-compress:process-record` を持つ            | アーカイブ / プロセス記録            |
+| Status が Accepted                                     | 現行 / Accepted                      |
+| Status が Proposed、または `status-unparseable`        | 現行 / Proposed                      |
 | Status が Superseded / Deprecated（stub 化済みを含む） | アーカイブ / Superseded / Deprecated |
 
 **行の形式**: `| [<id>](./<id>.md) | <要旨> | <Date または 後継 / 無効化理由> |`。セルは 3 つ（区切りの `|` は行頭と行末を含めて 4 個）で、要旨に `|` を含めない。行は `<id>` の昇順に並べる。
@@ -130,10 +130,10 @@ full stub（20 行以内。Deprecated の場合は Status を `Deprecated` に�
 ```markdown
 # <元のタイトル>
 
-| 項目 | 値 |
-|------|-----|
+| 項目   | 値                                                          |
+| ------ | ----------------------------------------------------------- |
 | Status | Superseded by [ADR-<successor-id>](./ADR-<successor-id>.md) |
-| Date | <元の Date> |
+| Date   | <元の Date>                                                 |
 
 本文は圧縮済みである。元の本文と決定の経緯は git 履歴を参照する（`git log --follow -- docs/adr/<id>.md`）。
 
@@ -145,10 +145,10 @@ partial の Decision 保持圧縮形:
 ```markdown
 # <元のタイトル>
 
-| 項目 | 値 |
-|------|-----|
+| 項目   | 値                                                   |
+| ------ | ---------------------------------------------------- |
 | Status | Superseded by ADR-<successor-id>（<置換された範囲>） |
-| Date | <元の Date> |
+| Date   | <元の Date>                                          |
 
 <`## Superseded（日付）` または `## Deprecated（日付）` の節があれば原文のまま保持する>
 
@@ -166,10 +166,10 @@ Context と Consequences は圧縮済みである。省略した詳細は git �
 ```markdown
 # <元のタイトル>
 
-| 項目 | 値 |
-|------|-----|
+| 項目   | 値            |
+| ------ | ------------- |
 | Status | <元の Status> |
-| Date | <元の Date> |
+| Date   | <元の Date>   |
 
 手続きの記録であり、恒久的な設計判断を含まない。<何の記録かを 1 文>。本文は git 履歴を参照する。
 
@@ -222,11 +222,11 @@ node tests/harness/check-adr-compression-lossless.mjs "$TMPDIR/<id>.before.md" d
 
 次に該当する候補は実行せず、理由を記録して PR 本文の「スキップした候補」に載せる。
 
-| 条件 | 対象 | 記録する理由 |
-|------|------|--------------|
+| 条件                                            | 対象          | 記録する理由                              |
+| ----------------------------------------------- | ------------- | ----------------------------------------- |
 | Status が Proposed、または `status-unparseable` | II / III / IV | `status-unparseable`（Proposed は無記録） |
-| 有効な Decision が 1 つでも落ちる | II / III / IV | `decision-at-risk` |
-| 恒久的な設計判断を含むプロセス記録らしい ADR | II-b | `durable-decision` |
-| marker を持つ（圧縮済み） | II / IV | `already-compressed` |
-| 無損失を証明できない | IV | `cannot-prove-lossless` |
-| 検出根拠の実測値がない | 全カテゴリ | 候補にしない |
+| 有効な Decision が 1 つでも落ちる               | II / III / IV | `decision-at-risk`                        |
+| 恒久的な設計判断を含むプロセス記録らしい ADR    | II-b          | `durable-decision`                        |
+| marker を持つ（圧縮済み）                       | II / IV       | `already-compressed`                      |
+| 無損失を証明できない                            | IV            | `cannot-prove-lossless`                   |
+| 検出根拠の実測値がない                          | 全カテゴリ    | 候補にしない                              |

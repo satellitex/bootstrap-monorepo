@@ -11,14 +11,14 @@
 
 ## ID 体系
 
-| 種別 | 意味 |
-| --- | --- |
-| BR | Business Requirement（事業要件） |
-| IF | Interface Requirement（インタフェース要件） |
-| DATA | Data Requirement（データ要件） |
-| FR | Functional Requirement（機能要件） |
-| NFR | Non-Functional Requirement（非機能要件） |
-| SEC | Security Requirement（セキュリティ要件） |
+| 種別 | 意味                                        |
+| ---- | ------------------------------------------- |
+| BR   | Business Requirement（事業要件）            |
+| IF   | Interface Requirement（インタフェース要件） |
+| DATA | Data Requirement（データ要件）              |
+| FR   | Functional Requirement（機能要件）          |
+| NFR  | Non-Functional Requirement（非機能要件）    |
+| SEC  | Security Requirement（セキュリティ要件）    |
 
 - ID は `種別 + 4 桁連番`（例: `FR-0001`, `SEC-0002`）。機能群ごとに番台を分けてもよい（例: 追加機能群を `1001` 番台で採番）。
 - 確定済み要件を改訂した場合は **`-FIX` サフィックス**付きファイル（例: `FR-0001-FIX-<topic-slug>.md`）を当該 Requirement ID の完全版として扱い、旧ファイルは併置しない。`-FIX` 版には変更内容だけでなく、旧要件から引き継ぐ説明・背景も含めて自己完結させる。`Supersedes` には FIX 前の要件 ID を書く（自己参照にしない）。

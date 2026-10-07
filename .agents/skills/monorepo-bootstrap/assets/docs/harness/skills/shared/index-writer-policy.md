@@ -6,12 +6,12 @@
 
 上から順に評価し、最初に一致した行を適用する。
 
-| INDEX | 更新主体 | 更新契機 |
-|---|---|---|
-| `docs/adr/INDEX.md` | `/adr-compress` | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
-| `docs/styles/team-feedback/INDEX.md` | `/promote-memory` | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う |
-| `docs/requirements/INDEX.md`、`docs/customer/**/INDEX.md`（採用している場合） | 人間 | AI エージェントは編集しない（→ `docs/README.md`） |
-| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync` | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める |
+| INDEX                                                                                                          | 更新主体          | 更新契機                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/adr/INDEX.md`                                                                                            | `/adr-compress`   | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
+| `docs/styles/team-feedback/INDEX.md`                                                                           | `/promote-memory` | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う                                                                                 |
+| `docs/requirements/INDEX.md`、`docs/customer/**/INDEX.md`（採用している場合）                                  | 人間              | AI エージェントは編集しない（→ `docs/README.md`）                                                                                                          |
+| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync`      | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める                                                                                               |
 
 - 新しい INDEX を追加するときは、この表に行を足す。足さなければ「上記以外」の行が適用される。
 - 更新主体は直列に実行される 1 つの主体であり、同じ INDEX を同時に書き換える PR が存在しない。
@@ -29,10 +29,10 @@
 
 更新主体が routine の INDEX は、その routine が登録されるまで更新されない。登録は repo の外で人間が行うため、登録前の期間は実装 PR が同一 PR で行を更新してよい。routine ごとの運用状態を次の表で管理する。
 
-| 更新主体の routine | 運用状態 |
-|---|---|
-| `/adr-compress` | 経過措置 — TODO(記入方法: `docs/harness/scheduled-operations.md` のカタログどおりに routine を登録し、初回の実行を確認できたら「単一 writer」に書き換える) |
-| `/docs-sync` | 経過措置 — TODO(記入方法: 同上) |
+| 更新主体の routine | 運用状態                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/adr-compress`    | 経過措置 — TODO(記入方法: `docs/harness/scheduled-operations.md` のカタログどおりに routine を登録し、初回の実行を確認できたら「単一 writer」に書き換える) |
+| `/docs-sync`       | 経過措置 — TODO(記入方法: 同上)                                                                                                                            |
 
 - 運用状態が「経過措置」の routine が更新主体の INDEX では、実装 PR は、追加・改名・削除する文書に対応する行を同一 PR で追加・更新・削除してよい。並列の PR と衝突した場合は rebase で解消する。
 - 運用状態が「単一 writer」の INDEX では、実装 PR は既存の INDEX を変更しない。経過措置の間に実装 PR が書いた行は、routine の初回実行が実体と突合して過不足を直す。

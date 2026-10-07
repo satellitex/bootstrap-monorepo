@@ -15,19 +15,19 @@ INDEX 所管対象は `docs/harness/skills/docs-sync.md` の「Scope」節を SS
 per-file 検証は以下 3 型の組合せで書く。各対象ファイルの検証ルールは、この型に当てはめて
 「観点 / 検出方法 / 重大度」の表として定義する。
 
-| 型 | 内容 | 検出方法の例 |
-|---|---|---|
+| 型               | 内容                                                                                                                                                                                                | 検出方法の例                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | **実在チェック** | 文書が名指しするファイル・リソース・script・パッケージが `origin/main` 上に実在するか。バッククォートで書かれたリポジトリ相対パスは、glob と `<` `{` `*` を含むプレースホルダを除いて実在を確認する | `git cat-file -e origin/main:<path>` / `git grep -F '<name>' origin/main -- '<glob>'` |
-| **版数突合** | 文書中のバージョン記述が版数の正本（`.mise.toml` の `[tools]`、`package.json` 等）と一致するか | `git show origin/main:.mise.toml` で取得して突合 |
-| **リンク解決** | markdown リンク（`[text](../path)` 形式）の相対パスを正規化した先が実在するか | パス解決後 `git cat-file -e origin/main:<resolved>` |
+| **版数突合**     | 文書中のバージョン記述が版数の正本（`.mise.toml` の `[tools]`、`package.json` 等）と一致するか                                                                                                      | `git show origin/main:.mise.toml` で取得して突合                                      |
+| **リンク解決**   | markdown リンク（`[text](../path)` 形式）の相対パスを正規化した先が実在するか                                                                                                                       | パス解決後 `git cat-file -e origin/main:<resolved>`                                   |
 
 ## 重大度の凡例
 
-| Severity | 意味 | 対応 |
-|----------|------|------|
-| critical | 実体が存在しない参照（壊れたパス・存在しないリソース） | 自動修正候補、PR body に必ず記載 |
-| major | 言及切れリンク・版数不一致 | 自動修正候補、PR body に記載 |
-| minor | 命名揺れ・表記ゆれ | PR body に提案のみ記載、本文編集は最小限 |
+| Severity | 意味                                                   | 対応                                     |
+| -------- | ------------------------------------------------------ | ---------------------------------------- |
+| critical | 実体が存在しない参照（壊れたパス・存在しないリソース） | 自動修正候補、PR body に必ず記載         |
+| major    | 言及切れリンク・版数不一致                             | 自動修正候補、PR body に記載             |
+| minor    | 命名揺れ・表記ゆれ                                     | PR body に提案のみ記載、本文編集は最小限 |
 
 ## per-file 鮮度検証対象
 
@@ -35,14 +35,14 @@ per-file 検証は以下 3 型の組合せで書く。各対象ファイルの�
      各行の「検証観点」は上記 3 型（実在チェック / 版数突合 / リンク解決）で構成し、
      突合先（コード・設定・要件のパス）を明記すること。行の追加・削除は自由。 -->
 
-| パス | 検証観点（placeholder — bootstrap 時に具体化する） |
-|------|----------------|
-| `docs/product/ARCHITECTURE.md` | 実在チェック: 本文が名指しするコンポーネント・ディレクトリが `apps/*` / `packages/*` に実在するか。リンク解決: 文中リンクの実在。TODO(取得方法: ARCHITECTURE.md の骨格確定後、依存方向・責務分離テーブル等の固有観点を追記する) |
-| `docs/product/TECH_STACK.md` | 版数突合: `.mise.toml` `[tools]` のツール版数と本文の版数記述。実在チェック: 確定スタック一覧のライブラリ名が monorepo 内のいずれかの `package.json` の dependencies / devDependencies に存在するか |
-| `docs/product/TERMS.md` | 実在チェック: 「初出」列の要件 ID（`(?:BR|IF|DATA|FR|NFR|SEC)-\d{4}(?:-FIX)?`）に対応するファイルが `docs/requirements/` に実在するか |
-| `DEVELOPMENT.md` | 実在チェック: ハーネス構成表などバッククォートで書かれたリポジトリ相対パスの実在（critical）。リンク解決: 文中リンクの実在。列挙したものの実在だけを検査し、列挙の完全性は検査しない（skill 一覧の正本は `docs/harness/OPERATING_MODEL.md`） |
-| `AGENTS.md` / `CLAUDE.md` | 実在チェック: 参照先パスの実在（critical）。突合: 承認モデルの要旨・言語ポリシー・ブランチ規約が `docs/harness/OPERATING_MODEL.md` と矛盾しないか（major。adapter 側が古いときは記述修正として adapter を直す） |
-| `docs/styles/coding_guide/docs.md` | 実在チェック: バッククォートで書かれたリポジトリ相対パスの実在（critical）。3 原則の lexicon は適用しない（違反例を verbatim に含むため） |
+| パス                               | 検証観点（placeholder — bootstrap 時に具体化する）                                                                                                                                                                                           |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/product/ARCHITECTURE.md`     | 実在チェック: 本文が名指しするコンポーネント・ディレクトリが `apps/*` / `packages/*` に実在するか。リンク解決: 文中リンクの実在。TODO(取得方法: ARCHITECTURE.md の骨格確定後、依存方向・責務分離テーブル等の固有観点を追記する)              |
+| `docs/product/TECH_STACK.md`       | 版数突合: `.mise.toml` `[tools]` のツール版数と本文の版数記述。実在チェック: 確定スタック一覧のライブラリ名が monorepo 内のいずれかの `package.json` の dependencies / devDependencies に存在するか                                          |
+| `docs/product/TERMS.md`            | 実在チェック: 「初出」列の要件 ID（`(?:BR\|IF\|DATA\|FR\|NFR\|SEC)-\d{4}(?:-FIX)?`）に対応するファイルが `docs/requirements/` に実在するか                                                                                                   |
+| `DEVELOPMENT.md`                   | 実在チェック: ハーネス構成表などバッククォートで書かれたリポジトリ相対パスの実在（critical）。リンク解決: 文中リンクの実在。列挙したものの実在だけを検査し、列挙の完全性は検査しない（skill 一覧の正本は `docs/harness/OPERATING_MODEL.md`） |
+| `AGENTS.md` / `CLAUDE.md`          | 実在チェック: 参照先パスの実在（critical）。突合: 承認モデルの要旨・言語ポリシー・ブランチ規約が `docs/harness/OPERATING_MODEL.md` と矛盾しないか（major。adapter 側が古いときは記述修正として adapter を直す）                              |
+| `docs/styles/coding_guide/docs.md` | 実在チェック: バッククォートで書かれたリポジトリ相対パスの実在（critical）。3 原則の lexicon は適用しない（違反例を verbatim に含むため）                                                                                                    |
 
 ## 共通の検出フロー
 

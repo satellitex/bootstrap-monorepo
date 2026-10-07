@@ -16,10 +16,10 @@
 
 ## 置くもの
 
-| ファイル | 内容 | 様式 |
-| --- | --- | --- |
-| `<YYYY-MM-DD>_<slug>/timeline.md` | 対応中の観測・判断・実施を時刻付きで記録した作業ログ | `docs/templates/incident-timeline.md` |
-| `<YYYY-MM-DD>_<slug>/postmortem.md` | 影響・タイムライン・検知の評価・根本原因・対処・アクションアイテムをまとめた、blameless な振り返り | `docs/templates/postmortem.md` |
+| ファイル                            | 内容                                                                                               | 様式                                  |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `<YYYY-MM-DD>_<slug>/timeline.md`   | 対応中の観測・判断・実施を時刻付きで記録した作業ログ                                               | `docs/templates/incident-timeline.md` |
+| `<YYYY-MM-DD>_<slug>/postmortem.md` | 影響・タイムライン・検知の評価・根本原因・対処・アクションアイテムをまとめた、blameless な振り返り | `docs/templates/postmortem.md`        |
 
 様式をコピーして、人間またはエージェントが作成する。
 

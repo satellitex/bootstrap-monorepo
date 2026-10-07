@@ -14,6 +14,8 @@
 #      `#` 始まりはコメント）を、assets / references / SKILL.md / ルートの入口文書に対して照合する。
 #      denylist を repo に置くと固有語そのものが混入するため、ファイルは repo 外に置く。未設定なら skip
 #   5. HARNESS_ROOT=assets で tests/harness/run.mjs（配布版の機械検査）を実行
+#   6. assets を複製して MANIFEST.md を除き、明示 token を置換した状態（bootstrap 直後の配布先と同じ形）で
+#      tests/harness/run.mjs を実行する。置換後にだけ現れる違反（owner の直書きなど）を検出する
 #
 # 終了コード: 0 = すべて通過（skip を含む）/ 1 = 1 つ以上失敗。
 # bash 3.2（macOS 標準）でも動くよう、連想配列・mapfile は使わない。
@@ -270,6 +272,8 @@ check_denylist() {
     "$repo_root/README.md"; do
     [ -e "$target" ] || continue
     grep -rnIiE -f "$TMP/deny.txt" "$target" >>"$TMP/deny_hits.txt" 2>/dev/null || true
+    # ファイル名・ディレクトリ名も照合する
+    find "$target" -print 2>/dev/null | sed "s|^$repo_root/||" | grep -iE -f "$TMP/deny.txt" | sed 's|^|(path) |' >>"$TMP/deny_hits.txt" || true
   done
   if [ -s "$TMP/deny_hits.txt" ]; then
     fail "固有語 denylist に一致する箇所（$(wc -l <"$TMP/deny_hits.txt" | tr -d ' ') 件。先頭 40 件を表示）"
@@ -301,12 +305,44 @@ check_harness_tests() {
   fi
 }
 
+# ---- 6. token 置換後の配布先モードでの機械検査 -------------------------------------------------
+check_bootstrapped_harness() {
+  if ! command -v node >/dev/null 2>&1 || [ ! -f "$ASSETS/tests/harness/run.mjs" ]; then
+    fail "配布先モードの検査に必要な node または tests/harness/run.mjs が無い"
+    return
+  fi
+  local dst="$TMP/bootstrapped" rel
+  mkdir -p "$dst"
+  cp -R "$ASSETS/." "$dst/"
+  rm -f "$dst/MANIFEST.md"
+  while IFS= read -r rel; do
+    [ -f "$dst/$rel" ] || continue
+    is_form_path "$rel" && continue
+    sed -i.bak \
+      -e 's/{{PRODUCT_NAME}}/Acme/g' \
+      -e 's/{{GITHUB_ORG}}/acme/g' \
+      -e 's/{{REPO_NAME}}/widgets/g' \
+      -e 's/{{PROJECT_LANGUAGE}}/日本語/g' "$dst/$rel" && rm -f "$dst/$rel.bak"
+  done <"$TMP/actual.txt"
+  if GITHUB_REPOSITORY="acme/widgets" HARNESS_ROOT="$dst" node "$ASSETS/tests/harness/run.mjs" >"$TMP/bootstrapped.out" 2>&1; then
+    ok "token 置換後の配布先モードで tests/harness が通過（$(grep -E '^harness:test: 実行' "$TMP/bootstrapped.out" | tail -1)）"
+  else
+    fail "token 置換後の配布先モードで tests/harness が失敗"
+    if grep -q '^失敗した検査:' "$TMP/bootstrapped.out"; then
+      sed -n '/^失敗した検査:/,$p' "$TMP/bootstrapped.out" | head -60 | detail
+    else
+      tail -30 "$TMP/bootstrapped.out" | detail
+    fi
+  fi
+}
+
 echo "assets: $ASSETS"
 check_manifest
 check_skill_pairs
 check_tokens
 check_denylist
 check_harness_tests
+check_bootstrapped_harness
 
 echo
 if [ "$FAILS" -eq 0 ]; then

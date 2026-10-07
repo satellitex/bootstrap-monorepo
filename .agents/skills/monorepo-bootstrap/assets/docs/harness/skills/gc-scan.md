@@ -36,7 +36,7 @@
 
 ## Detection
 
-Agent tool で `subagent_type: gc-agent` を起動する（引数なし。渡されても無視する）。gc-agent が次の 2 種類の候補を
+gc-agent（`.claude/agents/gc-agent.md`）を起動する（引数なし。渡されても無視する。起動手段は `docs/harness/OPERATING_MODEL.md` の「ツール固有手段の読み替え」に従う）。gc-agent が次の 2 種類の候補を
 検出する。検出条件・同一性判定・抑制条件・検出証拠の記録は `.claude/agents/gc-agent.md` と
 `.claude/agents/references/gc-agent-detection.md` を正本とする。
 
@@ -46,13 +46,13 @@ Agent tool で `subagent_type: gc-agent` を起動する（引数なし。渡さ
 
 機械検査との分界:
 
-| 検査 | 担当 |
-|------|------|
-| サイズ上限・description の文字数 | CI の機械検査（`pnpm harness:test`） |
-| skill 正本と adapter の 1:1 対応・`SKILL.md` の欠け | 同上 |
-| 実在しないパスを指す参照（バッククォート内のパス） | 同上 |
-| agent 定義の起動指定（`subagent_type`）または `orphan-allow` 宣言の有無 | 同上 |
-| 重複、機械検査に現れない起動経路・デッド参照 | 本 skill |
+| 検査                                                                    | 担当                                 |
+| ----------------------------------------------------------------------- | ------------------------------------ |
+| サイズ上限・description の文字数                                        | CI の機械検査（`pnpm harness:test`） |
+| skill 正本と adapter の 1:1 対応・`SKILL.md` の欠け                     | 同上                                 |
+| 実在しないパスを指す参照（バッククォート内のパス）                      | 同上                                 |
+| agent 定義の起動指定（`subagent_type`）または `orphan-allow` 宣言の有無 | 同上                                 |
+| 重複、機械検査に現れない起動経路・デッド参照                            | 本 skill                             |
 
 機械検査の失敗は、その変更を含む PR の CI で検出される。本 skill では扱わない。
 
@@ -72,15 +72,15 @@ Agent tool で `subagent_type: gc-agent` を起動する（引数なし。渡さ
 候補ありの場合は `docs/harness/skills/shared/sync-pr-flow.md` の手順（既存 open PR ガード →
 `origin/main` 基点ブランチ → commit → 通常 PR）に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[gc-scan] 抽出対象なし。ハーネス文書に重複・孤児はありません。` |
-| ブランチ | `agent/gc-scan-{YYYY-MM-DD}` |
-| git add | 新規作成した references / 修正した抽出元 / 削除・修正した孤児候補のみ |
-| commit | `refactor(harness): gc-scan (YYYY-MM-DD)` |
-| PR title | `refactor(harness): gc-scan (YYYY-MM-DD)` |
-| PR ラベル | `harness:harness` |
-| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
+| 項目               | 値                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[gc-scan] 抽出対象なし。ハーネス文書に重複・孤児はありません。`                             |
+| ブランチ           | `agent/gc-scan-{YYYY-MM-DD}`                                                                 |
+| git add            | 新規作成した references / 修正した抽出元 / 削除・修正した孤児候補のみ                        |
+| commit             | `refactor(harness): gc-scan (YYYY-MM-DD)`                                                    |
+| PR title           | `refactor(harness): gc-scan (YYYY-MM-DD)`                                                    |
+| PR ラベル          | `harness:harness`                                                                            |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
 
 1 回の実行で **1 PR**（重複の抽出と孤児の削除・修正を 1 つにまとめる）。Issue は起票しない。
 

@@ -11,11 +11,11 @@ description: /refactor-guide-sync から起動された場合に使う。coding_
 
 ## 責務分界
 
-| Agent | 責務 | 検査対象 |
-|-------|------|---------|
-| refactor-guide-sync | 規約 ⇔ リファクタガイドのメタ整合性（観点の過不足・根拠パスの鮮度） | ガイド本文（coding_guide / refactoring_guide） |
-| refactorer | コード ⇔ リファクタガイドの観点適用（コード課題検出 → Issue） | `apps/` / `packages/` のコード |
-| gc-agent | ハーネス文書の重複・孤児の意味判定 | `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` / `docs/harness/skills/**/*.md` |
+| Agent               | 責務                                                                | 検査対象                                                                            |
+| ------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| refactor-guide-sync | 規約 ⇔ リファクタガイドのメタ整合性（観点の過不足・根拠パスの鮮度） | ガイド本文（coding_guide / refactoring_guide）                                      |
+| refactorer          | コード ⇔ リファクタガイドの観点適用（コード課題検出 → Issue）       | `apps/` / `packages/` のコード                                                      |
+| gc-agent            | ハーネス文書の重複・孤児の意味判定                                  | `.claude/agents/*.md` / `.claude/skills/*/SKILL.md` / `docs/harness/skills/**/*.md` |
 
 refactorer がコード課題を検出するのに対し、本 agent はガイド自体の鮮度（規約変更にリファクタガイドが追従しているか）を検出する。
 
@@ -30,12 +30,12 @@ refactorer がコード課題を検出するのに対し、本 agent はガイ�
 
 ## インプット
 
-| インプット | 役割 |
-|-----------|------|
-| `docs/styles/coding_guide/INDEX.md` | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象 |
-| `docs/styles/coding_guide/**/*.md` | Glob で全件取得（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
-| `docs/styles/refactoring_guide.md` | 突合の相手。検出基準テーブル・承認済み観点を抽出する |
-| `docs/harness/harness_authoring_guide.md` | 自己制約（本 agent md のサイズ上限・命名規則） |
+| インプット                                | 役割                                                                              |
+| ----------------------------------------- | --------------------------------------------------------------------------------- |
+| `docs/styles/coding_guide/INDEX.md`       | 一覧の起点。正本ではなく、INDEX 漏れ自体も検出対象                                |
+| `docs/styles/coding_guide/**/*.md`        | Glob で全件取得（INDEX 未掲載・サブディレクトリも捕捉）。正本インベントリの母集団 |
+| `docs/styles/refactoring_guide.md`        | 突合の相手。検出基準テーブル・承認済み観点を抽出する                              |
+| `docs/harness/harness_authoring_guide.md` | 自己制約（本 agent md のサイズ上限・命名規則）                                    |
 
 比較・更新の基準は `origin/main` に固定する（現在の HEAD が作業ブランチでも結果がぶれないため）。
 
@@ -61,10 +61,10 @@ refactorer がコード課題を検出するのに対し、本 agent はガイ�
 
 ## アウトプット
 
-| 成果物 | 内容 | 条件 |
-|--------|------|------|
-| GitHub PR | 全候補（追加観点の行追記・削除観点・根拠パス修正・リネーム更新）を `refactoring_guide.md` に反映する 1 PR。ブランチ・commit・PR title は `docs/harness/skills/refactor-guide-sync.md` の差分表に従う | 候補がある場合だけ |
-| 実行サマリ（stdout） | 候補 0 件時は「差分なし」、既存 open PR ガード発火時は既存 PR 番号・URL + 候補件数（PR は作らない）、それ以外は作成した PR URL + スキップ内訳 | 常時 |
+| 成果物               | 内容                                                                                                                                                                                                 | 条件               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| GitHub PR            | 全候補（追加観点の行追記・削除観点・根拠パス修正・リネーム更新）を `refactoring_guide.md` に反映する 1 PR。ブランチ・commit・PR title は `docs/harness/skills/refactor-guide-sync.md` の差分表に従う | 候補がある場合だけ |
+| 実行サマリ（stdout） | 候補 0 件時は「差分なし」、既存 open PR ガード発火時は既存 PR 番号・URL + 候補件数（PR は作らない）、それ以外は作成した PR URL + スキップ内訳                                                        | 常時               |
 
 PR body の構成は `.claude/agents/references/refactor-guide-sync-output.md` を参照する。
 

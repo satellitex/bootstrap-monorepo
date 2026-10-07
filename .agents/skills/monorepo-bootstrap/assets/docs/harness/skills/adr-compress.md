@@ -28,34 +28,34 @@ ADR コーパス（`docs/adr/` の本体と `INDEX.md`）の鮮度と大きさ�
 
 ## Detection
 
-Agent tool で `subagent_type: adr-compactor` を起動し、`consolidate` 引数の有無を伝える。
+adr-compactor agent（`.claude/agents/adr-compactor.md`）を起動し、`consolidate` 引数の有無を伝える（起動手段は `docs/harness/OPERATING_MODEL.md` の「ツール固有手段の読み替え」に従う）。
 
-| 引数 | 動作 |
-|------|------|
-| なし | 0 / I / II / IV を実行する（III は無効） |
+| 引数          | 動作                                                                                     |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| なし          | 0 / I / II / IV を実行する（III は無効）                                                 |
 | `consolidate` | III も有効にする（「1 ADR = 1 決定」の規約を変える操作のため、明示的に指定したときだけ） |
 
-走査・抑制条件・安全ガードレールの検証・圧縮は agent が行う。ガードレールと実行順の正本は agent 定義、各カテゴリの規則は compression-rules.md である。
+走査・抑制条件・安全ガードレールの検証・圧縮は agent が行う。ガードレールの正本は agent 定義、実行順と各カテゴリの規則は compression-rules.md である。
 
 ## Auto-edit policy
 
 - 編集してよいのは `docs/adr/` 配下の ADR 本体と `INDEX.md` だけである。
-- カテゴリごとの編集内容、実行順（0 → II → III → IV → I）、カテゴリの所有規則は compression-rules.md に従う。
+- カテゴリごとの編集内容、実行順、カテゴリの所有規則は compression-rules.md に従う。
 - `INDEX.md` を書くのは本 skill だけである。実装 PR は INDEX を変更しないため、行は ADR 本体の冒頭見出しと Status 表から起こす。経過措置として実装 PR が行を足している場合も、再構築は既存行を保つため競合しない。
 
 ## Branch & PR policy
 
 候補が 0 件で INDEX が既に canonical 形なら、「変更なし」を stdout に出力して終了する。候補がある場合は `docs/harness/skills/shared/sync-pr-flow.md` の手順（既存 open PR ガード → `origin/main` 基点のブランチ → commit → 通常 PR）に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[adr-compress] 変更なし。docs/adr/ は圧縮閾値を超えておらず INDEX は canonical 形です。` |
-| ブランチ | `agent/adr-compress-{YYYY-MM-DD}` |
-| git add | 変更・新規作成した ADR / `INDEX.md` を個別指定 |
-| commit | `refactor(adr): adr-compress (YYYY-MM-DD)` |
-| PR title | `refactor(adr): adr-compress (YYYY-MM-DD)` |
-| PR ラベル | `harness:harness` |
-| PR body | `docs/harness/skills/adr-compress/pr-output-format.md` の構成（標準 5 節 + 本 skill の区分） |
+| 項目               | 値                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[adr-compress] 変更なし。docs/adr/ は圧縮閾値を超えておらず INDEX は canonical 形です。`    |
+| ブランチ           | `agent/adr-compress-{YYYY-MM-DD}`                                                            |
+| git add            | 変更・新規作成した ADR / `INDEX.md` を個別指定                                               |
+| commit             | `refactor(adr): adr-compress (YYYY-MM-DD)`                                                   |
+| PR title           | `refactor(adr): adr-compress (YYYY-MM-DD)`                                                   |
+| PR ラベル          | `harness:harness`                                                                            |
+| PR body            | `docs/harness/skills/adr-compress/pr-output-format.md` の構成（標準 5 節 + 本 skill の区分） |
 
 1 回の実行で 1 PR にまとめる（全カテゴリの候補を同じ PR に入れる）。既存 open PR ガードが発火したときは、新規 PR を作らず既存 PR の番号と URL を報告して終了する。人間が既存 PR をマージまたはクローズするまで、新規 PR は作らない。
 

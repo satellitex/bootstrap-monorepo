@@ -8,9 +8,9 @@
 
 ## 入力
 
-| 引数 | 必須 | 説明 |
-|------|------|------|
-| memory file 名 | No | 昇格対象の個人 memory ファイル名（例: `feedback_format_check.md`）。省略時は候補一覧を提示して 1 件選択させる |
+| 引数           | 必須 | 説明                                                                                                          |
+| -------------- | ---- | ------------------------------------------------------------------------------------------------------------- |
+| memory file 名 | No   | 昇格対象の個人 memory ファイル名（例: `feedback_format_check.md`）。省略時は候補一覧を提示して 1 件選択させる |
 
 ## フロー
 
@@ -28,13 +28,13 @@
 
 選択された memory を Read し、以下を決める。category 推定は次の判断基準を使う:
 
-| category | 振り分け先 rule ファイル | 該当する rule の性質 |
-|----------|------------------------|-------------------|
-| 横断方針 | `.claude/rules/team-policy.md` | 全領域に効く判断・運用方針 |
-| ハーネスフロー固有 | `.claude/rules/harness-development.md` | 実装フロー / Skill / Agent 設計関連 |
-| プロダクト設計固有 | `.claude/rules/product-development.md` | apps / packages / 要件マッピング関連 |
-| インフラ固有 | `.claude/rules/infra-development.md` | IaC / CI / deploy 関連 |
-| 機械検証可能 | `.claude/rules/team-policy.md` の機械検証セクション | hook / CI / lint で強制可能なもの |
+| category           | 振り分け先 rule ファイル                            | 該当する rule の性質                 |
+| ------------------ | --------------------------------------------------- | ------------------------------------ |
+| 横断方針           | `.claude/rules/team-policy.md`                      | 全領域に効く判断・運用方針           |
+| ハーネスフロー固有 | `.claude/rules/harness-development.md`              | 実装フロー / Skill / Agent 設計関連  |
+| プロダクト設計固有 | `.claude/rules/product-development.md`              | apps / packages / 要件マッピング関連 |
+| インフラ固有       | `.claude/rules/infra-development.md`                | IaC / CI / deploy 関連               |
+| 機械検証可能       | `.claude/rules/team-policy.md` の機械検証セクション | hook / CI / lint で強制可能なもの    |
 
 決めるもの: `slug`（`feedback_` プレフィックスを除いて kebab-case 化）、`target_path = docs/styles/team-feedback/<slug>.md`、`category` と振り分け先 rule、人間が読める rule タイトル。
 

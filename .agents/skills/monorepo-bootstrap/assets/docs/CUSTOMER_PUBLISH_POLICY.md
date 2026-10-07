@@ -13,12 +13,12 @@
 
 区画構成はプロジェクトごとに確定する。次は代表的な区画の例（採用時に実際の構成で書き換える）:
 
-| 区画（例） | 種別 | ソース | 配信方式 |
-|------|------|-------|---------|
-| `/api` | コードリファレンス | API 実装から生成した OpenAPI JSON | OpenAPI ビューア |
-| `/sdk` | コードリファレンス | SDK の doc コメント → ドキュメントジェネレータ | 生成 HTML |
-| `/architecture` | 設計ドキュメント | `docs/product/PUBLIC_ARCHITECTURE.md`（`ARCHITECTURE.md` の公開射影） | markdown → サニタイズ済み HTML |
-| `/quality` | 品質保証 / テスト網羅状況 | 要件 ↔ テストの traceability matrix から生成した成果物（`docs/product/tests/`。採用時） | 生成 HTML（内部参照 scrub 済み） |
+| 区画（例）      | 種別                      | ソース                                                                                  | 配信方式                         |
+| --------------- | ------------------------- | --------------------------------------------------------------------------------------- | -------------------------------- |
+| `/api`          | コードリファレンス        | API 実装から生成した OpenAPI JSON                                                       | OpenAPI ビューア                 |
+| `/sdk`          | コードリファレンス        | SDK の doc コメント → ドキュメントジェネレータ                                          | 生成 HTML                        |
+| `/architecture` | 設計ドキュメント          | `docs/product/PUBLIC_ARCHITECTURE.md`（`ARCHITECTURE.md` の公開射影）                   | markdown → サニタイズ済み HTML   |
+| `/quality`      | 品質保証 / テスト網羅状況 | 要件 ↔ テストの traceability matrix から生成した成果物（`docs/product/tests/`。採用時） | 生成 HTML（内部参照 scrub 済み） |
 
 - 設計ドキュメント区画はソース markdown を改変せず、ビルド時に「公開射影 HTML」を生成して配信する。
 - サービス名の抽象化など機械サニタイズで吸収できない射影が必要な区画は、内部正本とは別に公開用の射影 markdown を `docs/product/` に置き、ドリフト防止 skill（`/public-arch-sync` → `docs/harness/skills/public-arch-sync.md`）で追従させる。
@@ -34,7 +34,7 @@
 
 - **ADR**: `ADR-YYYYMMDD` 形式
 - **要件 ID**: `BR|IF|DATA|FR|NFR|SEC-NNNN(-FIX)?`、および `US-NNNN` 形式
-- **設計判断 ID**: `AC-NNN-NN` / 設計判断の ID（`D1` 等の D-ID 表記）
+- **受入条件・設計判断の ID**: `AC-NNN-NN`（受入条件）、ADR 内の決定番号（`D1` 等の D-ID 表記）
 
 ### 2.2 Issue 参照
 

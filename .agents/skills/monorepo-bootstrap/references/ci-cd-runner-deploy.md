@@ -6,7 +6,7 @@
 ## 1. CI/CD Design Scope
 
 CI/CD は後回しにせず、runtime/provider selection と同じタイミングで比較する。
-決定は ADR（1 領域 1 ADR。代替案と棄却理由を含む）と PR 本文の計画節に残し、PR で提示する（承認 gate ではない）。
+決定は ADR（1 領域 1 ADR。代替案と棄却理由を含む）と PR 本文の標準節（方針と却下案など）に残し、PR で提示する（承認 gate ではない）。
 
 | Area | Required decision |
 |------|-------------------|
@@ -28,7 +28,7 @@ CI は基礎 CI 1 本のみを既定とする。
 | Job | 内容 |
 |-----|------|
 | format | `format:check` |
-| test | `test` + hooks の bash テスト |
+| test | `test` + hooks の bash テスト + ハーネス機械検査（`pnpm harness:test`） |
 | build | `build` |
 
 設計意図:
@@ -41,7 +41,7 @@ CI は基礎 CI 1 本のみを既定とする。
 
 ### 2.2 拡張候補
 
-以下は既定に含めない。product に必要なものだけ選び、採否と理由を ADR に残す。
+以下は既定に含めない。product に必要なものだけ選び、採否と理由を PR 本文の「方針と却下案」に残す。
 
 1. YAML parse / workflow lint
 2. install/cache 最適化

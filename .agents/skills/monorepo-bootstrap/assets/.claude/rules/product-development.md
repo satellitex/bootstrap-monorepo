@@ -20,9 +20,8 @@ paths:
 
 ## プロダクト設計固有 rule
 
-<!-- TODO(記入方法: /promote-memory で昇格したプロダクト固有 rule の pointer をここに追記する。形式:
-- [<rule 名>](../../docs/styles/team-feedback/<name>.md) — <1 行要旨>
-) -->
+<!-- TODO(記入方法: /promote-memory で昇格したプロダクト固有 rule の pointer をここに追記する。形式は
+`- [<rule 名>](../../docs/styles/team-feedback/<name>.md) — <1 行要旨>`) -->
 
 横断的な team rule は [team-policy.md](team-policy.md) を参照。
 
@@ -30,11 +29,11 @@ paths:
 
 検証ゲートのコマンド定義（build / test / lint / typecheck / format / format:check）と用途別の組合せの正本は `docs/harness/skills/shared/verification-gates.md`。名前を変える場合は正本と hooks を同時更新する。
 
-| 用途                | コマンド                                                                                                                                                                                      |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 依存のインストール  | `pnpm install --frozen-lockfile`                                                                                                                                                              |
-| 全体の検証          | 検証ゲートの組合せを使う（上記の正本）                                                                                                                                                        |
-| 開発サーバの起動    | TODO(取得方法: スタック確定後に実コマンドを確認して記入する)                                                                                                                                  |
-| 単一 package の実行 | `pnpm --filter <package> run <script>`（`<package>` は `apps/*` または `packages/*` の package.json の name）。pnpm・turbo を差し替えた導入先は MANIFEST の「既定スタックと差し替え点」に従う |
+| 用途                | コマンド                                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 依存のインストール  | `pnpm install --frozen-lockfile`                                                                                                                                                        |
+| 全体の検証          | 検証ゲートの組合せを使う（上記の正本）                                                                                                                                                  |
+| 開発サーバの起動    | TODO(取得方法: スタック確定後に実コマンドを確認して記入する)                                                                                                                            |
+| 単一 package の実行 | `pnpm --filter <package> run <script>`（`<package>` は `apps/*` または `packages/*` の package.json の name）。pnpm・turbo を差し替えた導入先は、差し替えた実コマンドをこの表に記入する |
 
 <!-- TODO(記入方法: workspace 個別の生成・テスト・起動コマンドが増えたら、上の表に行を足す) -->

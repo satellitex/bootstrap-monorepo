@@ -261,8 +261,9 @@ run_limited_check() {
     printf '%s\n' "$?" > "$status_file"
   ) &
   local pid=$!
-  local elapsed=0
-  while [ "$elapsed" -lt "$timeout_sec" ]; do
+  # 完了を 0.1 秒間隔で確認する（1 秒間隔だと、即時に終わる検査でも 1 秒かかる）。
+  local ticks=0 max_ticks=$((timeout_sec * 10))
+  while [ "$ticks" -lt "$max_ticks" ]; do
     if [ -s "$status_file" ]; then
       local status
       status="$(cat "$status_file")"
@@ -273,10 +274,12 @@ run_limited_check() {
       rm -f "$output_file" "$status_file"
       return 0
     fi
-    sleep 1
-    elapsed=$((elapsed + 1))
+    sleep 0.1
+    ticks=$((ticks + 1))
   done
 
+  # サブシェルだけでなく、その子（検査コマンド）も止める。
+  pkill -P "$pid" 2>/dev/null || true
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
   rm -f "$output_file" "$status_file"

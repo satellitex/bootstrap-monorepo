@@ -14,20 +14,20 @@ Issue の内容を加味して Label, Project, Assignee, Relationships, Status, 
 
 以下の情報を受け取る。不足分は引数・会話文脈・Issue 内容からの自動推定で補完する。
 
-| 項目 | 必須 | 説明 |
-|------|------|------|
-| タイトル | Yes | Issue のタイトル（動詞で終える） |
-| 概要 | Yes | 何を・なぜやるか |
-| 意図・モチベーション | Yes | この Issue を立ち上げた背景・動機 |
-| 受入条件 | Yes | チェックリスト形式（3–10 個目安）。リポジトリ内で満たせる確定事項として書く（選択肢のまま残さず、選んだ案とその理由を書く） |
-| ラベル | No | 未指定時は概要から自動推定 |
-| アサイニー | No | 未指定時は起票者（`gh` の認証ユーザ） |
-| マイルストーン | No | 未指定時は概要から自動推定。`harness:harness` ならなしでもよい |
-| 優先度 | No | critical / high / medium / low。未指定時は `high` |
-| Expired date | No | `YYYY-MM-DD` 形式。未指定時は今週日曜（ブロック元 Issue がある場合はその翌週日曜） |
-| ブロック元 Issue（blocked-by） | No | `#<N>` 形式。この Issue の着手をブロックする Issue。依存関係として登録する |
-| 親 Issue（parent） | No | `#<N>` 形式。この Issue を sub-issue として束ねる親。ブロック元とは別の入力で、指定が無ければ親子関係を作らない |
-| 参考資料 | No | 関連ドキュメントパス等 |
+| 項目                           | 必須 | 説明                                                                                                                        |
+| ------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------- |
+| タイトル                       | Yes  | Issue のタイトル（動詞で終える）                                                                                            |
+| 概要                           | Yes  | 何を・なぜやるか                                                                                                            |
+| 意図・モチベーション           | Yes  | この Issue を立ち上げた背景・動機                                                                                           |
+| 受入条件                       | Yes  | チェックリスト形式（3–10 個目安）。リポジトリ内で満たせる確定事項として書く（選択肢のまま残さず、選んだ案とその理由を書く） |
+| ラベル                         | No   | 未指定時は概要から自動推定                                                                                                  |
+| アサイニー                     | No   | 未指定時は起票者（`gh` の認証ユーザ）                                                                                       |
+| マイルストーン                 | No   | 未指定時は概要から自動推定。`harness:harness` ならなしでもよい                                                              |
+| 優先度                         | No   | critical / high / medium / low。未指定時は `high`                                                                           |
+| Expired date                   | No   | `YYYY-MM-DD` 形式。未指定時は今週日曜（ブロック元 Issue がある場合はその翌週日曜）                                          |
+| ブロック元 Issue（blocked-by） | No   | `#<N>` 形式。この Issue の着手をブロックする Issue。依存関係として登録する                                                  |
+| 親 Issue（parent）             | No   | `#<N>` 形式。この Issue を sub-issue として束ねる親。ブロック元とは別の入力で、指定が無ければ親子関係を作らない             |
+| 参考資料                       | No   | 関連ドキュメントパス等                                                                                                      |
 
 呼び出し元の skill・agent（スキャン系など）が指定したラベル・マイルストーン・body 末尾の機械可読ブロック（候補 ID を載せた HTML コメント等）は、そのまま使い、改変・削除しない。自動推定は未指定の項目にだけ働く既定である。呼び出し元の突合キーが壊れると、後続の実行が重複起票や取りこぼしを起こすため。
 
@@ -46,25 +46,7 @@ magic value（Project ID, フィールド ID, ラベル一覧, マイルスト�
 - アサイニー: 未指定時は `gh` CLI の現在の認証ユーザ（起票者）を使う。
 - Expired date: (1) ユーザ明示指定 → (2) ブロック元 Issue の Expired date の翌週日曜 → (3) デフォルト: 今週の日曜日、の優先順で決定する。
 
-ブロック元 Issue の Expired date は、ブロック元の所属 Project（振り分けは Step 4 と同じ）の items をページ送りし、`content.number` が一致する item の値を読む。見つからない場合と値が無い場合は (3) にフォールバックし、そのことを出力で報告する。
-
-```bash
-# ブロック元の Expired date を読む。初回は after を付けず、hasNextPage が true の間は endCursor を after に渡して繰り返す
-gh api graphql -f project='<PROJECT_ID>' -f query='
-  query($project: ID!, $after: String) {
-    node(id: $project) {
-      ... on ProjectV2 {
-        items(first: 100, after: $after) {
-          pageInfo { hasNextPage endCursor }
-          nodes {
-            content { ... on Issue { number } }
-            fieldValueByName(name: "Expired date") { ... on ProjectV2ItemFieldDateValue { date } }
-          }
-        }
-      }
-    }
-  }'
-```
+ブロック元 Issue の Expired date は、ブロック元の所属 Project（振り分けは Step 4 と同じ）の `ProjectV2.items`（`first: 100`）を、`pageInfo.hasNextPage` が false になるまで `endCursor` でページ送りし、`content.number` が一致する item の `fieldValueByName(name: "Expired date")`（`ProjectV2ItemFieldDateValue` の `date`）を読む。見つからない場合と値が無い場合は (3) にフォールバックし、そのことを出力で報告する。
 
 ### Step 2: Issue body の生成
 
@@ -112,14 +94,7 @@ profile を読み込み、必要な Project ID とフィールド ID を取得�
 
 1. `project` scope の確認: `gh auth status` で `project` scope があるか確認し、なければ認可更新（`gh auth refresh -s project`）をユーザに案内する。認可更新は端末での対話操作を要する。無人 run では認可更新を依頼せず、Project に関わる処理（Step 4・5 と Step 7 の Project 側の読み戻し）をスキップして、「未実施」と理由を報告する。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
 2. プロジェクトの振り分け: `harness:harness` ラベルがあればハーネス用 Project、それ以外はプロダクト用 Project に追加する（振り分け先の実体は profile 参照）。
-3. Project に追加: `addProjectV2ItemById` mutation で Issue を追加し、返された `item.id` を控える。以降の Status・Expired date の設定と Step 7 の読み戻しはこの item ID を使う。
-
-   ```bash
-   gh api graphql -f project='<PROJECT_ID>' -f content='<ISSUE_NODE_ID>' -f query='
-     mutation($project: ID!, $content: ID!) {
-       addProjectV2ItemById(input: {projectId: $project, contentId: $content}) { item { id } }
-     }' --jq '.data.addProjectV2ItemById.item.id'
-   ```
+3. Project に追加: `addProjectV2ItemById` mutation（`projectId` と `contentId` に、Project と Issue の node ID を渡す）で Issue を追加し、返された `item.id` を控える。以降の Status・Expired date の設定と Step 7 の読み戻しはこの item ID を使う。
 4. Status を Todo に設定: `updateProjectV2ItemFieldValue` mutation に控えた item ID を渡し、Status フィールドを Todo に設定する。
 
 ### Step 5: Expired date の設定
@@ -140,23 +115,10 @@ profile を読み込み、必要な Project ID とフィールド ID を取得�
 Step 3〜6 で設定した属性が実際に GitHub 側へ反映されたかを、書き込み API の成功レスポンスではなく読み戻し照会で確認する。書き込み系コマンドは値の解決に失敗すると非ゼロ終了するため無言にはならないが（`docs/harness/skills/shared/gh-query-fail-closed.md`）、「コマンド自体は成功したが値が反映されていない」部分失敗（例: 実行環境の制約でマイルストーン番号の解決手段が無く、設定自体をスキップした）が起こり得るため、本 Step で結果そのものを見て検証する。
 
 1. Issue 側の読み戻し（1 回）: `gh issue view <番号> --json number,milestone,labels,assignees` を実行する。呼び出し元が末尾マーカーを指定した場合は `body` も取得し、マーカーが保持されていることを確かめる。
-2. Project 側の読み戻し（1 回）: Step 4 で控えた item ID を `node(id:)` で引き、Project・Status・Expired date を読む。`content.number` が作成した Issue の番号と一致することで、item ID の取り違えを検知する。
-
-   ```bash
-   gh api graphql -f item='<ITEM_ID>' -f query='
-     query($item: ID!) {
-       node(id: $item) {
-         ... on ProjectV2Item {
-           project { id title }
-           content { ... on Issue { number } }
-           status: fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
-           expired: fieldValueByName(name: "Expired date") { ... on ProjectV2ItemFieldDateValue { date } }
-         }
-       }
-     }'
-   ```
+2. Project 側の読み戻し（1 回）: Step 4 で控えた item ID を `node(id:)` で引き、`ProjectV2Item` の `project`（id・title）、`content`（Issue の number）、`fieldValueByName(name: "Status")`（`ProjectV2ItemFieldSingleSelectValue` の name）、`fieldValueByName(name: "Expired date")`（`ProjectV2ItemFieldDateValue` の date）を読む。`content.number` が作成した Issue の番号と一致することで、item ID の取り違えを検知する。
 
    Project 側の読み戻しに `gh issue view --json projectItems` を使わない。Project の所有者がリポジトリの owner と異なる構成では、`projectItems` が空配列になり得て、Project 追加済みでも未追加と区別できないため。
+
 3. 突合: Step 1 で策定した値（マイルストーン・ラベル・アサイニー・Status・Expired date）と読み戻した値を比較する。
 4. 不一致時の補正（1 回だけ）: 不一致が見つかった場合、`gh issue edit`（マイルストーン・ラベル・アサイニー）または Step 4・5 の mutation 再実行（Project／Status／Expired date）で補正を試み、同じ照会で再照会を 1 回だけ行う。補正・再照会とも 2 回以上は繰り返さない。
 5. 直らなかった場合: 補正後もなお不一致が残る場合は「設定済み」と報告せず、未設定である事実を明示して報告する（下記「出力」参照）。

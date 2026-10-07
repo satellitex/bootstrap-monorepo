@@ -7,11 +7,11 @@
 
 ## ディレクトリ構成
 
-| ディレクトリ | 内容 | INDEX |
-| --- | --- | --- |
-| `originals/` | 顧客・関係者から受領した原本ファイル（PDF/XLSX/PPTX 等） | — |
-| `summaries/` | `originals/` の整形済みサマリ | [summaries/INDEX.md](./summaries/INDEX.md) |
-| `runbooks/` | 顧客（連携先の開発者・運用担当者など）向けの運用 runbook | [runbooks/INDEX.md](./runbooks/INDEX.md) |
+| ディレクトリ | 内容                                                     | INDEX                                      |
+| ------------ | -------------------------------------------------------- | ------------------------------------------ |
+| `originals/` | 顧客・関係者から受領した原本ファイル（PDF/XLSX/PPTX 等） | —                                          |
+| `summaries/` | `originals/` の整形済みサマリ                            | [summaries/INDEX.md](./summaries/INDEX.md) |
+| `runbooks/`  | 顧客（連携先の開発者・運用担当者など）向けの運用 runbook | [runbooks/INDEX.md](./runbooks/INDEX.md)   |
 
 ## 配置ルール
 

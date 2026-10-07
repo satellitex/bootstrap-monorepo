@@ -5,11 +5,11 @@ ADR-{YYYYMMDD}_{branch-slug}_{topic-slug}.md として作成する（コピー�
 
 # ADR-{date}_{branch-slug}_{topic-slug}: {タイトル}
 
-| 項目 | 値 |
-|------|-----|
+| 項目   | 値                                                        |
+| ------ | --------------------------------------------------------- |
 | Status | Proposed / Accepted / Deprecated / Superseded by ADR-{id} |
-| Date | YYYY-MM-DD |
-| Author | {著者} |
+| Date   | YYYY-MM-DD                                                |
+| Author | {著者}                                                    |
 
 ## Context
 

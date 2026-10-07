@@ -13,7 +13,7 @@
 ## 処理
 
 1. `docs/harness/skills/shared/sync-prelude.md` に従い `git fetch origin main` し、検出の基準を `origin/main` に固定する。HEAD が feature ブランチでも、結果が変わらないようにするため。
-2. refactorer agent を起動する。subagent 機構のある実行環境では `refactorer` を subagent として起動する。subagent 機構が無い環境では、agent 定義（`.claude/agents/refactorer.md`）を読み、同じ手順を独立した別 pass として実行する。
+2. refactorer agent（`.claude/agents/refactorer.md`）を起動する。起動手段は `docs/harness/OPERATING_MODEL.md` の「ツール固有手段の読み替え」に従い、subagent 機構が無い環境では、agent 定義を読んで同じ手順を独立した別 pass として実行する。
 3. agent が起票した Issue に、起動経路（routine か人間の直接起動か）を問わず `routine:refactor-sync` ラベルを付ける（`gh issue edit <番号> --add-label routine:refactor-sync`）。ラベルの一覧は `.claude/skills/create-issue/references/project-fields.md`。
 4. agent の結果を再解釈せず、そのまま報告する。
 
@@ -29,13 +29,13 @@
 
 ## 責務分界
 
-| 対象 | 担当 |
-|------|------|
+| 対象                                                                      | 担当                         |
+| ------------------------------------------------------------------------- | ---------------------------- |
 | `apps/**`・`packages/**` の規約違反と、効いていない・非推奨・冗長なコード | `/refactor-sync`（本 skill） |
-| コーディング規約とリファクタガイドの検出基準の追従 | `/refactor-guide-sync` |
-| ソースコメントの 3 原則・内部参照 | `/code-sync` |
-| 作業中 PR の差分の簡素化 | `/simplify`（PR 作成前） |
-| ハーネス文書の重複・孤児 | `/gc-scan` |
+| コーディング規約とリファクタガイドの検出基準の追従                        | `/refactor-guide-sync`       |
+| ソースコメントの 3 原則・内部参照                                         | `/code-sync`                 |
+| 作業中 PR の差分の簡素化                                                  | `/simplify`（PR 作成前）     |
+| ハーネス文書の重複・孤児                                                  | `/gc-scan`                   |
 
 ## 制約
 

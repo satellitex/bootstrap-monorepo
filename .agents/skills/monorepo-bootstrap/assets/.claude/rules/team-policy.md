@@ -2,11 +2,10 @@
 
 この文書は全領域の作業に常時適用される横断方針の pointer 層である。個別 rule の本文はここに書かず、`docs/styles/team-feedback/` 配下に置く（一覧は [INDEX](../../docs/styles/team-feedback/INDEX.md)）。
 
-> 本ファイルは `paths:` frontmatter を意図的に持たない。Claude Code の仕様上、
-> `paths:` なしの `.claude/rules/*.md` は session 起動時に常時ロードされる。横断方針は
-> 全領域（apps / packages / infra / docs / .claude）の作業で常に効くべきため、
-> path-scoped にしない設計。領域特化 rule は `harness-development.md` /
-> `product-development.md` / `infra-development.md`（いずれも `paths:` 指定あり）に分離している。
+> 本ファイルの frontmatter は `paths:` を持たない。`paths:` なしの `.claude/rules/*.md` は
+> session 起動時に常時ロードされ、横断方針は全領域（apps / packages / infra / docs / .claude）の
+> 作業で効く。領域特化 rule は `harness-development.md` / `product-development.md` /
+> `infra-development.md`（いずれも `paths:` 指定あり）に置く。
 
 ## 承認モデル（要旨）
 

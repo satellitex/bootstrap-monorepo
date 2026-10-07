@@ -90,9 +90,8 @@ skill は 2 層構成にする。正本を片方のツールに閉じないた�
 | `gc-agent` | `.claude/agents/gc-agent.md` | ハーネス文書全体 | 重複・孤児の整理案（サイズ・1:1・パス実在は機械検査が担当） | 削除はすべて PR で提案し、単独で消さない |
 | `adr-compactor` | `.claude/agents/adr-compactor.md` | ADR コーパス | Status 追従、圧縮案、INDEX 再構築 | 判断内容を改変しない |
 | `refactor-guide-sync` | `.claude/agents/refactor-guide-sync.md` | 規約正本、リファクタガイド | 観点の追加・削除・根拠パス修正 | 規約内容そのものを決めない |
-| traceability-mapper | `docs/product/tests/README.md` と `traceability-matrix.example.yaml`（opt-in:traceability） | 受入条件と test diff | traceability matrix（機械可読） | 実装判断をしない |
 
-小規模 repo では traceability と `architecture-sync` を後回しにできる。GC と ADR 圧縮は文書量が閾値に達してから routine 登録すればよい。
+小規模 repo では、opt-in:traceability の matrix 運用と `architecture-sync` を後回しにできる。GC と ADR 圧縮は文書量が閾値に達してから routine 登録すればよい。
 
 ## 4. 承認が必要な操作
 

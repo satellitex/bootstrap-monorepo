@@ -28,7 +28,7 @@ CI_CHECK_STEPS=(format:check lint typecheck build)
 # push 元の repository とは別の repository（submodule や別 clone）への push は、
 # 本 project の検査対象外として通過する。
 
-# hook 自身の位置は cd する前に絶対パスで確定する（settings.json は相対パスで起動する）。
+# hook 自身の位置は cd する前に絶対パスで確定する。
 hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # 作業ツリーの .mise.toml を auto-trust（trust 未完だと shim 経由の pnpm 起動が落ちる）し、
@@ -84,7 +84,7 @@ _tk_flush() {
 }
 
 tokenize() {
-  local s="$1" n i c two rest quoted depth start
+  local s="$1" n i c two rest quoted depth start run
   n=${#s}
   i=0
   tok_val=()
@@ -128,6 +128,14 @@ tokenize() {
         _tk_has=1
         i=$((i + 1))
         while [ "$i" -lt "$n" ] && [ "${s:i:1}" != '"' ]; do
+          # 特別な意味を持たない文字の連続は、1 文字ずつではなくまとめて取り込む（長い入力で遅くなるため）
+          rest="${s:i}"
+          run="${rest%%[\"\\\$\`]*}"
+          if [ -n "$run" ]; then
+            _tk_cur+="$run"
+            i=$((i + ${#run}))
+            continue
+          fi
           case "${s:i:1}" in
             '\')
               _tk_dyn=1
@@ -154,6 +162,12 @@ tokenize() {
           depth=1
           i=$((i + 2))
           while [ "$i" -lt "$n" ] && [ "$depth" -gt 0 ]; do
+            rest="${s:i}"
+            run="${rest%%[()]*}"
+            if [ -n "$run" ]; then
+              i=$((i + ${#run}))
+              continue
+            fi
             case "${s:i:1}" in
               '(') depth=$((depth + 1)) ;;
               ')') depth=$((depth - 1)) ;;
@@ -371,8 +385,8 @@ fi
 
 # シークレット誤コミット検知（gitleaks）。pnpm / node_modules に依存しないため、
 # それらが無いと skip される後続チェックより前に実行する。
-# 誤検知の除外は .gitleaks.toml の値ベース regexes を正とする（fingerprint baseline の
-# .gitleaksignore は commit/行が変わると漏れるため不採用）。
+# 誤検知の除外は .gitleaks.toml の値ベース regexes で行う（値ベースの除外は commit や行が
+# 変わっても漏れない）。
 # gitleaks が PATH に無い worktree（mise install 未済）では skip して通過する。
 # 秘密検知は CI では担保されないため、skip された push は検知なしで remote に出る。
 #
@@ -399,7 +413,7 @@ fi
 # docs/harness/scheduled-operations.md の設計ガイドに従う）。remote が 1 つも無い repo では
 # `--remotes` が空集合になりローカル ref 全体が対象（fail closed）になる。
 #
-# 限界（重要）: 本 hook は Claude Code の PreToolUse hook であり、**意図的な回避を防ぐ
+# 限界: 本 hook は Claude Code の PreToolUse hook であり、**意図的な回避を防ぐ
 # セキュリティ境界ではない**。どの ref 名前空間まで広げても、ref を作らず
 # `git push origin <sha>:refs/heads/x` と raw SHA を送れば範囲外になる。Claude Code を
 # 経由しない端末からの push や --no-verify も同様に素通りする。あくまで「事故による
@@ -436,7 +450,7 @@ if [[ ${#gitleaks_cmd[@]} -gt 0 ]]; then
     gl_rc=$?
   fi
   if [[ "$gl_rc" -eq 99 ]]; then
-    deny "[gitleaks] シークレットの可能性がある値を検出したため push を中止しました。検出対象は **まだ remote に出ていないローカル commit のみ**（--all --not --remotes）です。実シークレットなら履歴から除去・ローテーションし、誤検知なら .gitleaks.toml の [allowlist] regexes に値ベース（\\b 厳密一致）で追記してください（.gitleaksignore の fingerprint baseline は不採用）。\n\n$gl_out"
+    deny "[gitleaks] シークレットの可能性がある値を検出したため push を中止しました。検出対象は **まだ remote に出ていないローカル commit のみ**（--all --not --remotes）です。実シークレットなら履歴から除去・ローテーションし、誤検知なら .gitleaks.toml の [allowlist] regexes に値ベース（\\b 厳密一致）で追記してください。"$'\n\n'"$gl_out"
   elif [[ "$gl_rc" -ne 0 ]]; then
     # rc が 0/99 以外は実行エラー（mise shim 未 pin・config 不正・不明フラグ等）。
     # leak 検出と区別し、gitleaks 不在時 skip と同じく無出力で後続チェックへ継続する
@@ -461,7 +475,7 @@ run_step() {
   if ! output="$("$@" 2>&1)"; then
     local compacted
     compacted="$(compact_output "$label" "$output" 200)"
-    deny "[$label] failed before git push.\n\n$compacted"
+    deny "[$label] failed before git push."$'\n\n'"$compacted"
   fi
 }
 
@@ -473,9 +487,17 @@ run_step() {
 # 沈黙させない）。追加時は tests/test-pre-push-ci-check.sh を同時更新する。
 # -------------------------------------------------------------------------------
 
+# pnpm コマンドの注入 seam: PROJ_PNPM_CMD が設定されていればそれを使う（テスト用 stub 注入）。
+# 未設定なら PATH 上の pnpm を使う。
+if [[ -n "${PROJ_PNPM_CMD:-}" ]]; then
+  pnpm_cmd=("${PROJ_PNPM_CMD}")
+else
+  pnpm_cmd=(pnpm)
+fi
+
 # pnpm が解決できない（mise activate 失敗等）場合は skip して通過する（fail-open）。
 # skip した検査のうち format:check / build は CI が担保するが、lint / typecheck は担保されない。
-if ! command -v pnpm >/dev/null 2>&1; then
+if ! command -v "${pnpm_cmd[0]}" >/dev/null 2>&1; then
   jq -n '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
@@ -499,7 +521,7 @@ fi
 
 # 各チェックを順に実行し、失敗した最初のステップで stop して deny を返す。
 for step in "${CI_CHECK_STEPS[@]}"; do
-  run_step "$step" pnpm "$step"
+  run_step "$step" "${pnpm_cmd[@]}" "$step"
 done
 
 # --- PJ 固有の追加 step をここに追加 -------------------------------------------

@@ -14,15 +14,15 @@
 
 ## 役割分担
 
-| 役割 | 担当 | モデル |
-|------|------|--------|
-| Planner: Issue 読解・スコープ検査・wave 分割・実装計画・検収・仕上げ・PR 作成 | オーケストレーター（本セッション） | 上位モデル（Step 0 で確認） |
-| Sub-planner: Planner が複雑と判断した Issue の詳細計画 | subagent | 上位モデル |
-| Worker: 実装（worktree 隔離・TDD） | subagent | 実装モデル（安価なモデル） |
-| Reviewer: 当該 worktree の diff を独立してレビューする review pass | subagent（subagent 機構が無い実行環境では同一セッション内の独立した review pass） | 実装モデル |
-| マージ | 人間（merge が完了シグナル） | — |
+| 役割                                                                          | 担当                                                                              | モデル                      |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------- |
+| Planner: Issue 読解・スコープ検査・wave 分割・実装計画・検収・仕上げ・PR 作成 | オーケストレーター（本セッション）                                                | 上位モデル（Step 0 で確認） |
+| Sub-planner: Planner が複雑と判断した Issue の詳細計画                        | subagent                                                                          | 上位モデル                  |
+| Worker: 実装（worktree 隔離・TDD）                                            | subagent                                                                          | 実装モデル（安価なモデル）  |
+| Reviewer: 当該 worktree の diff を独立してレビューする review pass            | subagent（subagent 機構が無い実行環境では同一セッション内の独立した review pass） | 実装モデル                  |
+| マージ                                                                        | 人間（merge が完了シグナル）                                                      | —                           |
 
-実行基盤ごとのモデル指定の構文と subagent 起動パラメータは、adapter（`.claude/skills/multi-issue/SKILL.md`）の注記に置く。本文は「上位モデル」「実装モデル」と書く。
+実行基盤ごとのモデル指定（上位モデル・実装モデルに当たるモデル名）の構文と subagent 起動パラメータは、adapter（`.claude/skills/multi-issue/SKILL.md`）の注記に置く。本文は「上位モデル」「実装モデル」と書く。
 
 ## PJ 固有の追加検証ゲート（placeholder）
 
@@ -48,7 +48,7 @@ Planner は Issue ごとに任意の凍結パスを計画で指定できる（�
 
 ## Step 0: セットアップ
 
-1. モデル確認: 現在のセッションモデルが上位モデル（Planner 適格クラス）でない場合は警告する（根拠は冒頭の設計原則）。対話 run では、モデル変更後の再実行を提案し、続行の意思が示された場合のみ進む。無人 run では、警告を完了報告とタスクリストに記録して続行する。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
+1. モデル確認: 現在のセッションモデルが adapter の注記で指定された上位モデルに当たらない場合は警告する（根拠は冒頭の設計原則）。対話 run では、モデル変更後の再実行を提案し、続行の意思が示された場合のみ進む。無人 run では、警告を完了報告とタスクリストに記録して続行する。扱いは実行モードによる（→ `docs/harness/skills/shared/unattended-contract.md`）。
 2. `git fetch origin main` し、セッションブランチを `agent/multi-issue-YYYY-MM-DD` に整える（同日重複は `-2`）。オーケストレーター自身はコードを変更しない。成果物はすべて各 Issue の worktree 側に置く。
 3. タスク管理ツール（TodoWrite 等）で Issue 単位のタスクリストを作成する。
 
@@ -95,7 +95,7 @@ git -C <main-repo> worktree add -b agent/issue-<N>-<slug> .claude/worktrees/issu
 
 1. worktree の `git status` / `git log origin/main..HEAD` で進捗を確認する
 2. プロンプト骨格を流用し、冒頭に「前任の進捗 + 残作業 + 前任の学び（エラー回避策）」を追加した再開プロンプトで新 worker を起動する（worktree は同じものを使う）
-3. `.claude/` 配下への新規 Write が権限拒否される場合は、worker にファイルパスと完全な内容を報告して停止させ、Planner が代行する
+3. worker が書き込めない領域（権限の制約で拒否されたパスなど）の新規ファイルは、worker にファイルパスと完全な内容を報告して停止させ、Planner が代行する
 
 ### 3.3 検収（Planner）
 
@@ -104,8 +104,8 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
 1. `git diff origin/main...HEAD` を読み、受入条件と突合する
 2. 検証ゲート（`gate:commit`）の再実行または結果の裏取り。PJ 固有の追加ゲートを定義した Issue はそれも裏取りする
 3. 計画で凍結パスを指定した場合: `git diff --name-only` に当該パスが含まれないこと
-4. 既存の INDEX.md が変更されていないこと。`git diff --name-only --diff-filter=M origin/main...HEAD | grep -E '(^|/)INDEX\.md$'` の出力が空であれば合格とする。経過措置中の INDEX は、`docs/harness/skills/shared/index-writer-policy.md` の運用状態表に従い、出力から除いて判定する。含まれていれば Planner が当該 hunk を戻す（worker への差し戻しは不要）。この検収は並列実装フロー内の確認であり、CI ではない
-5. トレーサビリティ運用（opt-in グループ。一覧は MANIFEST）を採用している PJ では、テストの追加・変更に対応して matrix が更新されていること（更新規則は `docs/product/tests/README.md`）
+4. 既存の INDEX.md が変更されていないこと。確認のコマンドと、経過措置中の INDEX の扱いは `docs/harness/skills/shared/index-writer-policy.md` の「強制の範囲」に従う。含まれていれば Planner が当該 hunk を戻す（worker への差し戻しは不要）
+5. トレーサビリティ運用（opt-in）を採用している PJ では、テストの追加・変更に対応して matrix が更新されていること（更新規則は `docs/product/tests/README.md`）
 
 不合格なら差し戻し内容を明記した再実装プロンプトで worker を再起動する。
 
@@ -118,12 +118,15 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
    - 当該 Issue の worktree 絶対パスと「全操作をそのパス配下で行う」指示（渡さないと `git diff` が空になり、レビューが何も見ない）
    - CONFIRMED の指摘だけを当該 worktree で `fix:` コミットまで行う
    - Issue の scope 外の指摘は修正せず、最終報告に列挙して返す。Issue 操作は Reviewer に任せず、Planner が `/create-issue` で起票する（`docs/styles/team-feedback/scope-boundary.md`）
+
    実行環境に相当 skill が無い場合は、独立した通常のセルフレビュー pass で代替する。
-3. Architecture Sync: subagent として architecture-sync（`.claude/agents/architecture-sync.md`）を起動する。プロンプトに以下を含める:
+
+3. Architecture Sync: architecture-sync agent（`.claude/agents/architecture-sync.md`）を起動する。プロンプトに以下を含める:
    - 当該 Issue の worktree 絶対パスと「全操作をそのパス配下で行う」指示。オーケストレーター自身のブランチには差分が無いため、パスを渡さないと同 Agent の `git diff origin/main...HEAD` が空になり、恒久的に no-op になる（worker 起動時と同じ落とし穴）
    - Handoff Summary（対象ファイル・禁止事項・正本パスの 3 点のみ）。実装計画や worker の最終報告を丸ごと渡さない（同 Agent は計画文書の全文 Read を既定で行わない設計）
 
-   同 Agent は `.claude/` 配下を同期対象外にするため、ハーネスのみの diff では実質 no-op になり、毎回 README が変わるわけではない。公開射影区画（opt-in グループ。一覧は MANIFEST）を採用している PJ で同 Agent が `docs/product/ARCHITECTURE.md` を更新した場合は、`docs/harness/skills/public-arch-sync.md` の射影を同一 PR に含める。
+   同 Agent は `.claude/` 配下を同期対象外にするため、ハーネスのみの diff では実質 no-op になり、毎回 README が変わるわけではない。公開射影区画（opt-in）を採用している PJ で同 Agent が `docs/product/ARCHITECTURE.md` を更新した場合は、`docs/harness/skills/public-arch-sync.md` の射影を同一 PR に含める。
+
 4. 衝突検査: PR を open する前に、`docs/harness/skills/shared/pr-creation.md` の open 前衝突検査（`git merge-tree`、git 2.38 以上）で他の open PR との衝突を予測する。衝突が予測される場合は PR を open せず保留し、先行 PR のマージ後に rebase してから open する。保留した PR と相手の PR は完了報告に載せる。
 5. push → `gh pr create`: PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節（背景 / 方針と却下案 / スコープ外 / 検証結果 / リスク）で書き、`Closes #<N>` を注入する。背景と方針は Step 1 の実装計画から、検証結果・分岐で決めた点・未検証の範囲は worker の最終報告から取り込む。PR は draft にしない。dev 環境が必要な実走検証を残した Issue は検証結果に委譲先（`/deploy-verify` 等）を明記する。
 

@@ -7,3 +7,5 @@ description: 規約違反と、効いていない・非推奨・冗長なコー�
 
 正本は `docs/harness/skills/refactor-sync.md`。これを読み、記載の手順どおり実行する。
 プロジェクト固有値（検出コマンド・必読ガイド）は `.claude/agents/references/refactorer-profile.md` を参照する。
+
+実行基盤の注記（Claude Code）: refactorer は Agent tool の `subagent_type: refactorer` で起動する。

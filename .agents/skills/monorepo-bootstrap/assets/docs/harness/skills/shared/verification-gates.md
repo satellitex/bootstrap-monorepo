@@ -9,35 +9,36 @@ skill 文書・agent 定義・hook のコメントが検証コマンドを必要
 root `package.json` の scripts として以下の名前で提供する。実装（背後のツール）は自由だが、
 **名前はこの 6 本を契約として保つ**。
 
-| コマンド | 役割 |
-|---|---|
-| `pnpm run format` | フォーマットの適用（書き換える）。hook（pre-format-check）が staged ファイルに対して使う |
-| `pnpm run format:check` | フォーマット差分の検査（書き換えない） |
-| `pnpm run lint` | 静的解析（lint） |
-| `pnpm run typecheck` | 型検査 |
-| `pnpm run test` | テスト実行 |
-| `pnpm run build` | ビルド |
+| コマンド                | 役割                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `pnpm run format`       | フォーマットの適用（書き換える）。hook（pre-format-check）が staged ファイルに対して使う |
+| `pnpm run format:check` | フォーマット差分の検査（書き換えない）                                                   |
+| `pnpm run lint`         | 静的解析（lint）                                                                         |
+| `pnpm run typecheck`    | 型検査                                                                                   |
+| `pnpm run test`         | テスト実行                                                                               |
+| `pnpm run build`        | ビルド                                                                                   |
 
 ## 名前付き組合せ
 
-| 名前 | 実行するゲート | 実行主体と契機 |
-|---|---|---|
-| `gate:commit` | `format:check` + `lint` + `typecheck` + `test` + `build`（全部） | 作業者。実装完了の検収（PR 作成前・実装系 skill の最終検証） |
-| `gate:push` | `format:check` + `lint` + `typecheck` + `build`（`test` は `gate:ci` が実行） | pre-push hook（`.claude/hooks/pre-push-ci-check.sh`）が push 時に自動実行 |
-| `gate:ci` | `format:check` + `test` + `build` | CI（`.github/workflows/ci.yml`）が PR と `main` への push で実行 |
-| `gate:docs` | `format:check` のみ | 作業者。`*.md` の編集だけの変更に対する `gate:commit` の縮約 |
+| 名前          | 実行するゲート                                                                | 実行主体と契機                                                            |
+| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `gate:commit` | `format:check` + `lint` + `typecheck` + `test` + `build`（全部）              | 作業者。実装完了の検収（PR 作成前・実装系 skill の最終検証）              |
+| `gate:push`   | `format:check` + `lint` + `typecheck` + `build`（`test` は `gate:ci` が実行） | pre-push hook（`.claude/hooks/pre-push-ci-check.sh`）が push 時に自動実行 |
+| `gate:ci`     | `format:check` + `test` + `build`                                             | CI（`.github/workflows/ci.yml`）が PR と `main` への push で実行          |
+| `gate:docs`   | `format:check` のみ                                                           | 作業者。`*.md` の編集だけの変更に対する `gate:commit` の縮約              |
 
 ### ゲートごとの実行先
 
-| ゲート | `gate:commit` | `gate:push` | `gate:ci` |
-|---|:---:|:---:|:---:|
-| `format:check` | ○ | ○ | ○ |
-| `lint` | ○ | ○ | — |
-| `typecheck` | ○ | ○ | — |
-| `test` | ○ | — | ○ |
-| `build` | ○ | ○ | ○ |
+| ゲート         | `gate:commit` | `gate:push` | `gate:ci` |
+| -------------- | :-----------: | :---------: | :-------: |
+| `format:check` |       ○       |      ○      |     ○     |
+| `lint`         |       ○       |      ○      |     —     |
+| `typecheck`    |       ○       |      ○      |     —     |
+| `test`         |       ○       |      —      |     ○     |
+| `build`        |       ○       |      ○      |     ○     |
 
 - `gate:push` と `gate:ci` の和集合は `gate:commit` に一致する。どのゲートも、hook と CI のどちらかが実行する。
+- CI の test job は `gate:ci` の `test` に加えて、hooks のテストとハーネス機械検査（`pnpm harness:test`）を実行する。ハーネス文書・設定・workflow を変更する作業者は、`gate:commit` に加えて `harness:test` を実行する。`harness:test` は 6 本の契約に含めない補助 script である。
 - hook は Claude Code 経由の操作にだけ効き、`--no-verify` や Claude Code 外の端末からの push は素通りする。CI は PR と `main` への push の全経路に効く。したがって `gate:ci` に含まれない `lint` / `typecheck` は、hook の効かない経路では担保されない。CI にも課す場合は `gate:ci` に足し、`ci.yml` と本書を同一 PR で更新する。
 - docs と設定が混在する変更など、`*.md` 以外のファイルを 1 つでも含む変更は `gate:docs` ではなく `gate:commit` を使う。`gate:docs` は検査の対象が `*.md` だけのときの縮約であり、設定や実装の変更を検査から外すためのものではない。
 - いずれの組合せでも、hook が失敗したら原因を直して再実行する。`--no-verify` で回避すると、同じ失敗が CI で初めて赤くなり、修正の往復が増える。

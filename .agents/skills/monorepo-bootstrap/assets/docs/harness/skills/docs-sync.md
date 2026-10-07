@@ -40,16 +40,16 @@
 3 原則を適用する対象。新規ファイル種の追加は本表の INCLUDE / EXCLUDE glob の拡張だけで対応できる。
 （プロジェクト構成に応じて調整してよいが、EXCLUDE の責務分離の理由は保つこと。）
 
-| INCLUDE | EXCLUDE |
-|------|------|
-| `docs/product/**/*.md` | `docs/adr/**`（決定層 / Why。時系列・経緯が本質） |
-| `docs/styles/**/*.md` | `docs/notes/**`（調査層。時系列前提） |
-| `docs/harness/*.md`（直下の運用正本） | `docs/postmortems/**`（opt-in 区画採用時。インシデント記録は時系列の経緯を書く場） |
-| `.claude/rules/*.md` | `docs/requirements/**` / `docs/customer/**`（AI 編集対象外の正本） |
-| リポジトリ root 直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離） |
-| | `docs/styles/coding_guide/docs.md`（本 skill の SSOT 自身。違反例・lexicon を verbatim に含むため 3 原則 scan の対象外。リポジトリ内パスの実在検査は per-file 対象） |
-| | `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**`（操作仕様文書。手順例の `#N` 等を含むため対象外。重複は `/gc-scan` 担当、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
-| | `node_modules/`、ビルド成果物、`.git/`、`.claude/worktrees/` |
+| INCLUDE                                                                                              | EXCLUDE                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/product/**/*.md`                                                                               | `docs/adr/**`（決定層 / Why。時系列・経緯が本質）                                                                                                                                                |
+| `docs/styles/**/*.md`                                                                                | `docs/notes/**`（調査層。時系列前提）                                                                                                                                                            |
+| `docs/harness/*.md`（直下の運用正本）                                                                | `docs/postmortems/**`（opt-in 区画採用時。インシデント記録は時系列の経緯を書く場）                                                                                                               |
+| `.claude/rules/*.md`                                                                                 | `docs/requirements/**` / `docs/customer/**`（AI 編集対象外の正本）                                                                                                                               |
+| リポジトリ root 直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離）                                                                                                                                                  |
+|                                                                                                      | `docs/styles/coding_guide/docs.md`（本 skill の SSOT 自身。違反例・lexicon を verbatim に含むため 3 原則 scan の対象外。リポジトリ内パスの実在検査は per-file 対象）                             |
+|                                                                                                      | `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**`（操作仕様文書。手順例の `#N` 等を含むため対象外。重複は `/gc-scan` 担当、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
+|                                                                                                      | `node_modules/`、ビルド成果物、`.git/`、`.claude/worktrees/`                                                                                                                                     |
 
 対象ファイル列挙は **`origin/main` の tree** に対して実行する（後続の
 `git show origin/main:<path>` と ref を揃える）。実装は同等の結果を返せばよく、
@@ -63,13 +63,13 @@ root 直下の運用文書（`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md`）も�
 
 `docs/harness/skills/shared/implementation-consistency.md` が呼び出し側に求める項目を、次のとおり定める。
 
-| 項目 | 値 |
-|------|-----|
-| 走査対象 | policy scan 対象・per-file 対象・`docs/runbooks/**/*.md`（`INDEX.md` と `README.md` を除く）。毎回全件を対象にする（巡回による分割が必要な規模になったら導入先が追加する） |
-| 突合先 | `origin/main` の実装（コード・設定・CI・スクリプト）と、規範層の記述 |
-| 編集可能スコープ | 走査対象のうち、policy scan の EXCLUDE に当たらないファイル |
-| 記述層・規範層の範囲 | 規範層は `docs/requirements/**`。`docs/customer/**` を採用している場合はそれも含む（`docs.md` の層の表が正本）。突合先として読むだけで編集しない。他の走査対象は記述層 |
-| 報告先 | 修正は PR 本文の「鮮度ドリフト・主張の修正」、「実装疑い」「判定不能」は「実装側判断要」 |
+| 項目                 | 値                                                                                                                                                                         |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 走査対象             | policy scan 対象・per-file 対象・`docs/runbooks/**/*.md`（`INDEX.md` と `README.md` を除く）。毎回全件を対象にする（巡回による分割が必要な規模になったら導入先が追加する） |
+| 突合先               | `origin/main` の実装（コード・設定・CI・スクリプト）と、規範層の記述                                                                                                       |
+| 編集可能スコープ     | 走査対象のうち、policy scan の EXCLUDE に当たらないファイル                                                                                                                |
+| 記述層・規範層の範囲 | 規範層は `docs/requirements/**`。`docs/customer/**` を採用している場合はそれも含む（`docs.md` の層の表が正本）。突合先として読むだけで編集しない。他の走査対象は記述層     |
+| 報告先               | 修正は PR 本文の「鮮度ドリフト・主張の修正」、「実装疑い」「判定不能」は「実装側判断要」                                                                                   |
 
 ### INDEX 所管対象
 
@@ -131,13 +131,13 @@ PR 本文に「`/<主体 skill> 実行要`」と報告する。
 自動で行ってよい編集は以下 5 種に限定する。それ以外（新規 ADR / research の作成、本文の大幅再構成、
 節の追加・統合、コードの編集）は行わず、`needs_new_doc` は PR body に「起票要候補」として明記して人間に委ねる。
 
-| アクション | 対象 | 編集内容 |
-|----------|-----|---------|
-| 削除 | `fix_action: delete` | 該当行 or 該当節を削除 |
-| drift 修正 | `severity: critical` / `major` の drift | 単純な値置換（壊れたパス・古い版数） |
-| 脚注化 | `fix_action: replace_with_link` | 本文中の参照を末尾「関連リソース」節へ移動して箇条書きリンク化 |
-| 主張の修正 | Step 6 で「記述修正」と分類した食い違い | 主張そのものの置換のみ。節や手順の増減はしない |
-| INDEX 行の追記・削除 | Step 7 の突合結果 | 行単位の追記・削除と件数表記の同期 |
+| アクション           | 対象                                    | 編集内容                                                       |
+| -------------------- | --------------------------------------- | -------------------------------------------------------------- |
+| 削除                 | `fix_action: delete`                    | 該当行 or 該当節を削除                                         |
+| drift 修正           | `severity: critical` / `major` の drift | 単純な値置換（壊れたパス・古い版数）                           |
+| 脚注化               | `fix_action: replace_with_link`         | 本文中の参照を末尾「関連リソース」節へ移動して箇条書きリンク化 |
+| 主張の修正           | Step 6 で「記述修正」と分類した食い違い | 主張そのものの置換のみ。節や手順の増減はしない                 |
+| INDEX 行の追記・削除 | Step 7 の突合結果                       | 行単位の追記・削除と件数表記の同期                             |
 
 EXCLUDE スコープには 3 原則違反の編集を行わない（per-file 対象の drift 修正と、INDEX 所管対象の INDEX 行は、上表の範囲で編集する）。
 「実装疑い」「判定不能」の食い違いでは、文書を実装に合わせて書き換えない。実装が要件を満たしていないときに
@@ -150,14 +150,14 @@ EXCLUDE スコープには 3 原則違反の編集を行わない（per-file 対
 （`docs/harness/skills/shared/sync-prelude.md` の「編集を伴わない所見だけの run」）。編集がある場合は
 `docs/harness/skills/shared/sync-pr-flow.md` を Read してその手順に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[docs-sync] 変更なし。現状層ドキュメントは origin/main の現状と整合しています。` |
-| ブランチ | `agent/docs-sync-{YYYY-MM-DD}` |
-| git add | 更新した文書ファイル（INCLUDE スコープ・per-file 対象・`docs/runbooks/` 配下・INDEX 所管対象の `INDEX.md`）のみ |
-| commit | `docs: sync current-state docs with current code (YYYY-MM-DD)` |
-| PR title | `docs: docs-sync (YYYY-MM-DD)` |
-| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の 6 区分を加える |
+| 項目               | 値                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[docs-sync] 変更なし。現状層ドキュメントは origin/main の現状と整合しています。`                               |
+| ブランチ           | `agent/docs-sync-{YYYY-MM-DD}`                                                                                  |
+| git add            | 更新した文書ファイル（INCLUDE スコープ・per-file 対象・`docs/runbooks/` 配下・INDEX 所管対象の `INDEX.md`）のみ |
+| commit             | `docs: sync current-state docs with current code (YYYY-MM-DD)`                                                  |
+| PR title           | `docs: docs-sync (YYYY-MM-DD)`                                                                                  |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の 6 区分を加える                 |
 
 ## Validation
 

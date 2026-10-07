@@ -13,6 +13,12 @@
 //   - テンプレート資産（ルートが MANIFEST.md を持つ）: 明示 token は置換前の状態として
 //     許容し、それ以外の二重波括弧だけを失敗にする。
 //
+// TODO は `TODO(取得方法: …)` と `TODO(記入方法: …)` の 2 記法だけを使う。記入欄として書かれた
+// 記法外の TODO（`TODO(…` の別の種別、`TODO:`、表のセルや HTML コメントの単独の TODO）は失敗にする。
+// 散文中の「TODO」という語の言及（コメントのマーカーの説明など）は対象にしない。走査範囲は docs/ と
+// ハーネス文書（.claude/ 配下・ルート直下の *.md）で、件数は完了報告の残 TODO 一覧と突合できるよう
+// 診断に出す。
+//
 // 空 owner の症状（`github.com//` など）は、owner / repo の取得コマンドが空応答でも置換が
 // 成功扱いになる経路の後段防御として、どちらのモードでも失敗にする。
 //
@@ -28,6 +34,7 @@ import {
   assertNoViolations,
   isTemplateFormPath,
   linesOutsideFences,
+  listHarnessFiles,
   listMarkdownFiles,
   proseLines,
   readRepoFile,
@@ -88,8 +95,17 @@ function findEmptyOwnerSymptoms(text, { allowTokenOwner }) {
   return out;
 }
 
+/** 記入欄として書かれた、2 記法（取得方法 / 記入方法）に当てはまらない TODO。 */
+const BARE_TODO_RE =
+  /(?<![\w`])TODO(?:\((?!(?:取得方法|記入方法):)|[:：]|\s*\||\s*-->)/;
+
 function scanTargets() {
   return listMarkdownFiles("docs").filter((rel) => !isTemplateFormPath(rel));
+}
+
+/** TODO の検査と件数報告の対象: docs/ とハーネス文書の和集合。 */
+function todoScanTargets() {
+  return [...new Set([...scanTargets(), ...listHarnessFiles()])].sort();
 }
 
 describe("placeholder residue gate: docs/ の未置換 token・空 owner", () => {
@@ -163,11 +179,27 @@ describe("placeholder residue gate: docs/ の未置換 token・空 owner", () =>
   );
 
   it(
-    "TODO の件数を報告する（失敗にしない。完了報告の TODO 一覧との突合に使う）",
+    "裸の TODO が無い（TODO は取得方法 / 記入方法の 2 記法だけ）",
+    { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
+    () => {
+      const violations = [];
+      for (const file of todoScanTargets()) {
+        for (const { n, text } of proseLines(readRepoFile(file))) {
+          if (BARE_TODO_RE.test(text)) {
+            violations.push({ file, line: n, message: "記法外の TODO" });
+          }
+        }
+      }
+      assertNoViolations(assert, "記法外の TODO", violations);
+    },
+  );
+
+  it(
+    "TODO の件数を報告する（完了報告の TODO 一覧との突合に使う）",
     { timeout: REPO_SCAN_TEST_TIMEOUT_MS },
     (t) => {
       let total = 0;
-      for (const file of scanTargets()) {
+      for (const file of todoScanTargets()) {
         const count = [
           ...readRepoFile(file).matchAll(/TODO\((?:取得方法|記入方法):/g),
         ].length;
@@ -176,8 +208,8 @@ describe("placeholder residue gate: docs/ の未置換 token・空 owner", () =>
           t.diagnostic(`${file}: TODO ${count} 件`);
         }
       }
-      t.diagnostic(`docs/ 配下の TODO 合計: ${total} 件`);
-      assert.ok(scanTargets().length > 0);
+      t.diagnostic(`docs/ とハーネス文書の TODO 合計: ${total} 件`);
+      assert.ok(todoScanTargets().length > 0);
     },
   );
 });
@@ -239,6 +271,17 @@ describe("placeholder residue gate: 自己テスト", () => {
       findEmptyOwnerSymptoms(text, { allowTokenOwner: true }).map((s) => s.n),
       [1, 2],
     );
+  });
+
+  it("2 記法に当てはまらない TODO を検出する", () => {
+    assert.ok(BARE_TODO_RE.test("TODO: あとで書く"));
+    assert.ok(BARE_TODO_RE.test("TODO(bootstrap 時: 書く)"));
+    assert.ok(BARE_TODO_RE.test("| TODO(取得方法: 確認する) | TODO |"));
+    assert.ok(BARE_TODO_RE.test("<!-- TODO -->"));
+    assert.ok(!BARE_TODO_RE.test("TODO(取得方法: 版を確認する)"));
+    assert.ok(!BARE_TODO_RE.test("TODO(記入方法: 判断基準を書く)"));
+    assert.ok(!BARE_TODO_RE.test("TODO 記法と TODO / FIXME の説明"));
+    assert.ok(!BARE_TODO_RE.test("TODOS は別の語"));
   });
 
   it("インラインコードの除去は桁位置を保つ", () => {

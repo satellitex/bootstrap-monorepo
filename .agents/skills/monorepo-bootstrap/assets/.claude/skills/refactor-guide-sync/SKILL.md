@@ -7,3 +7,5 @@ description: コーディング規約を変更した後に refactoring_guide.md 
 
 正本は `docs/harness/skills/refactor-guide-sync.md`。これを読み、記載の手順どおり実行する。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。
+
+実行基盤の注記（Claude Code）: refactor-guide-sync は Agent tool の `subagent_type: refactor-guide-sync` で起動する。

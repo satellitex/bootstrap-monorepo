@@ -16,12 +16,12 @@
 
 ## 入力
 
-| 項目 | 必須 | 既定 | 説明 |
-|------|------|------|------|
-| 対象環境 | No | `dev` | `dev`（main）/ `prod`（release） |
-| `--dry-run` | No | off | 各ステップの実行計画のみ提示し、副作用のあるコマンドは実行しない |
-| `--from <step>` | No | 先頭 | 途中ステップから再開する。前段が成功済みのときの再実行用 |
-| `--merge` | No | off | prod のみ。release 反映 PR のマージとマージ後の確認まで実行する。省略時は PR 作成までで止める |
+| 項目            | 必須 | 既定  | 説明                                                                                          |
+| --------------- | ---- | ----- | --------------------------------------------------------------------------------------------- |
+| 対象環境        | No   | `dev` | `dev`（main）/ `prod`（release）                                                              |
+| `--dry-run`     | No   | off   | 各ステップの実行計画のみ提示し、副作用のあるコマンドは実行しない                              |
+| `--from <step>` | No   | 先頭  | 途中ステップから再開する。前段が成功済みのときの再実行用                                      |
+| `--merge`       | No   | off   | prod のみ。release 反映 PR のマージとマージ後の確認まで実行する。省略時は PR 作成までで止める |
 
 ## フロー骨格
 
@@ -42,13 +42,13 @@
 
 > TODO(記入方法: PJ の deploy 手段（タスクランナー・CI/CD・ホスティング）が確定したら、以下の表を実コマンドで埋め、各行の「破壊的」欄と env 制約（dev 専用ステップ等）を明記する。行の追加・削除も可)
 
-| Step | 目的 | ラップするコマンド / runbook | 環境 | 破壊的 |
-|------|------|------------------------------|------|--------|
-| 1 pull | 最新コードを取り込む | `git pull --ff-only`（現ブランチ） | dev/prod | 低 |
-| 2 deploy | ビルド成果物の配備 | TODO(記入方法: PJ の deploy コマンド) | dev/prod | 高 |
-| 3 migrate | DB migration（採用時のみ） | TODO(記入方法: PJ の migration コマンド) | dev/prod | 高 |
-| 4 seed | 検証用データ投入（採用時のみ） | TODO(記入方法: PJ の seed コマンド) | dev のみ | 中 |
-| 5 smoke | deploy 先への疎通・smoke 検証 | TODO(記入方法: PJ の smoke 検証コマンド) | dev/prod | 低 |
+| Step      | 目的                           | ラップするコマンド / runbook             | 環境     | 破壊的 |
+| --------- | ------------------------------ | ---------------------------------------- | -------- | ------ |
+| 1 pull    | 最新コードを取り込む           | `git pull --ff-only`（現ブランチ）       | dev/prod | 低     |
+| 2 deploy  | ビルド成果物の配備             | TODO(記入方法: PJ の deploy コマンド)    | dev/prod | 高     |
+| 3 migrate | DB migration（採用時のみ）     | TODO(記入方法: PJ の migration コマンド) | dev/prod | 高     |
+| 4 seed    | 検証用データ投入（採用時のみ） | TODO(記入方法: PJ の seed コマンド)      | dev のみ | 中     |
+| 5 smoke   | deploy 先への疎通・smoke 検証  | TODO(記入方法: PJ の smoke 検証コマンド) | dev/prod | 低     |
 
 prod では、`deploy` 以降のステップは release 反映のマージ後（R6）に実行・確認する。release への反映を契機に CI/CD が deploy する PJ では、`deploy` 行は CI の run を指し、本 skill は完了までのポーリングと判定を担う。
 
@@ -73,24 +73,9 @@ main の最新内容を release へ反映する手順。release 反映 PR を作
 
 `origin/release..origin/main` は反映対象の数え過ぎを招くため使わない。同期点（release に反映済みの最後の main 側 commit）を導出し、それ以降だけを対象にする。
 
-```bash
-git fetch origin main release
-SYNC_SHA=$(git merge-base origin/main origin/release)
+`origin/main` と `origin/release` を fetch し、`git merge-base origin/main origin/release` を同期点の候補にする。候補の commit の tree が `origin/release` の tree と一致すれば、履歴は分岐しておらず、同期点が確定する。反映対象は、同期点以降の main の first-parent 履歴（`git log --first-parent --oneline <同期点>..origin/main`）である。
 
-# release の tree が同期点の tree と一致すれば、履歴は分岐していない
-[ "$(git rev-parse "$SYNC_SHA^{tree}")" = "$(git rev-parse origin/release^{tree})" ] \
-  && echo "同期点: $SYNC_SHA" || echo "release の履歴が分岐している"
-
-# 反映対象（同期点以降の main の first-parent 履歴）
-git log --first-parent --oneline "$SYNC_SHA"..origin/main
-```
-
-tree が一致しない場合は、release の tree と一致する main 側の commit を同期点にする（squash や rebase の履歴が混ざった release でも、反映済みの変更を数え直さずに済む）:
-
-```bash
-REL_TREE=$(git rev-parse "origin/release^{tree}")
-SYNC_SHA=$(git log --format='%H %T' origin/main | awk -v t="$REL_TREE" '$2 == t {print $1; exit}')
-```
+tree が一致しない場合は、履歴が分岐している。release の tree と一致する main 側の commit（`git log --format='%H %T' origin/main` の tree の列から探す）を同期点にする。squash や rebase の履歴が混ざった release でも、反映済みの変更を数え直さずに済む。
 
 - tree が一致する main 側の commit が無い場合は、release に main 由来でない変更が入っている。同期点を導出できないため、反映を見送り、状況を報告して終了する。
 - 履歴が分岐していると分かった場合は、反映 PR を作る前に、下記「履歴が分岐したときの復旧」を先に行う。
@@ -109,26 +94,26 @@ SYNC_SHA=$(git log --format='%H %T' origin/main | awk -v t="$REL_TREE" '$2 == t 
 
 ### R3: 反映 PR の作成
 
-`gh pr create --base release --head main --title "chore(release): main を release へ反映 (YYYY-MM-DD)" --body-file <本文ファイル>` で通常の PR を作る。closing keyword は付けない（既定ブランチ向けの PR ではないため発火しない）。
+base を `release`、head を `main` にした通常の PR（draft にしない）を作る。title は `chore(release): main を release へ反映 (YYYY-MM-DD)` とする。closing keyword は付けない（既定ブランチ向けの PR ではないため発火しない）。
 
 PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節に、反映固有の節を加えて書く。
 
-| 節 | 書くこと |
-|----|---------|
-| 背景 | 反映の目的と対象 |
-| 方針と却下案 | merge commit で反映する方針と、squash / rebase を退けた理由 |
-| スコープ外 | 今回反映しない変更（無ければ「なし」） |
-| 検証結果 | R2 の前提ゲートの各項目と結果、R4 の反映前プレビューの確認結果（プレビューが無い PJ は「なし」） |
-| リスク | 破壊的な変更の有無（R1）と、問題が出たときの戻し方 |
-| 反映対象（追加） | 同期点の SHA・main の先頭 SHA、反映対象の PR / commit 一覧（R1 の出力） |
-| マージ前チェック（追加） | チェックボックス形式の確認項目 |
-| マージコマンドとマージ後の確認（追加） | `gh pr merge <番号> --merge` と、R6 の項目 |
+| 節                                     | 書くこと                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 背景                                   | 反映の目的と対象                                                                                 |
+| 方針と却下案                           | merge commit で反映する方針と、squash / rebase を退けた理由                                      |
+| スコープ外                             | 今回反映しない変更（無ければ「なし」）                                                           |
+| 検証結果                               | R2 の前提ゲートの各項目と結果、R4 の反映前プレビューの確認結果（プレビューが無い PJ は「なし」） |
+| リスク                                 | 破壊的な変更の有無（R1）と、問題が出たときの戻し方                                               |
+| 反映対象（追加）                       | 同期点の SHA・main の先頭 SHA、反映対象の PR / commit 一覧（R1 の出力）                          |
+| マージ前チェック（追加）               | チェックボックス形式の確認項目                                                                   |
+| マージコマンドとマージ後の確認（追加） | `gh pr merge <番号> --merge` と、R6 の項目                                                       |
 
 作成した PR の head SHA を記録する（R6 で使う）。
 
 ### R4: 反映前プレビューの確認
 
-反映によって配備先が変わる内容を CI が事前に出力する PJ（IaC の plan 等）では、その出力を全文読み、意図しないリソースの削除・置換が無いことを確認する。要約や件数だけで判断しない（出力の一部だけを見て全体を判断すると、削除や置換を見落とすため）。TODO(取得方法: 反映前プレビューの取得元。PR の check・コメント・artifact のいずれか。プレビューを出さない PJ は「なし」と書く)
+反映によって配備先が変わる内容を CI が事前に出力する PJ（`<iac-tool>` の変更プレビュー等）では、その出力を全文読み、意図しないリソースの削除・置換が無いことを確認する。要約や件数だけで判断しない（出力の一部だけを見て全体を判断すると、削除や置換を見落とすため）。TODO(取得方法: 反映前プレビューの取得元。PR の check・コメント・artifact のいずれか。プレビューを出さない PJ は「なし」と書く)
 
 確認結果は PR 本文の検証結果に追記する。意図しない変更が見つかった場合は、マージせず、原因を報告して終了する。
 
@@ -150,23 +135,14 @@ PR 本文は `docs/harness/skills/shared/pr-creation.md` の標準節に、反�
 
 ### 履歴が分岐したときの復旧
 
-| 症状 | 原因 | 対処 |
-|------|------|------|
+| 症状                                                              | 原因                                                                  | 対処                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 反映 PR が conflict 状態になり、PR を契機に起動する CI が動かない | release の履歴が main から分岐している（squash や rebase で反映した） | 通常の conflict 解消では直らない。main の tree を持ち、親が main と release の両方である合流 commit を作り、そのブランチを head にした PR を merge commit でマージして履歴をつなぎ直す。以後は merge commit のみで反映する |
-| 反映対象の数が実際より多い | 同期点に古い共通祖先を使っている | R1 の tree 一致で同期点を導出する |
-| 反映後に deploy が起動しない | 反映で変更されたパスが deploy workflow の path filter に掛からない | workflow の起動条件を確認する。反映の確認は R6 の step 単位確認で行う |
-| main の dev 反映が追いついていない | dev への deploy が実行中、または失敗している | R2 で停止し、完了または原因の解消を待って再実行する |
+| 反映対象の数が実際より多い                                        | 同期点に古い共通祖先を使っている                                      | R1 の tree 一致で同期点を導出する                                                                                                                                                                                          |
+| 反映後に deploy が起動しない                                      | 反映で変更されたパスが deploy workflow の path filter に掛からない    | workflow の起動条件を確認する。反映の確認は R6 の step 単位確認で行う                                                                                                                                                      |
+| main の dev 反映が追いついていない                                | dev への deploy が実行中、または失敗している                          | R2 で停止し、完了または原因の解消を待って再実行する                                                                                                                                                                        |
 
-合流 commit の作り方:
-
-```bash
-git fetch origin main release
-JOIN=$(git commit-tree "origin/main^{tree}" -p origin/main -p origin/release -m "chore(release): reconnect release history")
-git push origin "$JOIN:refs/heads/release-reconnect-<YYYY-MM-DD>"
-gh pr create --base release --head release-reconnect-<YYYY-MM-DD>
-```
-
-この PR の内容は main の tree と同一になる。マージ後に R1 の同期点の確認が通ることを確かめる。
+合流 commit は、`git commit-tree` で `origin/main` の tree を使い、親を `origin/main` と `origin/release` にして作る。この commit を `release-reconnect-<YYYY-MM-DD>` ブランチとして push し、base を `release` にした PR を作る。この PR の内容は main の tree と同一になる。マージ後に R1 の同期点の確認が通ることを確かめる。
 
 ## Step 1..N: 実行と成否判定
 
@@ -206,13 +182,13 @@ gh pr create --base release --head release-reconnect-<YYYY-MM-DD>
 
 ## 制約
 
-- 各ステップの実行ロジックを再実装しない（PJ のタスクランナー / runbook をラップするのみ）
-- 失敗を握り潰さない（終了コード 0 以外は即停止し、起票する）
-- 前提が未充足なら推測で進めず停止し、runbook 参照の設定手順を提示する
-- 課金を伴う新規リソース作成・秘密値挿入は、人間承認前に実行しない（それ以外の deploy 操作は承認モデルに従い自律実行する）
-- release へ直接 push しない。release 反映 PR のマージ方式は merge commit のみ
-- 失敗 Issue・ログ抜粋に秘匿値を載せない（マスクする）
-- `--dry-run` は副作用のあるコマンドを一切実行しない（計画提示のみ）
+- 各ステップの実行ロジックは再実装せず、PJ のタスクランナー / runbook を呼ぶだけにする（実行ロジックが二重にあると、どちらかが古くなるため）
+- 失敗は握り潰さず、終了コードが 0 以外なら即停止して起票する（壊れた状態の上で後続のステップを進めないため）
+- 前提が未充足なら推測で進めず停止し、runbook 参照の設定手順を提示する（誤った環境へ変更を加えないため）
+- 課金を伴う新規リソース作成・秘密値挿入は、人間承認の後に実行する（それ以外の deploy 操作は承認モデルに従い自律実行する）
+- release へは直接 push せず、release 反映 PR を作る。マージ方式は merge commit のみとする（squash や rebase では release の履歴が main から分岐し、次回の反映 PR が conflict になるため）
+- 失敗 Issue・ログ抜粋の秘匿値はマスクする（起票先に資格情報が残らないようにするため）
+- `--dry-run` は計画の提示までにとどめ、副作用のあるコマンドを実行しない（環境を変えずに結果を確認できるようにするため）
 
 ## 関連
 

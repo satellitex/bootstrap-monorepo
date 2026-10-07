@@ -64,13 +64,13 @@ Proposed → Accepted → Deprecated
 
 `INDEX.md` の更新主体は `/adr-compress`（adr-compactor エージェント）である。ADR を追加・更新する PR は `INDEX.md` を変更せず、ADR 本体（ファイル名 = id、冒頭の `#` 見出し = タイトル、Status 表 = Status・Date）を正しく書くことに責任を持つ。`/adr-compress` が本体から行を決定的に再構築するため、情報は失われない。
 
-並列 PR が同じ表末尾と件数表記を書き換えると衝突するため、更新主体を 1 つにしている（割当表と経過措置 → `docs/harness/skills/shared/index-writer-policy.md`、規約本文 → `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。`/adr-compress` の routine 登録前は、ADR を追加する PR が同一 PR で INDEX の行を追加してよい。
+並列 PR が同じ表末尾と件数表記を書き換えると衝突するため、更新主体を 1 つにしている（割当表と経過措置 → `docs/harness/skills/shared/index-writer-policy.md`、規約本文 → `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。経過措置（routine の登録前）→ `docs/harness/skills/shared/index-writer-policy.md`。
 
 `INDEX.md` は **Status 別**（現行: Accepted / Proposed ／ アーカイブ: Superseded・Deprecated ／ プロセス記録）に分類し、各行は **コンパクト形式**（第 1 セル = ADR link、第 2 セル = 1 行要旨）を基本とする。Decision の詳細は ADR 本体が正本であり、INDEX 行に長文要約を詰め込まない。無効化済み・未確定の ADR を「有効な決定」として現行 Accepted に混在させない。
 
 ## 肥大化の圧縮（`/adr-compress`）
 
-ADR コーパスが肥大化したら `/adr-compress`（adr-compactor エージェント）が以下のカテゴリで圧縮し 1 PR にまとめる（routine 定期実行向け）。実行順は 0 → II → III → IV → I:
+ADR コーパスが肥大化したら `/adr-compress`（adr-compactor エージェント）が以下のカテゴリで圧縮し 1 PR にまとめる（routine 定期実行向け）。実行順とカテゴリの所有は `docs/harness/skills/adr-compress/compression-rules.md` に従う:
 
 - **0**: Status 追従（上記）。圧縮ではなく Status の値の更新で、肥大化の閾値と無関係に実行する。候補が 0 件なら変更なしで終了する
 - **I**: `INDEX.md` を Status 別セクションに決定的再構築（lossless、各行リンク + 1 行要旨）

@@ -23,11 +23,11 @@ Glob docs/styles/coding_guide/**/*.md
 
 該当ガイドの例示（placeholder。実行時に Glob + Read して再構築する）:
 
-| ガイド（placeholder） | ID 体系（placeholder） |
-|--------|---------|
-| `docs/styles/coding_guide/<pattern-a>.md` | A1, A2, … |
-| `docs/styles/coding_guide/<pattern-b>.md` | B1, B2, … |
-| `docs/styles/coding_guide/<domain-x>.md` | X1, X2, …（別ガイドと同字 ID になりうる — Stage 3 でガイドパスによりスコープ分離） |
+| ガイド（placeholder）                     | ID 体系（placeholder）                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `docs/styles/coding_guide/<pattern-a>.md` | A1, A2, …                                                                          |
+| `docs/styles/coding_guide/<pattern-b>.md` | B1, B2, …                                                                          |
+| `docs/styles/coding_guide/<domain-x>.md`  | X1, X2, …（別ガイドと同字 ID になりうる — Stage 3 でガイドパスによりスコープ分離） |
 
 抽出時は ID を `{ガイドパス}#{ID}` の複合キーで保持し、同字 ID 衝突に備える。
 

@@ -10,11 +10,11 @@
 search connection は **リポジトリのリダイレクト（owner 変更・リネーム）を解決せず、エラーにもならず
 exit 0 + `[]` を返す**。空の結果を「該当なし」と解釈する側は、照会経路が壊れたことに気付けない。
 
-| 経路 | 移管・リネーム済み repo を旧 slug で照会したときの挙動 |
-|------|------|
-| `gh pr list` / `gh issue list`（フィルタなし）・`gh * view`・`gh api repos/...`・GraphQL `repository(owner:)`・git remote | リダイレクトを追う（正しい結果） |
-| `gh pr list` に `--search` / `--label`、`gh issue list` に `--search` / `--label` / `--milestone` を付けた形式 | **追わない。exit 0 + `[]`（無言）** |
-| REST `search/issues` | HTTP 422 で hard fail（無言ではない） |
+| 経路                                                                                                                      | 移管・リネーム済み repo を旧 slug で照会したときの挙動 |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `gh pr list` / `gh issue list`（フィルタなし）・`gh * view`・`gh api repos/...`・GraphQL `repository(owner:)`・git remote | リダイレクトを追う（正しい結果）                       |
+| `gh pr list` に `--search` / `--label`、`gh issue list` に `--search` / `--label` / `--milestone` を付けた形式            | **追わない。exit 0 + `[]`（無言）**                    |
+| REST `search/issues`                                                                                                      | HTTP 422 で hard fail（無言ではない）                  |
 
 したがって list 照会は **フィルタなしの list + `--json` + ローカル絞り込み**で書く。これで照会が
 owner 文字列にも依存しなくなり、次回の移管・リネームでも壊れない。
@@ -89,13 +89,13 @@ owner を直書きした箇所は移管・リネームのたびに全件手当�
 
 失敗メッセージは部分一致・大文字小文字を区別せずに判定する。
 
-| 症状 | 判定に使う文字列・条件 | 切替先 |
-|------|-----------------|--------|
-| GraphQL が無効なセッション | `This GraphQL query is not enabled` | REST（`gh api`） |
-| rate limit（GraphQL 側の枯渇を含む） | `rate limit` | REST（GraphQL と REST は別の rate limit のため、REST の canary で再判定する） |
-| 権限・scope の不足 | `Resource not accessible by integration` / `missing required scopes` | REST（REST の canary も落ちるなら停止する） |
-| `gh` が無い | `command not found: gh` / `gh: command not found` | MCP |
-| `gh` が未認証 | `gh auth status` が非ゼロ終了 | MCP |
+| 症状                                 | 判定に使う文字列・条件                                               | 切替先                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| GraphQL が無効なセッション           | `This GraphQL query is not enabled`                                  | REST（`gh api`）                                                              |
+| rate limit（GraphQL 側の枯渇を含む） | `rate limit`                                                         | REST（GraphQL と REST は別の rate limit のため、REST の canary で再判定する） |
+| 権限・scope の不足                   | `Resource not accessible by integration` / `missing required scopes` | REST（REST の canary も落ちるなら停止する）                                   |
+| `gh` が無い                          | `command not found: gh` / `gh: command not found`                    | MCP                                                                           |
+| `gh` が未認証                        | `gh auth status` が非ゼロ終了                                        | MCP                                                                           |
 
 - 文字列は GitHub と `gh` の版により変わり得る。GitHub の公式 docs は rate limit 超過時のメッセージ本文を規定せず、HTTP ステータス（403 / 429）と `x-ratelimit-remaining` ヘッダで示すため、rate limit は文字列と併せてそれらでも確認する。導入先は実機で観測した文字列を表へ追記する。
 - 経路の選択は run の開始時に `command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1` で行う。`command -v gh` だけで判定すると、導入済みで未認証の `gh` を gh 経路に倒したまま停止させるため、`gh auth status` までを 1 つの条件とする。成功すれば gh 経路、失敗すれば MCP 経路に進む。
@@ -116,17 +116,13 @@ Issue 側は `repos/{owner}/{repo}/issues?state=all&per_page=1` に読み替え�
 - 読み取りだけでなく書き込み（PR 作成・ラベル付与・コメント）も同じ run で REST に揃える。読み取りだけを切り替えると、最後の書き込みが GraphQL 前提で失敗し、検出済みの成果が PR 化されない。
 - REST で取得する照会にも規約 2・3 を適用する。終了コードと応答の型を検査し、`--paginate --slurp` で全ページを 1 個の配列にまとめてから絞り込む（`--slurp` は `--jq` と併用できないため、絞り込みは外部の `jq` へパイプする）。
 - REST に相当する操作がないもの（Projects V2 への追加など）は切り替えず、省いたことを完了報告に書く。
-- `-F` は `true` / `false` / 整数を JSON の型に変換し、`@<ファイル>` でファイルの内容を値にする。`key[]=値` は配列になる。
 
-sync 系の手順が使う操作の対応表（GraphQL 前提の形 → REST）:
+sync 系の手順が使う操作は、REST では次の API で行う。
 
-| 操作 | `gh` の形 | REST の形 |
-|------|-----------|-----------|
-| 疎通 canary | `gh pr list --state all --limit 1 --json number` | 上記の REST canary |
-| open PR の一覧（head ブランチで絞り込み） | `gh pr list --state open --limit 1000 --json number,url,headRefName` | `raw="$(gh api 'repos/{owner}/{repo}/pulls?state=open&per_page=100' --paginate --slurp)"` を受け、終了コードと `jq -e 'all(.[]; type == "array")'` で型を確かめてから `jq '[.[][] \| select(.head.ref \| startswith("<prefix>"))]'` で絞る（`headRefName` は `head.ref`、`url` は `html_url`） |
-| PR 作成 | `gh pr create --base <base> ...` | `gh api -X POST 'repos/{owner}/{repo}/pulls' -f title=<題名> -f head=<ブランチ> -f base=<base> -F body=@<本文ファイル> -F draft=false --jq .html_url` |
-| ラベル付与 | `gh pr edit <N> --add-label <名前>` | ラベルの実在を `gh api 'repos/{owner}/{repo}/labels/<名前>'` で確かめてから `gh api -X POST 'repos/{owner}/{repo}/issues/<N>/labels' -f 'labels[]=<名前>'`。未作成なら付与せず、名前を報告する |
-| コメント投稿 | `gh pr comment <N> --body-file <ファイル>` | `gh api -X POST 'repos/{owner}/{repo}/issues/<N>/comments' -F body=@<本文ファイル>` |
+- open PR の一覧は `GET /repos/{owner}/{repo}/pulls?state=open&per_page=100` を `--paginate --slurp` で取得し、終了コードと型（全要素が配列であること）を検査してから、外部の `jq` で head ブランチの接頭辞により絞る。`gh pr list` の JSON 出力の `headRefName` は REST の `head.ref`、`url` は `html_url` に対応する。
+- PR 作成は `POST /repos/{owner}/{repo}/pulls` に title・head・base・body を渡し、`draft` に偽を明示する。`gh api` の `-F` は `true` / `false` / 整数を JSON の型に変換し、`@<ファイル>` でファイルの内容を値にするため、`draft` と本文のファイルには `-F` を使う（`-f` は常に文字列になる）。応答の `html_url` が PR の URL である。
+- ラベル付与は、`GET /repos/{owner}/{repo}/labels/<名前>` で実在を確かめてから `POST /repos/{owner}/{repo}/issues/<N>/labels` に渡す。未作成なら付与せず、名前を報告する。
+- コメント投稿は `POST /repos/{owner}/{repo}/issues/<N>/comments` に本文を渡す。
 
 ### MCP 経路
 
@@ -141,11 +137,11 @@ sync 系の手順が使う操作の対応表（GraphQL 前提の形 → REST）:
 
 ## 実装スニペット（plain list + ローカル絞り込み）
 
-| 目的 | 旧（search 経路・無言故障） | 新（plain list + ローカル絞り込み） |
-|------|---------------------------|--------------------------------|
-| ラベル絞り込み | `--label "<name>"` | `--json number,labels` + `jq '[.[] \| select(any(.labels[]?; .name == "<name>"))]'` |
-| マイルストーン絞り込み | `--milestone "<title>"` | `--json number,milestone` + `jq '[.[] \| select(.milestone.title == "<title>")]'` |
-| head ブランチ絞り込み | `--search 'head:<prefix>'` | `--json number,headRefName` + `jq '[.[] \| select(.headRefName \| startswith("<prefix>"))]'` |
+| 目的                   | 避ける形（search 経路・無言故障） | 使う形（plain list + ローカル絞り込み）                                                      |
+| ---------------------- | --------------------------------- | -------------------------------------------------------------------------------------------- |
+| ラベル絞り込み         | `--label "<name>"`                | `--json number,labels` + `jq '[.[] \| select(any(.labels[]?; .name == "<name>"))]'`          |
+| マイルストーン絞り込み | `--milestone "<title>"`           | `--json number,milestone` + `jq '[.[] \| select(.milestone.title == "<title>")]'`            |
+| head ブランチ絞り込み  | `--search 'head:<prefix>'`        | `--json number,headRefName` + `jq '[.[] \| select(.headRefName \| startswith("<prefix>"))]'` |
 
 補足の設計原則:
 

@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # pre-push-ci-check.sh の hermetic テスト。
-# bash / git / jq のみで動く（実 pnpm / gitleaks 不要、pnpm は PATH stub、
+# bash / git / jq のみで動く（実 pnpm / gitleaks 不要。pnpm は PROJ_PNPM_CMD、
 # gitleaks は PROJ_GITLEAKS_CMD で stub 注入）。
 # push 先の作業ツリーの特定（cd / git -C の解釈、別 worktree からの起動）も同じ構成で検証する。
-# 一時 git repo と一時 HOME を作り、各テスト後にクリーンアップする。
+# 一時 git repo を作り、各テスト後にクリーンアップする。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$SCRIPT_DIR/../pre-push-ci-check.sh"
@@ -39,10 +39,10 @@ make_repo() {
 }
 
 # pnpm + gitleaks stub を作る（第1引数: pnpm の exit code、第2引数: pnpm の出力）。
-# pnpm は PATH 前置、gitleaks は常に成功 stub（leak なし）を作り PROJ_GITLEAKS_CMD で
+# pnpm は PROJ_PNPM_CMD、gitleaks（常に成功する stub。leak なし）は PROJ_GITLEAKS_CMD で
 # 注入する。hook が PATH に mise shims / /opt/homebrew/bin を前置するため、テスト環境に
-# 実 gitleaks（mise shim）が存在すると PATH stub が shadow され得る。command 注入 seam
-# 経由でのみ実 gitleaks 非依存に保てる。
+# 実 pnpm・実 gitleaks（mise shim など）が存在すると PATH 上の stub が shadow され得る。
+# command 注入 seam 経由でのみ実コマンド非依存に保てる。
 make_pnpm_stub() {
   local exit_code="${1:-0}"
   local msg="${2:-}"
@@ -197,7 +197,7 @@ test2_no_node_modules_skip() {
     cd "$repo"
     rm -rf node_modules
     local out ctx
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
     ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
     [[ -n "$ctx" ]] || fail "test2: missing node_modules must return additionalContext (out=$out)"
     printf '%s' "$ctx" | grep -qi 'skip' || fail "test2: skip message expected (ctx=$ctx)"
@@ -216,7 +216,7 @@ test3_all_checks_pass() {
   (
     cd "$repo"
     local out ctx decision
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
     ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
     [[ -n "$ctx" ]] || fail "test3: all-pass must return additionalContext (out=$out)"
     printf '%s' "$ctx" | grep -q 'passed' || fail "test3: pass message expected (ctx=$ctx)"
@@ -237,7 +237,7 @@ test4_check_failure_deny() {
   (
     cd "$repo"
     local out decision reason
-    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$stub_dir/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" == "deny" ]] \
       || fail "test4: CI failure must deny push (decision=$decision, out=$out)"
@@ -261,7 +261,7 @@ test5_gitleaks_execution_error_skip() {
   (
     cd "$repo"
     local out decision ctx
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" != "deny" ]] \
       || fail "test5: gitleaks execution error must not deny push (out=$out)"
@@ -284,7 +284,7 @@ test6_gitleaks_leak_deny() {
   (
     cd "$repo"
     local out decision reason
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" == "deny" ]] \
       || fail "test6: gitleaks leak (rc=99) must deny push (out=$out)"
@@ -308,7 +308,7 @@ test7_gitleaks_scan_scope_limited_to_outgoing() {
   gl_stub="$(make_gitleaks_argv_stub)"
   (
     cd "$repo"
-    PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK" > /dev/null
+    PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin main\"}}" | bash '"$HOOK" > /dev/null
     [[ -f "$gl_stub/argv" ]] \
       || fail "test7: gitleaks was not invoked at all"
     grep -qF -- '--log-opts=--all --not --remotes' "$gl_stub/argv" \
@@ -320,8 +320,8 @@ test7_gitleaks_scan_scope_limited_to_outgoing() {
 
 # --------------------------------------------------------------------------
 # Test 8: 既に remote 上にある他 branch のみに存在する検出値は push を止めない
-# （他 branch の誤検知 1 件で当該 checkout の全 push が止まる事象の回帰防止）。
-# 一方で自分の未 push commit に含まれる値は従来どおり deny する（検知力の担保）。
+# （他 branch の誤検知 1 件で当該 checkout の全 push が止まらないことの検証。）
+# 一方で自分の未 push commit に含まれる値は deny する（検知力の担保）。
 # --------------------------------------------------------------------------
 test8_other_branch_value_does_not_block_push() {
   local repo stub_dir gl_stub
@@ -331,7 +331,7 @@ test8_other_branch_value_does_not_block_push() {
   (
     cd "$repo"
     local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" != "deny" ]] \
       || fail "test8: value only on another already-pushed branch must not block push (out=$out)"
@@ -341,12 +341,12 @@ test8_other_branch_value_does_not_block_push() {
     printf 'PLANTED_SECRET\n' > mine-leak.txt
     git add mine-leak.txt
     git commit -q -m "feat: oops"
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin mywork\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" == "deny" ]] \
       || fail "test8: value in own unpushed commit must still deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test8: other-branch value passes, own unpushed value denies"
 }
 
@@ -371,12 +371,12 @@ test9_non_head_ref_push_is_scanned() {
     git checkout -q mywork
 
     local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin secret-branch:secret-branch\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin secret-branch:secret-branch\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" == "deny" ]] \
       || fail "test9: secret on a non-HEAD unpushed branch must deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test9: secret on non-HEAD unpushed ref still denies"
 }
 
@@ -400,12 +400,12 @@ test10_custom_ref_namespace_is_scanned() {
     git reset -q --hard HEAD~1
 
     local out decision
-    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin refs/changes/secret:refs/heads/secret\"}}" | bash '"$HOOK")"
+    out="$(PROJ_GITLEAKS_CMD="$gl_stub/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash -c 'printf %s "{\"tool_input\":{\"command\":\"git push origin refs/changes/secret:refs/heads/secret\"}}" | bash '"$HOOK")"
     decision="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty')"
     [[ "$decision" == "deny" ]] \
       || fail "test10: secret reachable only from a custom ref must deny push (out=$out)"
   )
-  rm -rf "$repo" "$stub_dir" "$gl_stub"
+  rm -rf "$(dirname "$repo")" "$stub_dir" "$gl_stub"
   echo "PASS test10: secret on custom ref namespace still denies"
 }
 
@@ -469,7 +469,7 @@ run_hook_at() {
   fi
   (
     cd "$proc_cwd"
-    printf '%s' "$json" | PROJ_GITLEAKS_CMD="$gl_dir/gitleaks" PATH="$stub_dir:$PATH" bash "$HOOK"
+    printf '%s' "$json" | PROJ_GITLEAKS_CMD="$gl_dir/gitleaks" PROJ_PNPM_CMD="$stub_dir/pnpm" PATH="$stub_dir:$PATH" bash "$HOOK"
   )
 }
 

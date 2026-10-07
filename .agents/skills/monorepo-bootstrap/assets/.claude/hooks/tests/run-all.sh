@@ -12,8 +12,7 @@ set -uo pipefail
 #
 # opt-in hook（opt-in:submodule / opt-in:public-site）のテストも hermetic なため、
 # hook 自体が settings.json に配線されているかどうかに関わらず、ファイルが存在すれば常時実行する。
-# opt-in グループを採用しない場合は、hook 本体とそのテストを一緒に削除する（MANIFEST の
-# グループ除去に従う）。
+# opt-in グループを採用しない場合は、hook 本体とそのテストを一緒に削除する。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOKS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"

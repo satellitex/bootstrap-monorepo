@@ -11,11 +11,11 @@ description: /adr-compress から起動された場合に使う。docs/adr/ の 
 
 ## 責務分界
 
-| Agent / Skill | 責務 | トリガー |
-|---------------|------|---------|
-| adr-compactor | 既存 ADR 群の圧縮（下記カテゴリ）→ 安全ゲート → PR 提案 | routine 定期実行 / `/adr-compress` skill |
-| `/create-adr` | 新規 ADR の起票（1 件追加） | 設計判断の発生時 |
-| gc-agent | ハーネス文書の重複・孤児の整理 | `/gc-scan` |
+| Agent / Skill | 責務                                                    | トリガー                                          |
+| ------------- | ------------------------------------------------------- | ------------------------------------------------- |
+| adr-compactor | 既存 ADR 群の圧縮（下記カテゴリ）→ 安全ゲート → PR 提案 | `/adr-compress` skill（routine または人間が起動） |
+| `/create-adr` | 新規 ADR の起票（1 件追加）                             | 設計判断の発生時                                  |
+| gc-agent      | ハーネス文書の重複・孤児の整理                          | `/gc-scan`                                        |
 
 ADR の起票は `/create-adr`、ハーネス文書の整理は gc-agent の担当である。本 agent は既存 ADR コーパスの圧縮だけを扱う。
 
@@ -30,13 +30,13 @@ ADR の起票は `/create-adr`、ハーネス文書の整理は gc-agent の担�
 
 ## カテゴリ
 
-| カテゴリ | 概要 | 性質 |
-|---------|------|------|
-| 0 Status 追従 | `origin/main` 上で Status が Proposed のままの ADR の Status 値を Accepted に置換する | lossless |
-| I INDEX 再構築 | `INDEX.md` を Status 別の canonical 構造に決定的に再構築する | lossless |
-| II アーカイブ in-place スタブ化 | Superseded / Deprecated の ADR と、手続きの経緯だけのプロセス記録を、同パスのまま stub に置換する | lossless |
-| III 同一 issue 統合 | opt-in。同一グループの ADR 3 件以上を 1 つの consolidated ADR に統合し、原本を in-place の stub にする | Decision 全保持 |
-| IV 本文要約圧縮 | 閾値を超えた大型 ADR の Context / Consequences を要約し、機械検証で無損失を確認する | lossy |
+| カテゴリ                        | 概要                                                                                                   | 性質            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------- |
+| 0 Status 追従                   | `origin/main` 上で Status が Proposed のままの ADR の Status 値を Accepted に置換する                  | lossless        |
+| I INDEX 再構築                  | `INDEX.md` を Status 別の canonical 構造に決定的に再構築する                                           | lossless        |
+| II アーカイブ in-place スタブ化 | Superseded / Deprecated の ADR と、手続きの経緯だけのプロセス記録を、同パスのまま stub に置換する      | lossless        |
+| III 同一 issue 統合             | opt-in。同一グループの ADR 3 件以上を 1 つの consolidated ADR に統合し、原本を in-place の stub にする | Decision 全保持 |
+| IV 本文要約圧縮                 | 閾値を超えた大型 ADR の Context / Consequences を要約し、機械検証で無損失を確認する                    | lossy           |
 
 検出条件・手順・stub の形式・INDEX の canonical 構造・Status の読み取り・候補 ID・抑制条件は `docs/harness/skills/adr-compress/compression-rules.md` に従う。本 agent は検出・安全ゲート・PR 化のオーケストレーションを担う。
 
@@ -50,7 +50,7 @@ III は既定で無効である。`/adr-compress` が `consolidate` 引数付き
 4. in-place 維持 = 参照保全: II / III はファイルを移動せず、同パスで本文だけを書き換える。ADR への参照は markdown link に限らず、docs・コード・Issue 本文に bare-id（ファイル名の直書き）で広く存在しうる。パスを変えないことで相互リンクと外部参照を構造的に保つ
 5. lossless 優先 / git 履歴が究極の正本: 0 / I / II は lossless である。IV（lossy）は冗長な叙述・レビュー round 履歴・重複 Context の削減に限り、機械検証で無損失を証明できた要約だけを残す。削除した詳細を git 履歴で追えることを ADR 本文と PR body に明記する
 6. status model 準拠: 統合（III）時の原本 stub は `docs/adr/README.md` の status 遷移に従い、`Superseded by ADR-<consolidated-id>` にする
-7. カテゴリ単一所有 + 実行順: 1 ADR が II / III / IV の複数に該当する場合は、優先順位 II > III > IV で最大 1 つが本体を所有する（0 は Status 値だけを変えるため所有に入らない）。実行順は 0 → II → III → IV → I とし、本体変更をすべて適用した後に、最終状態に対して I を 1 回実行する
+7. カテゴリ単一所有 + 実行順: 実行順とカテゴリの所有の規則は `docs/harness/skills/adr-compress/compression-rules.md` の「圧縮の実行順とカテゴリの所有」に従う
 
 ## プロセス
 
@@ -68,7 +68,7 @@ compression-rules.md の抑制条件に該当する候補は記載をスキッ�
 
 ### Step 3: 圧縮実行
 
-Step 2 を通過した候補を、compression-rules.md の手順で、ガードレール 7 の実行順に変更する。IV は要約ごとに機械検証を行い、通過しなかった要約は書き戻して破棄し、PR body に理由を記録する。
+Step 2 を通過した候補を、compression-rules.md の手順で、同書の「圧縮の実行順とカテゴリの所有」の順に変更する。IV は要約ごとに機械検証を行い、通過しなかった要約は書き戻して破棄し、PR body に理由を記録する。
 
 ### Step 4: PR 作成
 
@@ -80,9 +80,9 @@ Step 2 を通過した候補を、compression-rules.md の手順で、ガード�
 
 ## アウトプット
 
-| 成果物 | 説明 |
-|--------|------|
-| GitHub PR | 候補がある場合だけ作成する。1 スキャン = 1 PR |
+| 成果物               | 説明                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| GitHub PR            | 候補がある場合だけ作成する。1 スキャン = 1 PR                                         |
 | 実行サマリ（stdout） | 候補なし時の「変更なし」、または PR URL + カテゴリ別件数 + スキップ候補件数・理由内訳 |
 
 ## 制約

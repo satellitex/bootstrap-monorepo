@@ -2,8 +2,8 @@
 
 この文書は `/create-issue` が使う magic value（Project ID・フィールド ID・ラベル体系・マイルストーン）を集約するプロジェクト固有 profile である。Issue 作成の手順・判断基準は書かない（正本は `docs/harness/skills/create-issue.md`）。
 
-> **本ファイルはテンプレート状態（未記入）である。** すべての値は `TODO(取得方法: ...)` 形式で、
-> bootstrap 時に**実環境で照会して得た値のみ**を埋める。推測値・他リポジトリからの転記値を書かない。
+> **本ファイルはテンプレート状態（未記入）である。** 値は `TODO(取得方法: ...)`（環境から取得する値）と
+> `TODO(記入方法: ...)`（チームが決める内容）の 2 形式で置いてあり、取得する値は bootstrap 時に**実環境で照会して得た値のみ**を埋める。推測値・他リポジトリからの転記値を書かない。
 > 値を埋めた行からは `TODO(...)` を外す。
 
 ## リポジトリ
@@ -17,10 +17,10 @@ gh repo view --json nameWithOwner --jq .nameWithOwner
 
 ## プロジェクト（Projects V2）
 
-| Project | ID | 対象 |
-|---------|-----|------|
-| プロダクト用 | TODO(取得方法: 下記 GraphQL 照会の `nodes[].id`) | プロダクト本体の実装タスク |
-| ハーネス用 | TODO(取得方法: 同上) | エージェント・CI・skill 等ハーネス自体の実装 |
+| Project      | ID                                               | 対象                                         |
+| ------------ | ------------------------------------------------ | -------------------------------------------- |
+| プロダクト用 | TODO(取得方法: 下記 GraphQL 照会の `nodes[].id`) | プロダクト本体の実装タスク                   |
+| ハーネス用   | TODO(取得方法: 同上)                             | エージェント・CI・skill 等ハーネス自体の実装 |
 
 > Project を 1 つで運用する PJ は行を 1 つに減らし、下の振り分けルールも「単一 Project」に書き換える。
 
@@ -44,11 +44,11 @@ Project の所有者がリポジトリの owner と異なる構成では、Issue
 （Project に追加済みでも「未追加」と区別できない）。Project 側の属性は、追加時に控えた item の node ID から引く。
 空配列を「未追加」と判定しない。
 
-| 読みたい属性 | 経路 |
-|---|---|
-| milestone / labels / assignees / body | `gh issue view <番号> --json number,milestone,labels,assignees,body` |
-| Project・Status・Expired date | 追加時に控えた item node ID を `node(id:)` で引く（`docs/harness/skills/create-issue.md` Step 7） |
-| ブロック元 Issue の Expired date | ブロック元の所属 Project の `items` をページ送りし `content.number` で突合する（同 Step 1） |
+| 読みたい属性                          | 経路                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| milestone / labels / assignees / body | `gh issue view <番号> --json number,milestone,labels,assignees,body`                              |
+| Project・Status・Expired date         | 追加時に控えた item node ID を `node(id:)` で引く（`docs/harness/skills/create-issue.md` Step 7） |
+| ブロック元 Issue の Expired date      | ブロック元の所属 Project の `items` をページ送りし `content.number` で突合する（同 Step 1）       |
 
 ### 振り分けルール
 
@@ -59,12 +59,12 @@ Project の所有者がリポジトリの owner と異なる構成では、Issue
 
 Project ごとに取得する。`Status`（単一選択）は必須、`Expired date`（日付）は期限運用を採用する場合のみ。
 
-| Project | フィールド | ID |
-|---------|-----------|-----|
-| プロダクト用 | Status | TODO(取得方法: 下記 GraphQL 照会の `fields.nodes[] \| select(.name=="Status") \| .id`) |
+| Project      | フィールド   | ID                                                                                      |
+| ------------ | ------------ | --------------------------------------------------------------------------------------- |
+| プロダクト用 | Status       | TODO(取得方法: 下記 GraphQL 照会の `fields.nodes[] \| select(.name=="Status") \| .id`)  |
 | プロダクト用 | Expired date | TODO(取得方法: 同上。`.name=="Expired date"`。期限フィールドを作らない PJ は本行を削除) |
-| ハーネス用 | Status | TODO(取得方法: 同上。`<PROJECT_ID>` をハーネス用に差し替えて実行) |
-| ハーネス用 | Expired date | TODO(取得方法: 同上) |
+| ハーネス用   | Status       | TODO(取得方法: 同上。`<PROJECT_ID>` をハーネス用に差し替えて実行)                       |
+| ハーネス用   | Expired date | TODO(取得方法: 同上)                                                                    |
 
 ```bash
 # フィールド ID と単一選択オプション ID の一覧
@@ -85,11 +85,11 @@ gh api graphql -f project='<PROJECT_ID>' -f query='
 
 ### Status オプション ID
 
-| Status | Option ID |
-|--------|-----------|
-| Todo | TODO(取得方法: 上記照会の `ProjectV2SingleSelectField.options[] \| select(.name=="Todo") \| .id`) |
-| In Progress | TODO(取得方法: 同上) |
-| Done | TODO(取得方法: 同上) |
+| Status      | Option ID                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| Todo        | TODO(取得方法: 上記照会の `ProjectV2SingleSelectField.options[] \| select(.name=="Todo") \| .id`) |
+| In Progress | TODO(取得方法: 同上)                                                                              |
+| Done        | TODO(取得方法: 同上)                                                                              |
 
 > Project ごとにフィールド ID は異なるが、**オプション ID も Project ごとに異なる**。複数 Project を
 > 運用する場合は Project ごとに表を分ける。
@@ -104,13 +104,13 @@ gh label list --limit 200 --json name,description --jq '.[] | "\(.name)\t\(.desc
 
 ### ハーネス種別ラベル（1 Issue に 1 つ）
 
-| ラベル | 用途 |
-|--------|------|
-| `harness:feature-flow` | プロダクト機能の新規実装・仕様変更（`/multi-issue` で実装する） |
-| `harness:infra` | provider 設定・環境・deploy・migration・storage・queue・observability |
-| `harness:harness` | ハーネス自体の設計・構築（CI・agent 定義・skill 定義など） |
-| `harness:docs-only` | ドキュメント・ADR・runbook のみの変更 |
-| `harness:research` | 調査・技術検証のみ |
+| ラベル                 | 用途                                                                  |
+| ---------------------- | --------------------------------------------------------------------- |
+| `harness:feature-flow` | プロダクト機能の新規実装・仕様変更（`/multi-issue` で実装する）       |
+| `harness:infra`        | provider 設定・環境・deploy・migration・storage・queue・observability |
+| `harness:harness`      | ハーネス自体の設計・構築（CI・agent 定義・skill 定義など）            |
+| `harness:docs-only`    | ドキュメント・ADR・runbook のみの変更                                 |
+| `harness:research`     | 調査・技術検証のみ                                                    |
 
 TODO(取得方法: `gh label list` で上記 5 ラベルの実在を確認し、未作成なら
 `gh label create <name> --description "<用途>"` で作成する。名称を変える場合は本表を同時に更新する)
@@ -121,31 +121,37 @@ TODO(取得方法: `gh label list` で上記 5 ラベルの実在を確認し、
 
 ### コンポーネントラベル
 
-TODO(取得方法: monorepo の実レイアウト（`apps/*` / `packages/*` / `infra/*`）が確定してから、
+TODO(記入方法: monorepo の実レイアウト（`apps/*` / `packages/*` / `infra/*`）が確定してから、
 1 ワークスペース = 1 ラベルを原則に `component:<workspace>` を定義する。横断は `component:shared`、
 インフラ・CI/CD は `component:infra`。定義後は下表に「ラベル | 対象パス」で列挙する)
 
-| ラベル | 対象 |
-|--------|------|
+| ラベル             | 対象                 |
+| ------------------ | -------------------- |
 | `component:shared` | 全コンポーネント横断 |
-| `component:infra` | インフラ・CI/CD |
+| `component:infra`  | インフラ・CI/CD      |
 
 ### 優先度ラベル
 
-| ラベル | 条件 |
-|--------|------|
-| `priority:critical` | クリティカルパス上かつ基盤フェーズ |
-| `priority:high` | **デフォルト** |
-| `priority:medium` | 被依存数が少なく緊急度が低いタスク |
-| `priority:low` | 被依存数 0 のリーフタスク、nice-to-have |
+| ラベル              | 条件                                    |
+| ------------------- | --------------------------------------- |
+| `priority:critical` | クリティカルパス上かつ基盤フェーズ      |
+| `priority:high`     | **デフォルト**                          |
+| `priority:medium`   | 被依存数が少なく緊急度が低いタスク      |
+| `priority:low`      | 被依存数 0 のリーフタスク、nice-to-have |
+
+TODO(取得方法: `gh label list` で上記 4 ラベルの実在を確認し、未作成なら
+`gh label create <name> --description "<用途>"` で作成する)
 
 ### その他の既定ラベル
 
-| ラベル | 用途 |
-|--------|------|
+| ラベル              | 用途                                                                    |
+| ------------------- | ----------------------------------------------------------------------- |
 | `refactor:proposal` | 自動検出されたリファクタ観点の提案 Issue（`/refactor-sync` が起票する） |
-| `refactor:approved` | リファクタ提案 Issue への着手指示（実装フローのトリガー） |
-| `LGTM` | レビュー完了を示す PR ラベル（Issue には付けない） |
+| `refactor:approved` | リファクタ提案 Issue への着手指示（実装フローのトリガー）               |
+| `LGTM`              | レビュー完了を示す PR ラベル（Issue には付けない）                      |
+
+TODO(取得方法: `gh label list` で上記 3 ラベルの実在を確認し、未作成なら
+`gh label create <name> --description "<用途>"` で作成する)
 
 ### routine ラベル
 
@@ -154,17 +160,17 @@ routine（定期実行）を起点にする skill が作った PR / Issue に付
 人間が手で起票した Issue には付けない。付与の手順は `docs/harness/skills/shared/sync-pr-flow.md` に従う。
 本表が routine ラベルの唯一の一覧であり、skill を採用・除外したら同一 PR で行を足す・消す。
 
-| ラベル | 対象 |
-|--------|------|
-| `routine:readme-sync` | `/readme-sync` が作った PR |
-| `routine:docs-sync` | `/docs-sync` が作った PR |
-| `routine:code-sync` | `/code-sync` が作った PR |
-| `routine:gc-scan` | `/gc-scan` が作った PR |
-| `routine:adr-compress` | `/adr-compress` が作った PR |
-| `routine:refactor-guide-sync` | `/refactor-guide-sync` が作った PR |
-| `routine:refactor-sync` | `/refactor-sync` が起票した Issue（`refactor:proposal` と併用） |
-| `routine:renovate-sync` | `/renovate-sync` が作った PR（opt-in グループ。一覧は MANIFEST） |
-| `routine:public-arch-sync` | `/public-arch-sync` が作った PR（opt-in グループ。一覧は MANIFEST） |
+| ラベル                        | 対象                                                            |
+| ----------------------------- | --------------------------------------------------------------- |
+| `routine:readme-sync`         | `/readme-sync` が作った PR                                      |
+| `routine:docs-sync`           | `/docs-sync` が作った PR                                        |
+| `routine:code-sync`           | `/code-sync` が作った PR                                        |
+| `routine:gc-scan`             | `/gc-scan` が作った PR                                          |
+| `routine:adr-compress`        | `/adr-compress` が作った PR                                     |
+| `routine:refactor-guide-sync` | `/refactor-guide-sync` が作った PR                              |
+| `routine:refactor-sync`       | `/refactor-sync` が起票した Issue（`refactor:proposal` と併用） |
+| `routine:renovate-sync`       | `/renovate-sync` が作った PR（採用時のみ）                      |
+| `routine:public-arch-sync`    | `/public-arch-sync` が作った PR（採用時のみ）                   |
 
 TODO(取得方法: `gh label list` で採用した skill の `routine:*` の実在を確認し、未作成なら
 `gh label create <name> --description "<用途>"` でまとめて作成する。`gh pr create --label` /
@@ -186,9 +192,9 @@ gh api 'repos/{owner}/{repo}/milestones?state=all&per_page=100' --paginate --jq 
 
 ### 割り当て可能な open マイルストーン
 
-| マイルストーン | 対象 |
-|----------------|------|
-| TODO(取得方法: 上記 open 照会の結果から、フェーズ計画に沿って列挙する) | TODO |
+| マイルストーン                                                                         | 対象                                             |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| TODO(記入方法: 上記 open 照会の結果から、フェーズ計画に沿ってマイルストーンを列挙する) | TODO(記入方法: 各マイルストーンの対象範囲を書く) |
 
 - `harness:harness` ラベルの Issue はマイルストーンなしでもよい。未指定時は `gh issue create` の
   `--milestone` フラグ自体を省略する。

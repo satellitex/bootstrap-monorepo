@@ -4,7 +4,7 @@
 
 ## プロダクト
 
-{{PRODUCT_NAME}} — TODO(記入方法: Intake の回答から、プロダクトの目的と主な利用者を 1 行で書く)
+{{PRODUCT_NAME}} — TODO(記入方法: 導入時の依頼内容から、プロダクトの目的と主な利用者を 1 行で書く)
 
 ## docs 正本 pointer 集
 
@@ -30,7 +30,7 @@
 | 定期運用（routine / 定期 workflow 設計） | `docs/harness/scheduled-operations.md`                       |
 | ハーネス文書の書き方規約                 | `docs/harness/harness_authoring_guide.md`                    |
 
-opt-in の行は、不採用のグループ（一覧は MANIFEST）に属するものを導入時に削除する。
+opt-in の行は、採用したグループの分だけを置く。
 
 ## ハーネス構成
 
@@ -56,12 +56,12 @@ opt-in の行は、不採用のグループ（一覧は MANIFEST）に属する�
 
 rule 本文は `.claude/rules/` に置く。Claude Code は `paths:` を持つ rule を該当ファイルの編集時に、持たない rule を全セッションでロードする。自動ロードを持たない実行環境では、作業の場面に応じて次の表の rule を読む。
 
-| rule                                   | スコープ                             | 読む場面                                                           |
-| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| `.claude/rules/team-policy.md`         | 全領域                               | 常時。作業を始める前に読む（横断判断 rule の pointer 層）          |
-| `.claude/rules/harness-development.md` | `.claude/**/*` / `docs/harness/**/*` | ハーネス（skill・agent・hook・rules・運用正本）を編集するとき      |
-| `.claude/rules/product-development.md` | `apps/**/*` / `packages/**/*`        | プロダクトコードを編集するとき                                     |
-| `.claude/rules/infra-development.md`   | `infra/**/*`                         | インフラコードを編集するとき（IaC 不採用の導入先は行ごと削除する） |
+| rule                                   | スコープ                             | 読む場面                                                      |
+| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------- |
+| `.claude/rules/team-policy.md`         | 全領域                               | 常時。作業を始める前に読む（横断判断 rule の pointer 層）     |
+| `.claude/rules/harness-development.md` | `.claude/**/*` / `docs/harness/**/*` | ハーネス（skill・agent・hook・rules・運用正本）を編集するとき |
+| `.claude/rules/product-development.md` | `apps/**/*` / `packages/**/*`        | プロダクトコードを編集するとき                                |
+| `.claude/rules/infra-development.md`   | `infra/**/*`                         | インフラコードを編集するとき（IaC を採用した導入先のみ）      |
 
 rule を追加・削除したら、本表を同一 PR で更新する。
 
@@ -69,14 +69,14 @@ rule を追加・削除したら、本表を同一 PR で更新する。
 
 手順正本は tool-neutral に書く。Claude Code 固有の手段が出てくる箇所は、次のとおり読み替える。
 
-| 手段                           | Claude Code                                                              | それ以外のエージェント                                                                                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| slash コマンド・skill 起動     | `/<name>` で `.claude/skills/<name>/SKILL.md` が起動する                 | `docs/harness/skills/<name>.md` を手順書として読み、同じ成果物規定に従う。固有値は `.claude/skills/<name>/references/` の profile                                               |
-| タスク管理（TodoWrite など）   | 組み込みのタスク管理 tool                                                | 利用できる計画機能で、同等の進捗管理を行う                                                                                                                                      |
-| 対話での確認（質問 tool など） | 質問 tool で確認できる                                                   | 既定が自律実行のため待たない。保守的な既定で進め、判断を PR 本文に記録する（承認必須は課金・秘密値のみ）。無人 run の扱いは `docs/harness/skills/shared/unattended-contract.md` |
-| subagent の起動                | Agent tool で起動する                                                    | 同一セッション内の独立した pass、別スレッド、逐次実行のいずれかで、作る役と評価する役を分ける                                                                                   |
-| hooks（`.claude/hooks/`）      | commit 前の整形・push 前の秘密検知と `gate:push`・編集後検査が自動で走る | 発火しない。commit / push の前に `gate:commit` と秘密検知（`.claude/hooks/pre-push-ci-check.sh` が実行する gitleaks の検査）を手動で実行する。全経路に効く最終ゲートは CI       |
-| MCP tool                       | 登録済みの tool を使う                                                   | 使えなければ `gh` CLI など同等の手段で代替する（経路の切替 → `docs/harness/skills/shared/gh-query-fail-closed.md`）                                                             |
+| 手段                           | Claude Code                                                                                                                              | それ以外のエージェント                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| slash コマンド・skill 起動     | `/<name>` で `.claude/skills/<name>/SKILL.md` が起動する                                                                                 | `docs/harness/skills/<name>.md` を手順書として読み、同じ成果物規定に従う。固有値は `.claude/skills/<name>/references/` の profile                                               |
+| タスク管理（TodoWrite など）   | 組み込みのタスク管理 tool                                                                                                                | 利用できる計画機能で、同等の進捗管理を行う                                                                                                                                      |
+| 対話での確認（質問 tool など） | 質問 tool で確認できる。無人 run では、質問 tool や許可リストにない tool の呼び出しで run が止まる場合があるため、呼ばずに代替経路へ進む | 既定が自律実行のため待たない。保守的な既定で進め、判断を PR 本文に記録する（承認必須は課金・秘密値のみ）。無人 run の扱いは `docs/harness/skills/shared/unattended-contract.md` |
+| subagent の起動                | Agent tool の `subagent_type` に agent 名を指定して起動する（指定は各 skill の adapter の注記に置く）                                    | 同一セッション内の独立した pass、別スレッド、逐次実行のいずれかで、作る役と評価する役を分ける                                                                                   |
+| hooks（`.claude/hooks/`）      | commit 前の整形・push 前の秘密検知と `gate:push`・編集後検査が自動で走る                                                                 | 発火しない。commit / push の前に `gate:commit` と秘密検知（`.claude/hooks/pre-push-ci-check.sh` が実行する gitleaks の検査）を手動で実行する。全経路に効く最終ゲートは CI       |
+| MCP tool                       | 登録済みの tool を使う                                                                                                                   | 使えなければ `gh` CLI など同等の手段で代替する（経路の切替 → `docs/harness/skills/shared/gh-query-fail-closed.md`）                                                             |
 
 skill を経由しない作業でも、次の規定は変わらない: PR 本文の closing keyword（→ `docs/styles/team-feedback/pr-closing-keyword.md`）、commit 前の format（→ `docs/styles/team-feedback/format-check.md`）、PR 前の簡素化パス（→ `docs/styles/team-feedback/refactor-before-pr.md`）、検証ゲート通過後の push（→ `docs/harness/skills/shared/verification-gates.md`）、既存 INDEX を実装 PR で編集しない（→ `docs/styles/team-feedback/shared-aggregate-single-writer.md`）。
 
@@ -136,7 +136,7 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 | `/public-arch-sync`    | opt-in:public-site | 内部設計正本から公開射影ドキュメントへの追従 PR |
 | `/customer-doc-review` | opt-in:public-site | 対外ドキュメントの多視点レビュー                |
 
-opt-in の行は、不採用のグループ（一覧は MANIFEST）に属するものを導入時に削除する。定期実行に載せる skill と頻度は `docs/harness/scheduled-operations.md` の routine カタログを正本とする。
+opt-in の行は、採用したグループの分だけを置く。定期実行に載せる skill と頻度は `docs/harness/scheduled-operations.md` の routine カタログを正本とする。
 
 ## 承認モデル
 
@@ -158,7 +158,7 @@ opt-in の行は、不採用のグループ（一覧は MANIFEST）に属する�
 本リポジトリの project language は **{{PROJECT_LANGUAGE}}** とする。skill 正本・agent 定義がレポート言語に言及するときは、本節を正本として参照する（各所に言語名をハードコードしない）。
 
 - ユーザとの会話、導入後に書く docs、Issue / PR 本文、ADR、レビューコメント、sync レポート、runbook は project language を既定とする。
-- 導入した運用文書（`docs/harness/` や `docs/styles/` など、テンプレート由来の文書）は収録言語（日本語）のまま使う。翻訳するのは、Intake で明示された場合だけである。翻訳しても、識別子・パス・コマンド・TODO 記法・表構造・見出し・token は保持し、翻訳しない決定は PR 本文に記録する。
+- 導入した運用文書（`docs/harness/` や `docs/styles/` など、テンプレート由来の文書）は収録言語（日本語）のまま使う。翻訳するのは、導入の依頼で翻訳が明示された場合だけである。翻訳しても、識別子・パス・コマンド・TODO 記法・表構造・見出し・token は保持し、翻訳しない決定は PR 本文に記録する。
 - 次は原文または canonical spelling のまま保持する: コード識別子、API 名、package 名、ファイルパス、JSON キー、commit type、ラベル名、標準エラー、外部仕様名。
 - 公式文書の引用タイトル・リンクタイトルは原文を保持し、要約のみ project language で書く。
 - ユーザが明示的に別言語を指定した成果物のみ、その言語で書く。
@@ -175,14 +175,14 @@ opt-in の行は、不採用のグループ（一覧は MANIFEST）に属する�
 ### commit（Conventional Commits）
 
 ```
-<type>: <subject>
+<type>(<scope>): <subject>
 
 <body>
 
 <footer>
 ```
 
-type は `feat`（新機能）/ `fix`（バグ修正）/ `docs`（ドキュメント変更）/ `style`（意味に影響しない変更）/ `refactor`（機能追加でもバグ修正でもない）/ `test`（テストの追加・修正）/ `chore`（ビルドプロセスやツール変更）のいずれか。
+type は `feat`（新機能）/ `fix`（バグ修正）/ `docs`（ドキュメント変更）/ `style`（意味に影響しない変更）/ `refactor`（機能追加でもバグ修正でもない）/ `test`（テストの追加・修正）/ `ci`（CI 設定の変更）/ `build`（ビルド・依存の変更）/ `chore`（ビルドプロセスやツール変更）のいずれか。`(<scope>)` は任意で、変更の対象領域（例: `docs(harness)`）を示す。
 
 1. 件名と本文を空行で区切る
 2. 件名は 50 文字以内、末尾にピリオドを付けず、命令形で書く

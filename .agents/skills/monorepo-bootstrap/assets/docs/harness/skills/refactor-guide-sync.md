@@ -26,7 +26,7 @@ INDEX ではなく Glob 全件）。
 
 ## Detection
 
-Agent tool で `subagent_type: refactor-guide-sync` を起動する（引数なし。渡されても無視する）。
+refactor-guide-sync agent（`.claude/agents/refactor-guide-sync.md`）を起動する（引数なし。渡されても無視する。起動手段は `docs/harness/OPERATING_MODEL.md` の「ツール固有手段の読み替え」に従う）。
 規約正本の走査・双方向突合・リネーム判定・PR 化は agent が行う（詳細は `.claude/agents/refactor-guide-sync.md`）。
 比較・更新の基準は常に `origin/main` である。
 
@@ -41,14 +41,14 @@ Agent tool で `subagent_type: refactor-guide-sync` を起動する（引数な�
 候補ありの場合は `docs/harness/skills/shared/sync-pr-flow.md` の手順（既存 open PR ガード →
 `origin/main` 基点ブランチ → commit → 通常 PR）に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[refactor-guide-sync] 差分なし。refactoring_guide.md は coding_guide の現状と整合しています。` |
-| ブランチ | `agent/refactor-guide-sync-{YYYY-MM-DD}` |
-| git add | `docs/styles/refactoring_guide.md` のみ |
-| commit | `docs: sync refactoring_guide with coding_guide (YYYY-MM-DD)` |
-| PR title | `docs: refactor-guide-sync (YYYY-MM-DD)` |
-| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、追加 / 削除 / 根拠修正 / リネーム更新の候補別一覧（各候補に規約側の根拠パスを併記）を加える |
+| 項目               | 値                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[refactor-guide-sync] 差分なし。refactoring_guide.md は coding_guide の現状と整合しています。`                                                         |
+| ブランチ           | `agent/refactor-guide-sync-{YYYY-MM-DD}`                                                                                                                |
+| git add            | `docs/styles/refactoring_guide.md` のみ                                                                                                                 |
+| commit             | `docs: sync refactoring_guide with coding_guide (YYYY-MM-DD)`                                                                                           |
+| PR title           | `docs: refactor-guide-sync (YYYY-MM-DD)`                                                                                                                |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、追加 / 削除 / 根拠修正 / リネーム更新の候補別一覧（各候補に規約側の根拠パスを併記）を加える |
 
 1 回の実行で **1 PR**（全候補を 1 PR にまとめる）。
 

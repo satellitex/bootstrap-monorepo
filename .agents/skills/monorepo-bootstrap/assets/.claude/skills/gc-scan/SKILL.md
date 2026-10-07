@@ -7,3 +7,5 @@ description: ハーネス文書（agent 定義・skill 正本・adapter）に Cr
 
 正本は `docs/harness/skills/gc-scan.md`。これを読み、記載の手順どおり実行する。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。
+
+実行基盤の注記（Claude Code）: gc-agent は Agent tool の `subagent_type: gc-agent` で起動する。

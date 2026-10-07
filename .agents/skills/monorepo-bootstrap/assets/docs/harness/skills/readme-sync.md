@@ -40,11 +40,11 @@ README が言及するコマンド・構成・ファイルが実体と食い違�
 
 検出カテゴリの目安:
 
-| カテゴリ | 例 | 重大度 |
-|---|---|---|
+| カテゴリ | 例                                                    | 重大度   |
+| -------- | ----------------------------------------------------- | -------- |
 | 実体不在 | README が挙げるファイル・script・コマンドが存在しない | critical |
-| 内容乖離 | ディレクトリ構成・手順・オプションが現状と異なる | major |
-| 表記揺れ | 名称のケース・綴りの揺れ | minor |
+| 内容乖離 | ディレクトリ構成・手順・オプションが現状と異なる      | major    |
+| 表記揺れ | 名称のケース・綴りの揺れ                              | minor    |
 
 ## Auto-edit policy
 
@@ -65,14 +65,14 @@ README の編集が 0 件で「実装疑い」「判定不能」だけのとき�
 編集がある場合は更新案を各 README に適用した上で `docs/harness/skills/shared/sync-pr-flow.md` を
 Read してその手順（既存 open PR ガード → ブランチ → commit → PR）に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
-| 変更なしメッセージ | `[readme-sync] 変更なし。各 README は origin/main の現状コードと整合しています。` |
-| ブランチ | `agent/readme-sync-{YYYY-MM-DD}` |
-| git add | 更新した README のパスのみ |
-| commit | `docs: sync README with current code (YYYY-MM-DD)` |
-| PR title | `docs: README sync (YYYY-MM-DD)` |
-| PR body | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、更新した README ごとの「食い違っていた箇所 / 更新内容」と、別区分の「実装側判断要」を加える |
+| 項目               | 値                                                                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 変更なしメッセージ | `[readme-sync] 変更なし。各 README は origin/main の現状コードと整合しています。`                                                                       |
+| ブランチ           | `agent/readme-sync-{YYYY-MM-DD}`                                                                                                                        |
+| git add            | 更新した README のパスのみ                                                                                                                              |
+| commit             | `docs: sync README with current code (YYYY-MM-DD)`                                                                                                      |
+| PR title           | `docs: README sync (YYYY-MM-DD)`                                                                                                                        |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、更新した README ごとの「食い違っていた箇所 / 更新内容」と、別区分の「実装側判断要」を加える |
 
 ## Validation
 

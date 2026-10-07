@@ -50,11 +50,10 @@ Docs are separated by responsibility.
 
 | Layer | Typical path | Allowed | Not allowed |
 |-------|--------------|---------|-------------|
-| State-of-Now | `docs/product/**/*.md`, `docs/styles/**`, root adapters/rules | Current system facts, current stack, current terms, global rules | History, migration story, rejected alternatives, future plans |
+| State-of-Now | `docs/product/**/*.md`, `docs/styles/**`, `docs/runbooks/`, `docs/harness/`, root adapters/rules | Current system facts, current stack, current terms, global rules, current operational procedures, workflow contracts, approvals | History, migration story, rejected alternatives, future plans, product decision rationale that belongs in ADR |
 | Decision | `docs/adr/` | Why, alternatives, trade-offs, superseded/deprecated decisions | Detailed implementation plans |
 | Research | `docs/notes/research/` | Candidate comparison, technology-selection investigation (sources and access dates), external standard summaries | Declaring final adoption without ADR |
 | Implementation Record | PR body, commit messages | Issue-specific plan, chosen approach and rejected alternatives, out-of-scope items, verification results, risks | Cross-cutting current facts that belong in State-of-Now; lasting design decisions that belong in ADR |
-| Operations | `docs/runbooks/`, `docs/harness/` | Current operational procedures, workflow contracts, approvals | Product decision rationale that belongs in ADR |
 
 Generated target repos should include this model in `docs/styles/coding_guide/docs.md` or equivalent.
 

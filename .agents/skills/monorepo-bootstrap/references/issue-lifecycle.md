@@ -50,7 +50,7 @@ canonical な製品用語、package 名、API 名、GitHub の field 名は原�
 
 実装方針が未確定でも作業を止めない。
 既存 docs、一次情報、保守的な既定の順に調べて 1 案に確定し、却下した案と理由を PR 本文の「方針と却下案」に残して、open PR まで自律続行する。
-PR は通常 PR で open する。draft にする規則と、経路ごとの指定は `docs/harness/skills/shared/pr-creation.md` の「draft にしない」が正本である。
+PR は通常 PR で open する。draft にしない規則と、経路ごとの指定は `docs/harness/skills/shared/pr-creation.md` の「draft にしない」が正本である。
 
 ## 4. Approval Rules
 

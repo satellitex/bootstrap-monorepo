@@ -18,7 +18,7 @@ PR title だけに `#<num>` を残して body に closing keyword を書き忘�
 - タスク選定や期限集計で「未完だが実は完了済み」の Issue が紛れ込む
 - 手動で確認・close する運用コストが恒常的に発生する
 
-事後検出の CI ではなく PR 作成時の注入（proactive 方式）で担保するため、正当に Issue 紐付けの無い保守 PR に摩擦を与えない。
+closing keyword は PR 作成時にハーネスが注入して担保する（proactive 方式）。正当に Issue 紐付けの無い保守 PR には摩擦を与えない。
 
 ## How to apply
 
@@ -28,15 +28,15 @@ PR title だけに `#<num>` を残して body に closing keyword を書き忘�
 - cross-repo は `Closes owner/repo#<num>` の形式で認識される
 - 複数 Issue を close する場合は `Closes #101, Closes #102` のように closing keyword を個別に付ける（`Closes #101 #102` は 1 個目しか auto-close されない）
 - **partial PR**（大きな親 Issue の一部のみを対応し、親をまだ close すべきでない）は `Closes #<親>` を使わず `関連: #<親>` で linkage のみ残す。body 冒頭で親 Issue のどの部分を対応したかを明示する
-- **保守 PR**（起票元 Issue が無い release / sync / hotfix、および bot 自動 PR）は closing keyword を単に省略する。免除ラベルの類は使わない
+- **保守 PR**（起票元 Issue が無い release / sync / hotfix、および bot 自動 PR）は closing keyword を省略する。
 
 ### NG 例 / OK 例
 
-| NG | OK |
-|----|----|
-| PR title に `#123` 言及のみ、body に記載なし | PR body: `Closes #123` |
-| close 意図なのに body に `関連: #123` のみ | PR body: `Closes #123` |
-| `Closes #`（placeholder のまま） | `Closes #123` |
+| NG                                                 | OK                         |
+| -------------------------------------------------- | -------------------------- |
+| PR title に `#123` 言及のみ、body に記載なし       | PR body: `Closes #123`     |
+| close 意図なのに body に `関連: #123` のみ         | PR body: `Closes #123`     |
+| `Closes #`（placeholder のまま）                   | `Closes #123`              |
 | `Closes #101 #102`（2 個目が auto-close されない） | `Closes #101, Closes #102` |
 
 ### 自動検証

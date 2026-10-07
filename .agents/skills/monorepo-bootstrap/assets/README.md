@@ -1,6 +1,6 @@
 # {{PRODUCT_NAME}}
 
-TODO(記入方法: Intake の回答から、プロダクトの目的と主な利用者を 1 行で書く。`docs/harness/OPERATING_MODEL.md` の「プロダクト」節と同じ文にする)
+TODO(記入方法: 導入時の依頼内容から、プロダクトの目的と主な利用者を 1 行で書く。`docs/harness/OPERATING_MODEL.md` の「プロダクト」節と同じ文にする)
 
 この README は人間向けの入口である。運用の規約・手順は複製せず、各正本への pointer で示す。
 
@@ -21,7 +21,7 @@ TODO(記入方法: Intake の回答から、プロダクトの目的と主な利
 必要なツールと版数は `.mise.toml` の pin を正本とし、この README には複製しない。hooks とスクリプトは bash を前提とするため、Windows では WSL2 などの bash 環境での作業を推奨する。
 
 1. [mise](https://mise.jdx.dev/) を導入する（手順は公式 docs に従う）
-2. リポジトリを取得する: `git clone https://github.com/{{GITHUB_ORG}}/{{REPO_NAME}}.git`
+2. リポジトリを取得する: `git clone <リポジトリの clone URL>`
 3. ツールを導入する: `mise install`
 4. 依存を導入する: `pnpm install --frozen-lockfile`
 
