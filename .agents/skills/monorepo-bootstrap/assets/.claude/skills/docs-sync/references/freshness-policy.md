@@ -4,8 +4,8 @@
 
 ## スコープ定義
 
-`/docs-sync` は per-file 鮮度検証対象・policy scan 対象・INDEX 所管対象の 3 単位でファイルを扱う。
-本ファイルが定義するのは **per-file 鮮度検証対象**のみ。policy scan 対象（INCLUDE / EXCLUDE glob）と
+`/docs-sync` は per-file 鮮度検証対象・policy scan 対象・実装整合の突合対象・INDEX 所管対象の 4 単位でファイルを扱う。
+本ファイルが定義するのは **per-file 鮮度検証対象**のみ。policy scan 対象（INCLUDE / EXCLUDE glob）・実装整合の突合対象・
 INDEX 所管対象は `docs/harness/skills/docs-sync.md` の「Scope」節を SSOT とし、本ファイルでは扱わない。
 
 `**/README.md` は `/readme-sync` の担当であり、per-file 対象に加えない（責務分離）。

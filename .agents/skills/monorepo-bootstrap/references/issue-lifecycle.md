@@ -56,16 +56,6 @@ PR は通常 PR で open する。draft にしない規則と、経路ごとの�
 
 承認モデル（既定の自律実行、人間の明示承認が必須な操作、ブランチモデル）は `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」が正本であり、ここには複製しない。導入先が人間へ引き渡す範疇を持つ場合は、同書の「人間引き渡し境界」に記入する。
 
-次の条件に当たる issue は承認の対象ではないが、判断材料を PR 本文（設計判断は ADR）に残して提示する:
-
-- technology choice is unsettled
-- provider/runtime/database/storage/queue/auth/observability selection may change
-- security, privacy, auth, or tenant boundary changes
-- app topology or package boundaries change
-- implementation spans multiple deploy/scaling units
-- long-running or async workflow durability is not yet designed
-- issue has unclear acceptance criteria
-
 ## 5. ADR Triggers
 
 起票基準の正本は `../assets/docs/adr/README.md` の「いつ書くか」である（複数の選択肢を比較して決定したとき、既存の方針を撤回・置換するとき、レビュー指摘への対応で設計方針が変わったとき）。

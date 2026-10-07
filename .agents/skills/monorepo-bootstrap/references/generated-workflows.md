@@ -25,7 +25,7 @@ Every generated sync workflow should follow the same contract:
 | Scope | Include / exclude paths and generated-file exclusions |
 | Detection | Drift categories and severity. A contradiction between a description and the implementation is classified (「記述修正 / 実装疑い / 判定不能」) before anything is edited; only 記述修正 is edited, the rest is recorded in the PR body (`docs/harness/skills/shared/implementation-consistency.md`) |
 | Auto-edit policy | What may be changed automatically and what must be reported only |
-| Branch / PR policy | Whether to push automatically or only when user/repo policy asks |
+| Branch / PR policy | Follow the common post-stage in `docs/harness/skills/shared/sync-pr-flow.md` (when there are edits, push and open a PR autonomously). State only the skill-specific deltas that it leaves to the caller's diff table |
 | Validation | Commands and CI checks |
 | Report shape | PR body or local report sections |
 | Language | Reports, PR bodies, and review notes use the project language from intake |
@@ -73,14 +73,7 @@ docs/harness/skills/create-issue.md
 ```
 
 `project-fields.md` must contain magic values only after they are verified from GitHub.
-Until verified, keep them in `TODO(取得方法: ...)` form:
-
-```markdown
-| Project | ID | Source |
-|---------|----|--------|
-| Product | TODO(取得方法: gh / GraphQL で作成または照会) | create or verify with gh / GraphQL |
-| Platform / Harness | TODO(取得方法: gh / GraphQL で作成または照会) | create or verify with gh / GraphQL |
-```
+未検証の値は、profile が収録している `TODO(取得方法: ...)` の行のまま残し、検証した行だけ `TODO(...)` ごと実値に置き換える（手順は profile の「更新手順」）。
 
 Never invent Project IDs, field IDs, option IDs, milestone node IDs, or label IDs.
 Issue titles and bodies use the project language by default.
@@ -94,19 +87,9 @@ Start from this neutral taxonomy and specialize it from the Intake summary (the 
 
 8 区分の種別は `issue-lifecycle.md`「Issue Taxonomy」が正本である。ここでは、その区分を Intake の概要から product 固有の語に特化する。
 
-### Optional Cross-Cutting Labels
+### Cross-Cutting Labels
 
-Use only when useful for the target repo.
-
-- `kind:feature`
-- `kind:bug`
-- `kind:research`
-- `kind:refactor`
-- `harness:feature-flow`
-- `harness:infra`
-- `harness:harness`
-- `harness:docs-only`
-- `harness:research`
+ハーネス種別ラベル（`harness:*`。1 Issue に 1 つ）と種別ラベル（GitHub 既定の `enhancement` / `bug` / `documentation`）は、`.claude/skills/create-issue/references/project-fields.md` の体系を使う。`harness:*` は `/create-issue` のラベル選択と Project の振り分けに使われるため、任意のラベルとして省かない。
 
 ### Priority
 
@@ -156,21 +139,15 @@ If the product has regulatory or customer milestones, replace these with the use
 Project board の作成・変更は自律実行してよい（§7）。
 作成・変更後は実値を読み戻して検証し、magic value を profile に記録する。
 
-Default boards:
-
-| Project | Purpose | Typical issues |
-|---------|---------|----------------|
-| Product | Product behavior and user-facing implementation | features, bugs, docs, SDK |
-| Platform / Harness | CI, deploy, environment, agent harness, dependency automation | infra, harness, sync workflows |
-| Security / Compliance | Optional board for regulated products | security, audit, privacy, incident follow-up |
+Default boards は、`.claude/skills/create-issue/references/project-fields.md` の 2 Project（プロダクト用 / ハーネス用）である。振り分けは `harness:harness` ラベルの有無で決まり、deploy・environment を扱う `harness:infra` の Issue はプロダクト用に入る。規制のある product が Security / Compliance 用の board を足す場合は、profile の Project 表と振り分けルールにも同じ PR で行を足す。
 
 Default fields:
 
 | Field | Type | Required |
 |-------|------|----------|
-| Status | single-select: Todo / In Progress / In Review / Done | Yes |
+| Status | single-select: Todo / In Progress / Done | Yes |
 | Priority | single-select or label mirror | Recommended |
-| Target date or Expired date | date | Recommended if team plans by dates |
+| Expired date | date | Recommended if team plans by dates |
 | Milestone | native GitHub milestone | Recommended |
 | Component | label or single-select | Recommended |
 | Owner | assignee or person field | Optional |
@@ -185,7 +162,7 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 
 次の 3 つは、routine として定期に実行する実行系の skill のレシピである。資産としては収録しない。
 対応する surface（Issue を実装キューに使うか、監視基盤を持つか、棚卸しが要る規模か）が導入先ごとに異なり、profile 駆動の骨格だけを収録しても、profile が埋まるまで何も実行されないためである。
-需要が出た導入先が、§2 の 10 項目契約と §8.1 の共通前提に従い、`docs/harness/skills/<name>.md` として追加設計する。追加時は、正本と adapter の 1:1、MANIFEST と OPERATING_MODEL の skill 一覧を同一 PR で更新する。
+需要が出た導入先が、§2 の 10 項目契約と §8.1 の共通前提に従い、`docs/harness/skills/<name>.md` として追加設計する。追加時は、正本と adapter の 1:1 を揃え、OPERATING_MODEL の skill 一覧と `docs/harness/scheduled-operations.md` の routine カタログを同一 PR で更新する。
 
 ### 8.1 共通前提
 

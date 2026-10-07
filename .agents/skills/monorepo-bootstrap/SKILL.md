@@ -1,7 +1,6 @@
 ---
 name: monorepo-bootstrap
-description: Codex/Claude両対応で任意のモノレポをbootstrapする。技術選定調査、docs運用正本、ハーネス/環境/CI/CD整備、初期実装、deploy検証までを自律実行する。人間承認が必須なのは課金と秘密値のみ
-user_invocable: true
+description: 新規 repo、または技術選定・基盤構築からやり直す repo をモノレポとして立ち上げる場合に使う。技術選定の ADR、docs 運用正本、Codex/Claude 両対応のハーネス、環境・CI/CD、初期実装、deploy 検証までを自律実行して open PR を出す（人間承認が必須なのは課金と秘密値のみ）。既存スタックを維持した運用ハーネスだけの導入は /harness-adopt の担当
 ---
 
 # Monorepo Bootstrap Skill (Codex / Claude)
@@ -16,15 +15,22 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 既存のスタック・コード・CI を維持したまま運用ハーネスだけを導入する場合は、本 Skill ではなく `harness-adopt` Skill（`../harness-adopt/SKILL.md`）を使う。
 本 Skill は、新規 repo または技術選定・基盤構築からやり直す repo を対象とする。
 
+## 作業を再開するとき
+
+作業の途中でコンテキストが圧縮された後は、この SKILL.md を読み直してから再開する。圧縮後は SKILL.md の後半が残らないことがある。進捗と確定済みの内容は、PR 本文（commit しない作業用ファイル、または open 済みの PR）・調査ノート・ADR から読み戻し、会話の記憶に頼らない。
+
 ## 入力
 
 | 項目 | 必須 | 説明 | 例 |
 |------|------|------|----|
 | Product overview | Yes | 誰のどんな課題を解くか、主要機能、想定ユーザ | `/monorepo-bootstrap B2B SaaS の請求照合プロダクト` |
+| Target location | Yes（作業ディレクトリが作成先の repo なら省略可） | 作成先。ローカルパス、または GitHub repo 名（`<owner>/<repo>`）。`{{GITHUB_ORG}}` と `{{REPO_NAME}}` の値もここから決める。テンプレート repo 自体は作成先にしない | `/path/to/new-repo`, `example-org/new-repo` |
 | Constraints | No | 予算、cloud/provider 制約、既存技術、納期、規制、運用体制 | `組織標準 provider 優先、DB は PostgreSQL` |
 | Existing repository | No | 空 repo か、既存コードを含む repo か | `既存 Next.js app あり` |
-| Deploy goal | No | preview / staging / production のどこまで行うか | `staging まで` |
+| Deploy goal | No | dev (main) / prod (release) のどこまで deploy するか | `dev まで` |
 | Project language | No | Issue / PR / ADR / docs / review comment の既定言語。assets の運用文書は日本語で収録されており、翻訳は明示された場合のみ（Language Policy 参照） | `日本語`, `English` |
+
+git / gh 操作はすべて作成先を対象に実行し（`git -C <作成先>` / `gh -R <owner>/<repo>`）、テンプレート repo 側には commit / branch / PR を作らない。
 
 入力が足りない場合は、作業を止めずに仮定を明示して Discovery を始める。
 既定は自律実行とし、人間の明示承認が必須なのは課金と秘密値の 2 つのみ（→ `assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
@@ -60,18 +66,9 @@ Intake で project language を確認し、次へ反映する。
 - Issue / PR / ADR / review comment / sync report の既定言語
 
 project language が日本語以外で、運用文書を翻訳しない場合は、「運用文書は収録言語、成果物は project language」という決定を PR 本文に記録し、言語ポリシー節にも同じ区別を書く。
-翻訳する場合は、識別子・パス・コマンド・TODO 記法・表構造・見出しアンカー・token を保持し、翻訳後に MANIFEST の Self-check を再実施する。言語名が言語ポリシー節以外へ混入していないことも確認する。
+翻訳する場合は、識別子・パス・コマンド・TODO 記法・表構造・見出し・token を保持し、翻訳後に MANIFEST の Self-check を再実施する。言語名が言語ポリシー節以外へ混入していないことも確認する。
 
-言語に関係なく、次は原文または canonical spelling を保持する。
-
-- code identifiers
-- API 名
-- package 名
-- JSON keys
-- commit type
-- 標準エラー
-- 外部仕様名
-- 公式 docs の引用タイトルやリンクタイトル
+言語に関係なく原文または canonical spelling を保持するものは、`assets/docs/harness/OPERATING_MODEL.md`「言語ポリシー」の一覧に従う。
 
 ## 成果物
 
@@ -120,7 +117,7 @@ monorepo-bootstrap <product overview>
   +-- 6. 環境、secret、deploy 下準備
   +-- 7. CI/CD と runner 運用整備
   +-- 8. 初期実装と品質 gate
-  +-- 9. preview/staging deploy と smoke test
+  +-- 9. dev 環境（main）への deploy と smoke test
   +-- 10. 完了処理と PR
 ```
 
@@ -139,7 +136,9 @@ monorepo-bootstrap <product overview>
 | Interfaces | Web, API, mobile, batch, webhook, SDK, external agent |
 | Operations | deploy 頻度、監視、障害対応、権限管理 |
 | Constraints | 既存技術、provider 制約、予算、規制、納期 |
+| Non-goals | 対象外とする課題・利用者・機能 |
 | Language | project language、英語/日本語などの例外条件 |
+| Open questions | 入力が足りずに置いた仮定と、その根拠 |
 
 ### 1.2 Repo 観察
 
@@ -340,7 +339,7 @@ self-hosted runner を使う場合は、foreground の `run.sh` 常用ではな�
 ## Step 9: deploy と smoke test
 
 Intake で確認した deploy 目標に従い、dev 環境（main）へ deploy する。
-branch と environment の対応は承認モデルの既定に従い、変更する場合は対応表を docs と issue に残す。
+branch と environment の対応は承認モデルの既定に従い、変更する場合は対応表を deploy の runbook（`docs/runbooks/`）に、採用した対応と理由を ADR に残す。
 prod（release）への反映は `docs/harness/skills/deploy-verify.md` の「release 反映（prod）」に従う。
 `docs/harness/skills/deploy-verify.md` のステップ表は、deploy の runbook と同時に具体化する（骨格の `TODO` を残したまま完了にしない）。
 deploy URL、commit SHA、environment、smoke 結果を PR 本文の「検証結果」に記録する。

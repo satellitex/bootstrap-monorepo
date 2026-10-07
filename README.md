@@ -50,7 +50,7 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 ### テンプレートの整合検査
 
-`assets/` を変更したら、次を実行する（bash と node が必要。引数はない）。
+`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら、次を実行する（bash と node が必要。引数はない）。
 
 ```bash
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh

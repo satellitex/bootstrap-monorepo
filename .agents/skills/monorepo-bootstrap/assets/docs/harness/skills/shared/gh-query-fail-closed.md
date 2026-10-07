@@ -4,22 +4,22 @@
 
 各参照元は自分の照会手順で本ファイルを Read し、その規約に従う。
 
-## 規約 1: list 照会に search 系フィルタ（`--search` / `--label` / `--milestone`）を使わない
+## 規約 1: list 照会に search 系フィルタ（`--search` / `--label` / `--milestone` など）を使わない
 
 `gh issue list` / `gh pr list` にこれらのフラグを付けた形式は GraphQL の search connection 経由で解決される。
 search connection は **リポジトリのリダイレクト（owner 変更・リネーム）を解決せず、エラーにもならず
 exit 0 + `[]` を返す**。空の結果を「該当なし」と解釈する側は、照会経路が壊れたことに気付けない。
 
-| 経路                                                                                                                      | 移管・リネーム済み repo を旧 slug で照会したときの挙動 |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `gh pr list` / `gh issue list`（フィルタなし）・`gh * view`・`gh api repos/...`・GraphQL `repository(owner:)`・git remote | リダイレクトを追う（正しい結果）                       |
-| `gh pr list` に `--search` / `--label`、`gh issue list` に `--search` / `--label` / `--milestone` を付けた形式            | **追わない。exit 0 + `[]`（無言）**                    |
-| REST `search/issues`                                                                                                      | HTTP 422 で hard fail（無言ではない）                  |
+| 経路                                                                                                                                                                        | 移管・リネーム済み repo を旧 slug で照会したときの挙動 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `gh pr list` / `gh issue list`（フィルタなし）・`gh * view`・`gh api repos/...`・GraphQL `repository(owner:)`・git remote                                                   | リダイレクトを追う（正しい結果）                       |
+| `gh pr list` に `--search` / `--label` / `--author` / `--app` / `--assignee` / `--draft`、`gh issue list` に `--search` / `--label` / `--milestone` / `--type` を付けた形式 | **追わない。exit 0 + `[]`（無言）**                    |
+| REST `search/issues`                                                                                                                                                        | HTTP 422 で hard fail（無言ではない）                  |
 
 したがって list 照会は **フィルタなしの list + `--json` + ローカル絞り込み**で書く。これで照会が
 owner 文字列にも依存しなくなり、次回の移管・リネームでも壊れない。
 
-**短縮形も同じ扱い**。`-l` / `-S` / `-m` はそれぞれ long form と同一の search connection に落ち、
+**短縮形も同じ扱い**。`-l` / `-S` / `-m` と、`gh pr list` の `-A` / `-a` / `-d` はそれぞれ long form と同一の search connection に落ち、
 同じく exit 0 + 空配列を返す。取得上限の短縮形 `-L` は正規の `--limit` と同じで問題ない。
 
 **本規約の対象は list 照会のみ。** `gh issue create --milestone` / `gh issue edit --milestone` /
@@ -97,7 +97,7 @@ owner を直書きした箇所は移管・リネームのたびに全件手当�
 | `gh` が無い                          | `command not found: gh` / `gh: command not found`                    | MCP                                                                           |
 | `gh` が未認証                        | `gh auth status` が非ゼロ終了                                        | MCP                                                                           |
 
-- 文字列は GitHub と `gh` の版により変わり得る。GitHub の公式 docs は rate limit 超過時のメッセージ本文を規定せず、HTTP ステータス（403 / 429）と `x-ratelimit-remaining` ヘッダで示すため、rate limit は文字列と併せてそれらでも確認する。導入先は実機で観測した文字列を表へ追記する。
+- 文字列は GitHub と `gh` の版により変わり得る。GitHub の公式 docs は rate limit 超過時のメッセージ本文を規定せず、`x-ratelimit-remaining` ヘッダ（primary rate limit の超過で 0）と HTTP ステータス（REST は 403 / 429。GraphQL は 200 のまま返ることがある）で示すため、rate limit は文字列と併せてそれらでも確認する。導入先は実機で観測した文字列を表へ追記する。
 - 経路の選択は run の開始時に `command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1` で行う。`command -v gh` だけで判定すると、導入済みで未認証の `gh` を gh 経路に倒したまま停止させるため、`gh auth status` までを 1 つの条件とする。成功すれば gh 経路、失敗すれば MCP 経路に進む。
 
 ### REST 経路
@@ -120,10 +120,10 @@ sync 系の手順が使う open PR の一覧は、`GET /repos/{owner}/{repo}/pul
 `gh` が使えない run では、PR / Issue を扱える MCP tool（`issue_read` / `pull_request_read` / `list_issues` / `list_pull_requests` 等。tool 名の接頭辞は実行環境が決める）で同じ照会を行う。tool の仕様は版により変わり得るため、使う前に実際のスキーマを確認する。MCP 経路が無い run は、規約 2 に従って異常として停止する。
 
 - owner / repo は `git remote get-url origin` から解決し、tool の引数にリテラルを埋めない（規約 4 と同じ理由）。
-- canary は、既知の実在する Issue / PR を `get` できること、または `list_issues`（絞り込みなし・`perPage: 1`）が要素数 1 の配列で応答することで満たす。「エラーにならない」だけでは、0 件の応答を経路の生存の証拠にしてしまうため足りない。
+- canary は、既知の実在する Issue / PR を `get` できること、または `list_issues`（絞り込みなし・`perPage: 1`）の応答の `issues` が要素数 1 であることで満たす。「エラーにならない」だけでは、0 件の応答を経路の生存の証拠にしてしまうため足りない。
 - `search_issues` / `search_pull_requests` は、あいまい一致の検索であり、0 件を「該当なし」と読む厳密な判定に使えない。list 系の tool を使い、ローカルで絞り込む。
 - list 系の tool はページング方式が tool ごとに異なる（`list_issues` はカーソル方式で `pageInfo.endCursor` を `after` へ渡して進め、`list_pull_requests` はページ番号方式である）。方式はスキーマで確認し、返却件数が `perPage` 未満になるまで連結してから絞り込む。
-- ページ取得の途中でエラーが返ったときは、件数を報告せず停止する。総件数との突合は行わない（応答に対象総数を示すフィールドがないため。網羅性は「返却件数が `perPage` 未満になるまで連結した」ことだけで判定する）。
+- ページ取得の途中でエラーが返ったときは、件数を報告せず停止する。総件数との突合は行わない（`list_pull_requests` のように応答に対象総数を持たない tool があるため。網羅性は「返却件数が `perPage` 未満になるまで連結した」ことだけで判定する）。
 
 ## 実装スニペット（plain list + ローカル絞り込み）
 

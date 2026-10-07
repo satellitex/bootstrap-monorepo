@@ -23,6 +23,9 @@
 #      の grep で見つかること、つまり MANIFEST のグループ除去手順で処理できることを確かめる（見つからない
 #      失敗は、手順の取りこぼしとして失敗にする）。除去資産の名前（README.md など汎用の名前はパス）が残る
 #      ファイルは、残存箇所として報告する
+#   7. skill の frontmatter: 上位 skill（.agents/skills/*/SKILL.md）と配布 adapter
+#      （assets/.claude/skills/*/SKILL.md）のキーが Agent Skills 仕様のキーだけで、name がディレクトリ名と
+#      一致する小文字英数字とハイフンの形式、description が単一行かつ 1,024 文字以内
 #
 # skill 正本と adapter の 1:1 は、4 と 5 の tests/harness（check-harness-structure）が検査する。
 # 4 から 6 は並列に実行し、結果は上の順に表示する。
@@ -263,6 +266,65 @@ check_denylist() {
   fi
 }
 
+# ---- 7. skill の frontmatter ---------------------------------------------------------------------
+# Agent Skills 仕様（https://agentskills.io/specification）が定めるキー。Claude Code も Codex も未知の
+# キーを警告なしで無視するため、綴りを誤ったキーは効かないまま残る。仕様外のキーを使う場合は、両ツールでの
+# 扱いを確かめてからここに足す。
+SPEC_KEYS="name description license compatibility metadata allowed-tools"
+
+check_skill_frontmatter() {
+  local repo_root skills_root f rel dir key k known name desc len n=0
+  repo_root="$(cd "$SKILL_DIR/../../.." && pwd)"
+  skills_root="$(cd "$SKILL_DIR/.." && pwd)"
+  : >"$TMP/fm_problems.txt"
+  for f in "$skills_root"/*/SKILL.md "$ASSETS"/.claude/skills/*/SKILL.md; do
+    [ -f "$f" ] || continue
+    n=$((n + 1))
+    rel="${f#"$repo_root"/}"
+    dir="$(basename "$(dirname "$f")")"
+    if [ "$(head -n 1 "$f")" != "---" ]; then
+      echo "$rel  frontmatter が無い" >>"$TMP/fm_problems.txt"
+      continue
+    fi
+    awk 'NR > 1 && $0 == "---" { exit } NR > 1 { print }' "$f" >"$TMP/fm.txt"
+
+    grep -E '^[^[:space:]#][^:]*:' "$TMP/fm.txt" | sed 's/:.*//' >"$TMP/fm_keys.txt" || true
+    while IFS= read -r key; do
+      known=0
+      for k in $SPEC_KEYS; do [ "$k" = "$key" ] && known=1; done
+      [ "$known" -eq 1 ] || echo "$rel  仕様外のキー: $key" >>"$TMP/fm_problems.txt"
+    done <"$TMP/fm_keys.txt"
+
+    name="$(sed -n 's/^name:[[:space:]]*//p' "$TMP/fm.txt" | sed 's/[[:space:]]*$//')"
+    if [ "$name" != "$dir" ]; then
+      echo "$rel  name（${name:-なし}）がディレクトリ名（$dir）と異なる" >>"$TMP/fm_problems.txt"
+    elif ! echo "$name" | grep -qE '^[a-z0-9]+(-[a-z0-9]+)*$' || [ "${#name}" -gt 64 ]; then
+      echo "$rel  name が 64 文字以内の小文字英数字とハイフンの形式でない" >>"$TMP/fm_problems.txt"
+    fi
+
+    desc="$(sed -n 's/^description:[[:space:]]*//p' "$TMP/fm.txt")"
+    case "$desc" in
+      '' | '|'* | '>'*)
+        echo "$rel  description が空か複数行（単一行で書く）" >>"$TMP/fm_problems.txt"
+        ;;
+      *)
+        # UTF-8 の継続バイトを除いたバイト数 = 文字数（LC_ALL=C のため ${#desc} はバイト数になる）
+        len="$(printf '%s' "$desc" | tr -d '\200-\277' | wc -c | tr -d ' ')"
+        [ "$len" -le 1024 ] || echo "$rel  description が ${len} 文字（仕様の上限は 1,024 文字）" >>"$TMP/fm_problems.txt"
+        ;;
+    esac
+  done
+
+  if [ "$n" -eq 0 ]; then
+    fail "skill の frontmatter の走査対象（SKILL.md）が 0 件"
+  elif [ -s "$TMP/fm_problems.txt" ]; then
+    fail "skill の frontmatter が Agent Skills 仕様の範囲外"
+    detail <"$TMP/fm_problems.txt"
+  else
+    ok "skill の frontmatter が Agent Skills 仕様の範囲に収まる（SKILL.md ${n} ファイル）"
+  fi
+}
+
 # ---- 4〜6. tests/harness の実行 ----------------------------------------------------------------
 
 # harness_exec ROOT OUTFILE [VAR=val…]: ROOT を HARNESS_ROOT として tests/harness/run.mjs を実行し、
@@ -483,6 +545,7 @@ else
   run_parallel check_harness_tests check_bootstrapped_harness
   check_group_removals
 fi
+check_skill_frontmatter
 
 echo
 if [ "$FAILS" -eq 0 ]; then
