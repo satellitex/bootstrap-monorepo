@@ -1,6 +1,6 @@
 ---
 name: renovate-sync
-description: Renovate が依存 pin 箇所を漏れなく検知できているか・cross-manager dual-pin が同一 PR に束ねられているかを 3 検査で検証し、renovate.json の改善 PR を作成する。open Renovate PR の LGTM ラベルを毎回の検査結果に同期する（opt-in:renovate）
+description: Renovate の依存 pin 検知に漏れがないか確認したい場合、または routine の定期実行時に使う。スコープ漏れ・dual-pin 未束ね・未管理 pin を検出して renovate.json の改善 PR にまとめ、open な Renovate PR の LGTM ラベルを同期する。依存の更新自体は Renovate 本体の担当
 ---
 
 # /renovate-sync

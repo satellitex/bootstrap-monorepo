@@ -16,18 +16,24 @@ paths:
 
 コード変更時は `docs/styles/coding_guide/INDEX.md` から辿れるコーディング規約（セキュリティ規約を含む）を遵守する。
 
-<!-- TODO(bootstrap 後): セキュリティガイドを docs/styles/coding_guide/ 配下に追加したら、ここへ直接 pointer を張る -->
+<!-- TODO(記入方法: セキュリティガイドを docs/styles/coding_guide/ 配下に追加したら、ここへ直接 pointer を張る) -->
 
 ## プロダクト設計固有 rule
 
-<!-- TODO(bootstrap 後): /promote-memory で昇格したプロダクト固有 rule の pointer をここに追記する。形式:
-- [<rule 名>](../../docs/styles/team-feedback/<name>.md) — <1 行要旨>
--->
+<!-- TODO(記入方法: /promote-memory で昇格したプロダクト固有 rule の pointer をここに追記する。形式は
+`- [<rule 名>](../../docs/styles/team-feedback/<name>.md)`。概要は INDEX に書く) -->
 
 横断的な team rule は [team-policy.md](team-policy.md) を参照。
 
 ## コマンド
 
-検証ゲートのコマンド定義（build / test / lint / typecheck / format / format:check）の正本は `docs/harness/skills/shared/verification-gates.md`。名前を変える場合は正本と hooks を同時更新する。
+検証ゲートのコマンド定義（build / test / lint / typecheck / format / format:check）と用途別の組合せの正本は `docs/harness/skills/shared/verification-gates.md`。名前を変える場合は正本と hooks を同時更新する。
 
-<!-- TODO(bootstrap 後): workspace 個別の起動・テスト・生成コマンドが増えたらここに追記する -->
+| 用途                | コマンド                                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 依存のインストール  | `pnpm install --frozen-lockfile`                                                                                                                                                        |
+| 全体の検証          | 検証ゲートの組合せを使う（上記の正本）                                                                                                                                                  |
+| 開発サーバの起動    | TODO(取得方法: スタック確定後に実コマンドを確認して記入する)                                                                                                                            |
+| 単一 package の実行 | `pnpm --filter <package> run <script>`（`<package>` は `apps/*` または `packages/*` の package.json の name）。pnpm・turbo を差し替えた導入先は、差し替えた実コマンドをこの表に記入する |
+
+<!-- TODO(記入方法: workspace 個別の生成・テスト・起動コマンドが増えたら、上の表に行を足す) -->

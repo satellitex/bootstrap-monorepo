@@ -8,10 +8,8 @@
 
 ## rules の読み込まれ方
 
-- `.claude/rules/team-policy.md` — `paths:` frontmatter なし。全セッションで常時ロードされる横断方針
-- `.claude/rules/harness-development.md` — `paths: .claude/**/*, docs/harness/**/*` の編集時にロード
-- `.claude/rules/product-development.md` — `paths: apps/**/*, packages/**/*` の編集時にロード
-- `.claude/rules/infra-development.md` — `paths: infra/**/*` の編集時にロード
+- `paths:` frontmatter を持たない rule は全セッションで常時ロードされ、`paths:` を持つ rule は該当ファイルの編集時にロードされる
+- rule の一覧・スコープ・読む場面の正本は `docs/harness/OPERATING_MODEL.md`「領域別 rule の読み場面」
 
 ## skill
 
@@ -21,6 +19,6 @@
 ## 運用（要旨）
 
 - 各 session では必ず最新の `origin/main` から作業ブランチを切り、変更を伴う作業は Pull Request として提出する。
-- 承認モデル（要旨）: 既定は open PR 提出までの自律実行。人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ。
+- 承認モデル（要旨）: 既定は open PR 提出までの自律実行。人間の明示承認が必須なのは課金が発生する操作と秘密値の挿入・変更のみ（→ `docs/harness/OPERATING_MODEL.md`「承認モデル」）。
 - 言語ポリシー: 会話・docs・Issue / PR・レポートの既定言語と原文保持の例外は `docs/harness/OPERATING_MODEL.md`「言語ポリシー」節に従う。
 - secret / token / credential は commit しない。

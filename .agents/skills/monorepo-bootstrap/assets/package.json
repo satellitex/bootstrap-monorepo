@@ -12,7 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "harness:test": "node tests/harness/run.mjs"
   },
   "devDependencies": {
     "prettier": "3.9.6",

@@ -1,0 +1,24 @@
+# gitleaks の設定。pre-push hook が `--config .gitleaks.toml` で読む
+# （hook 側の運用は .claude/hooks/README.md「外部契約 4 点」の 4 を参照）。
+#
+# 方針:
+# - 既定ルールを継承し、独自ルールと allowlist は最小に保つ。
+#   許容を増やすほど検知力が落ちるため、追記は誤検知であることを確かめてから行う。
+# - 誤検知の除外は、fingerprint ではなく値ベースで書く。fingerprint は commit や行が
+#   変わると一致しなくなり、除外が漏れる。値は `\b` で囲んだ厳密一致にして、
+#   似た値まで除外しない。テストの置き場所（path）全体を除外せず、値ごとに除外する。
+# - 自分が push しない commit の誤検知は、値の追記で回避せず、その commit を持つ branch
+#   側で直す。pre-push hook の検査範囲は「まだ remote に出ていないローカル commit」である。
+# - 独自形式の秘密値が混入しうる場合は、`[[rules]]` を足して検知させる。
+
+[extend]
+useDefault = true
+
+# 誤検知の除外が必要になったら、下のブロックのコメントを外して値を追記する。
+# 値が 1 件も無い [allowlist] は gitleaks が設定エラーにするため、空のまま有効にしない。
+#
+# [allowlist]
+# description = "値ベースの誤検知除外（最小に保つ）"
+# regexes = [
+#   '''\bexample-fixture-value\b''',
+# ]

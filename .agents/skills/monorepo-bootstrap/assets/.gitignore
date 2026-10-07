@@ -4,6 +4,9 @@ dist/
 build/
 out/
 .turbo/
+.cache/
+coverage/
+*.tsbuildinfo
 
 # Claude Code ハーネスのローカル専用状態（コミットしない）
 .claude/settings.local.json
@@ -14,6 +17,12 @@ out/
 # OS / エディタ
 .DS_Store
 
-# ローカル環境変数（秘密値を含みうるため常に除外する）
+# ローカル環境変数（秘密値を含みうるため常に除外する。キー名の雛形は .env.example に置く）
 .env
 .env.local
+.env.*.local
+
+# 秘密鍵・証明書（コミットしない）
+*.pem
+*.key
+*.csr

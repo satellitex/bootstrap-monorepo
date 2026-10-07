@@ -1,6 +1,6 @@
 ---
 name: promote-memory
-description: 個人 memory の team-shared rule を docs/styles/team-feedback/ に昇格させ、pointer 追記と PR 作成まで一括実行する
+description: 個人 memory の feedback が team-shared 性質を持つと判断した場合に使う。docs/styles/team-feedback/ への正本化と rules への pointer 追記、個人 memory の pointer 化までを 1 件 1 PR で行う。昇格後の drift 検出は /docs-sync の担当
 ---
 
 # /promote-memory

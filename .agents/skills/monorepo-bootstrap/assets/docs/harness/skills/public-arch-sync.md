@@ -74,24 +74,23 @@
 差分 0 件なら何も作らず終了する（sync-prelude の規約）。差分ありの場合は
 `docs/harness/skills/shared/sync-pr-flow.md` を Read してその手順に従う。本 skill の差分:
 
-| 項目 | 値 |
-|------|-----|
+| 項目               | 値                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------- |
 | 変更なしメッセージ | `[public-arch-sync] 変更なし。PUBLIC_ARCHITECTURE.md は内部正本の現状射影と整合しています。` |
-| ブランチ | `agent/public-arch-sync-{YYYY-MM-DD}` |
-| git add | `docs/product/PUBLIC_ARCHITECTURE.md` のみ |
-| commit | `docs: sync PUBLIC_ARCHITECTURE with internal source (YYYY-MM-DD)` |
-| PR title | `docs: public-arch-sync (YYYY-MM-DD)` |
-| PR body | 下記 Report shape |
+| ブランチ           | `agent/public-arch-sync-{YYYY-MM-DD}`                                                        |
+| git add            | `docs/product/PUBLIC_ARCHITECTURE.md` のみ                                                   |
+| commit             | `docs: sync PUBLIC_ARCHITECTURE with internal source (YYYY-MM-DD)`                           |
+| PR title           | `docs: public-arch-sync (YYYY-MM-DD)`                                                        |
+| PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
 
 ## Validation
 
-docs のみの変更のため `pnpm run format:check`
-（`docs/harness/skills/shared/verification-gates.md` の「docs のみ変更」組合せ）。
+docs のみの変更のため、`gate:docs`（`docs/harness/skills/shared/verification-gates.md`）を実行する。
 加えて PR 作成前に、更新後の公開版へ profile の禁止語 grep を再適用し 0 件であることを確認する。
 
 ## Report shape
 
-PR body は差分種別（unreflected_change / service_name_leak / section_discipline）ごとに
+PR body は標準 5 節に加えて、差分種別（unreflected_change / service_name_leak / section_discipline）ごとに
 location / 修正内容を整理する。禁止語 grep の最終結果（0 件確認）も記載する。
 
 ## Language

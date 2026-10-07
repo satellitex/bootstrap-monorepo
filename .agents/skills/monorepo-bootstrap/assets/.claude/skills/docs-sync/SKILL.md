@@ -1,6 +1,6 @@
 ---
 name: docs-sync
-description: docs の現状層ドキュメントを origin/main の実コード・設定・要件と突き合わせ、鮮度ドリフトと「現状の事実のみ」3 原則違反を検出して修正 PR にまとめる
+description: docs の現状層やルート直下の運用文書が実コード・設定・要件と食い違っている疑いがある場合、または routine の定期実行時に使う。鮮度ドリフト・実装との内容矛盾・「現状の事実のみ」原則違反を検出して修正 PR にまとめる。README は /readme-sync、ソースコメントは /code-sync、harness 文書の重複は /gc-scan の担当
 ---
 
 # /docs-sync

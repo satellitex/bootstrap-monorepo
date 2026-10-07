@@ -1,7 +1,8 @@
 name: CI
 
 # 基礎 CI: format:check / test / build の 3 job のみを最小構成で走らせる。
-# lint / typecheck はローカルの pre-push hook（.claude/hooks/pre-push-ci-check.sh）が
+# docs/harness/skills/shared/verification-gates.md の gate:ci（format:check + test + build）の
+# 実体であり、lint / typecheck はローカルの pre-push hook（.claude/hooks/pre-push-ci-check.sh）が
 # push 前に強制するため、ここでは重複させない（採否は末尾コメント参照）。
 
 on:
@@ -48,6 +49,12 @@ jobs:
       # （hooks 自身は best-effort なローカルガード。.claude/hooks/README.md 参照）。
       - name: Run .claude/hooks tests
         run: bash .claude/hooks/tests/run-all.sh
+
+      # ハーネス文書・設定の機械検査（node:test。追加の依存なし）。検査の一覧と追加手順は
+      # tests/harness/README.md を参照する。turbo を経由しない（repo 外のファイルを読む検査を
+      # task のキャッシュや path filter の裏に置くと、検査したい変更に限って実行されなくなる）。
+      - name: Run harness checks
+        run: pnpm harness:test
 
   build:
     name: Build

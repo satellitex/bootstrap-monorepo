@@ -1,6 +1,6 @@
 # Technology Selection Reference
 
-Use this reference when `monorepo-bootstrap` creates `research.md`, `decision-matrix.md`, Gate A notes, and ADR candidates.
+Use this reference when `monorepo-bootstrap` writes research notes (`docs/notes/research/<topic>.md`), the Gate A section of the PR body, and the technology-selection ADRs (one ADR per domain).
 The selection must stay provider-neutral unless the user explicitly supplies a provider, runtime, database, or organizational constraint.
 
 ## 1. Required Comparison Domains
@@ -28,7 +28,7 @@ For each domain, record the recommended choice, alternatives considered, rejecte
 
 ## 2. Decision Matrix Shape
 
-Use this table for every major domain.
+Use this table for every major domain, in the Gate A section of the PR body (the template is in `bootstrap-artifacts.md`). When a selection is confirmed, move it into one ADR per domain and a row of `docs/product/TECH_STACK.md`.
 
 ```markdown
 | Domain | Recommended | Alternatives | Rejected reasons | Operational risks | Cost / limits | Local dev impact | Sources |
@@ -82,7 +82,7 @@ At Gate A, explicitly propose the following service selections or state why the 
 Do not mechanically create `apps/web`, `apps/api`, `apps/workers`, `apps/jobs`, or `apps/workflows`.
 Choose the topology from product and operations constraints.
 
-Record the comparison in `decision-matrix.md` or an ADR.
+Record the comparison in the Gate A section of the PR body; the confirmed topology goes into an ADR.
 
 | Axis | Compare |
 |------|---------|
@@ -144,7 +144,7 @@ Adopted CSS/UI strategy should become an ADR when UI is in scope.
 
 ## 7. ADR Triggers
 
-Create an ADR when a decision is hard to reverse, cross-cutting, expensive, or likely to affect multiple issues.
+Record each technology selection as one ADR per domain (alternatives and rejected reasons included). The trigger is that multiple options were compared; hard-to-reverse, cross-cutting, expensive, or multi-issue decisions are the typical cases.
 
 Examples:
 
@@ -162,4 +162,4 @@ Examples:
 - public API schema style
 - package boundary or shared component system
 
-Small local implementation choices can stay in issue docs if they do not change cross-cutting architecture.
+Small local implementation choices stay in the PR body ("方針と却下案") if they do not change cross-cutting architecture. The trigger criteria are defined in `../assets/docs/adr/README.md`.

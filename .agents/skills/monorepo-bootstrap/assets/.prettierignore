@@ -1,0 +1,12 @@
+# prettier の整形対象にしない生成物・依存・キャッシュ。
+# md を含む手書きの文書は整形対象とする（`pnpm run format` で整形し、`format:check` で検査する）。
+node_modules/
+dist/
+build/
+out/
+coverage/
+.turbo/
+pnpm-lock.yaml
+
+# 整形で内容が壊れる生成物（暗号化済みファイル、ベンダリングした成果物など）は、
+# 採用時に実際のパスをここへ追記する。

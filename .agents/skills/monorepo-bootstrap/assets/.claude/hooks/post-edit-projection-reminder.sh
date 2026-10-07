@@ -13,33 +13,37 @@ set -euo pipefail
 # （他の PostToolUse hook を妨げない）。
 
 # --- 設定（採用 repo に合わせて変更する） --------------------------------------
-# 射影元の内部正本（複数可）。
-TARGET_DOCS=("docs/product/ARCHITECTURE.md")
+# 各値は PROJ_PROJECTION_* の環境変数で上書きできる（テスト用の seam）。
+# 射影元の内部正本（作業ツリーのルート基準。複数は ":" で区切る）。
+TARGET_DOCS="${PROJ_PROJECTION_TARGET_DOCS:-docs/product/ARCHITECTURE.md}"
 # 射影先の公開版ドキュメント。
-PROJECTION_DOC="docs/product/PUBLIC_ARCHITECTURE.md"
+PROJECTION_DOC="${PROJ_PROJECTION_DOC:-docs/product/PUBLIC_ARCHITECTURE.md}"
 # 追従を促す skill 名。
-SYNC_SKILL="/public-arch-sync"
+SYNC_SKILL="${PROJ_PROJECTION_SYNC_SKILL:-/public-arch-sync}"
 # 射影ルールの SSOT。
-PROJECTION_RULES=".claude/skills/public-arch-sync/references/projection-rules.md"
+PROJECTION_RULES="${PROJ_PROJECTION_RULES:-.claude/skills/public-arch-sync/references/projection-rules.md}"
 # -------------------------------------------------------------------------------
 
-input="$(cat)"
-file="$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.path // empty')"
+## --- 共通ユーティリティ読み込み ---
+HOOK_UTILS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../bin/hook-utils.sh"
+# shellcheck source=../bin/hook-utils.sh
+source "$HOOK_UTILS"
 
-# 対象は TARGET_DOCS のみ。絶対パス・相対パスのどちらでも末尾一致で判定する。
-matched=0
-for doc in "${TARGET_DOCS[@]}"; do
-  case "$file" in
-    "$doc" | */"$doc") matched=1; break ;;
-  esac
-done
-if [ "$matched" -ne 1 ]; then
-  exit 0
-fi
+input="$(cat)"
+file="$(jq -r '.tool_input.file_path // .tool_input.path // empty' <<< "$input")"
+
+# 対象は TARGET_DOCS のみ。作業ツリーのルート基準の相対パスに揃え、完全一致で判定する
+# （絶対パス・相対パスのどちらでも判定できる）。
+rel="$(normalize_repo_path "$file")"
+[ -n "$rel" ] || exit 0
+case ":${TARGET_DOCS}:" in
+  *":${rel}:"*) ;;
+  *) exit 0 ;;
+esac
 
 msg="$(
   cat <<MSG
-[projection-sync リマインド] 内部正本 ${TARGET_DOCS[*]} を編集しました。
+[projection-sync リマインド] 内部正本 ${TARGET_DOCS//:/ } を編集しました。
 これらは公開版 ${PROJECTION_DOC} の射影元です。
 編集が一段落したら、公開版を必ず追従させてください:
 
@@ -52,9 +56,4 @@ msg="$(
 MSG
 )"
 
-jq -Rn --arg msg "$msg" '{
-  hookSpecificOutput: {
-    hookEventName: "PostToolUse",
-    additionalContext: $msg
-  }
-}'
+emit_hook_context PostToolUse "$msg"

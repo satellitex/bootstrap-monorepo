@@ -7,11 +7,11 @@
 
 ## ディレクトリ構成
 
-| ディレクトリ | 内容 | INDEX |
-| --- | --- | --- |
-| `originals/` | 顧客・関係者から受領した原本ファイル（PDF/XLSX/PPTX 等） | — |
-| `summaries/` | `originals/` の整形済みサマリ | [summaries/INDEX.md](./summaries/INDEX.md) |
-| `runbooks/` | 顧客（アプリ開発者等）向けの運用 runbook | [runbooks/INDEX.md](./runbooks/INDEX.md) |
+| ディレクトリ | 内容                                                     | INDEX                                      |
+| ------------ | -------------------------------------------------------- | ------------------------------------------ |
+| `originals/` | 顧客・関係者から受領した原本ファイル（PDF/XLSX/PPTX 等） | —                                          |
+| `summaries/` | `originals/` の整形済みサマリ                            | [summaries/INDEX.md](./summaries/INDEX.md) |
+| `runbooks/`  | 顧客（連携先の開発者・運用担当者など）向けの運用 runbook | [runbooks/INDEX.md](./runbooks/INDEX.md)   |
 
 ## 配置ルール
 
@@ -25,9 +25,9 @@
 
 1. 原本を `originals/` に配置する。
 2. `summaries/` に対応する要約を作成する（1 原本 = 1 サマリ）。
-3. `summaries/INDEX.md` に 1 行追加する。
+3. `summaries/INDEX.md` に 1 行追加する（INDEX の更新主体は `docs/harness/skills/shared/index-writer-policy.md` の割当表に従う）。
 
 ### runbook 新規作成
 
 1. `runbooks/<theme>.md` を作成する（テーマ単位で 1 ファイル）。
-2. `runbooks/INDEX.md` に 1 行追加する（対象読者・関連 Issue を明記）。
+2. `runbooks/INDEX.md` に 1 行追加する（対象読者・関連 Issue を明記。更新主体は同上）。

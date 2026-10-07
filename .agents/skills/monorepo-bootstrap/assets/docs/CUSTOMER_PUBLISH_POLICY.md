@@ -2,7 +2,7 @@
 
 # 顧客向け公開ポリシー
 
-> この文書は、内部ドキュメントを顧客向け（アプリ開発エンジニア・アーキテクト・SRE 等）に公開する際の判定基準と機械検査の運用ルールの正本である。
+> この文書は、内部ドキュメントを顧客向け（連携先の開発者・アーキテクト・運用担当者など）に公開する際の判定基準と機械検査の運用ルールの正本である。
 > 公開コンテンツの内容そのもの・ビルド実装の詳細はここに書かない。
 
 公開対象は **認証で保護された統合ドキュメントサイト** とする。
@@ -13,12 +13,12 @@
 
 区画構成はプロジェクトごとに確定する。次は代表的な区画の例（採用時に実際の構成で書き換える）:
 
-| 区画（例） | 種別 | ソース | 配信方式 |
-|------|------|-------|---------|
-| `/api` | コードリファレンス | API 実装から生成した OpenAPI JSON | OpenAPI ビューア |
-| `/sdk` | コードリファレンス | SDK の doc コメント → ドキュメントジェネレータ | 生成 HTML |
-| `/architecture` | 設計ドキュメント | `docs/product/PUBLIC_ARCHITECTURE.md`（`ARCHITECTURE.md` の公開射影） | markdown → サニタイズ済み HTML |
-| `/quality` | 品質保証 / テスト網羅状況 | 要件 ↔ テストのトレーサビリティ成果物（opt-in:traceability 採用時） | 生成 HTML（内部参照 scrub 済み） |
+| 区画（例）      | 種別                      | ソース                                                                                  | 配信方式                         |
+| --------------- | ------------------------- | --------------------------------------------------------------------------------------- | -------------------------------- |
+| `/api`          | コードリファレンス        | API 実装から生成した OpenAPI JSON                                                       | OpenAPI ビューア                 |
+| `/sdk`          | コードリファレンス        | SDK の doc コメント → ドキュメントジェネレータ                                          | 生成 HTML                        |
+| `/architecture` | 設計ドキュメント          | `docs/product/PUBLIC_ARCHITECTURE.md`（`ARCHITECTURE.md` の公開射影）                   | markdown → サニタイズ済み HTML   |
+| `/quality`      | 品質保証 / テスト網羅状況 | 要件 ↔ テストの traceability matrix から生成した成果物（`docs/product/tests/`。採用時） | 生成 HTML（内部参照 scrub 済み） |
 
 - 設計ドキュメント区画はソース markdown を改変せず、ビルド時に「公開射影 HTML」を生成して配信する。
 - サービス名の抽象化など機械サニタイズで吸収できない射影が必要な区画は、内部正本とは別に公開用の射影 markdown を `docs/product/` に置き、ドリフト防止 skill（`/public-arch-sync` → `docs/harness/skills/public-arch-sync.md`）で追従させる。
@@ -34,7 +34,7 @@
 
 - **ADR**: `ADR-YYYYMMDD` 形式
 - **要件 ID**: `BR|IF|DATA|FR|NFR|SEC-NNNN(-FIX)?`、および `US-NNNN` 形式
-- **設計判断 ID**: `AC-NNN-NN` / task-note の設計判断 ID（`D1` 等の D-ID 表記）
+- **受入条件・設計判断の ID**: `AC-NNN-NN`（受入条件）、ADR 内の決定番号（`D1` 等の D-ID 表記）
 
 ### 2.2 Issue 参照
 
@@ -43,8 +43,8 @@
 
 ### 2.3 内部 docs パス
 
-- 基本対象: `docs/(adr|issues|product|notes|requirements)/`
-- 公開前 gate の追加対象: `docs/(styles|harness|runbooks|audit|customer)/`
+- 基本対象: `docs/(adr|product|notes|requirements)/`
+- 公開前 gate の追加対象: `docs/(styles|harness|runbooks|audit|customer|postmortems|templates)/`
 
 ソースコメント lint は基本対象のみを検査し、style guide 参照（`docs/styles/` 等）はコード内 doc コメントでは許容する。
 

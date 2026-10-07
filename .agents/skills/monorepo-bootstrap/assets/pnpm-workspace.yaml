@@ -1,0 +1,5 @@
+# pnpm workspace の定義。パッケージは apps/* と packages/* に置く
+# （.claude/hooks/README.md「外部契約 4 点」の 3）。
+packages:
+  - "apps/*"
+  - "packages/*"
