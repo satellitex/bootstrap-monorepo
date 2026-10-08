@@ -1,6 +1,6 @@
 ---
 name: architecture-sync
-description: 実装が完了し検証ゲートを通過した後、PR 作成前に使う。実装差分に最も近い README.md の構造マップを実コードと同期する。README 全体の定期点検は /readme-sync の担当
+description: /multi-issue の仕上げ（Step 4）から起動された場合に使う。実装差分に最も近い README.md の構造マップを実コードと同期する。README 全体の定期点検は /readme-sync の担当
 ---
 
 # Architecture Sync Agent
@@ -18,7 +18,7 @@ description: 実装が完了し検証ゲートを通過した後、PR 作成前�
 
 ## トリガー
 
-実装が完了し検証ゲート（`docs/harness/skills/shared/verification-gates.md` に定義）が全て PASS した後、PR 作成前に呼び出される。
+`/multi-issue` の Step 4 で、実装が完了し検証ゲート（`docs/harness/skills/shared/verification-gates.md` に定義）が全て PASS した後、PR 作成前に呼び出される。
 
 ## インプット
 

@@ -6,7 +6,7 @@ Issue の実装フローは 2 つに集約する。実装 Issue（新規機能�
 
 ## 判定
 
-`#<issue> 対応して` のように Issue 番号で直接指示された場合も、本順序で判定する（直接指示時のトリアージの正本）。即座に skill を起動せず、Issue を読んでから振り分ける（照会規約 → `docs/harness/skills/shared/gh-query-fail-closed.md`）。ユーザーが `/multi-issue` を明示的に呼んだ場合は、判定を経ずに当該 skill に従う。
+`#<issue> 対応して` のように Issue 番号で直接指示された場合も、本順序で判定する（直接指示時のトリアージの正本）。即座に skill を起動せず、Issue を読んでから振り分ける（照会規約 → `docs/harness/skills/shared/gh-query-fail-closed.md`）。ユーザーまたは routine が `/multi-issue` を明示的に呼んだ場合は、判定を経ずに当該 skill に従う。
 
 上から評価し、最初に当てはまったものを採用する。
 
