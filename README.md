@@ -7,7 +7,32 @@ Codex / Claude 両対応の monorepo 運用テンプレート repository。
 
 ### インストール
 
-Codex 同梱の skill-installer（`$skill-installer`）で、2 つの skill を 1 回のコマンドでまとめて install する。Codex に「satellitex/bootstrap-monorepo の `.agents/skills/monorepo-bootstrap` と `.agents/skills/harness-adopt` を install して」と頼んでもよいし、次のスクリプトを直接実行してもよい。
+2 つの skill（`monorepo-bootstrap` と `harness-adopt`）を、同じ skills ディレクトリへまとめて install する。harness-adopt は兄弟ディレクトリ `../monorepo-bootstrap/` の `assets/` をコピー元に使うため、片方だけでは動かない。次のどの方法でもよい。
+
+#### A. `npx skills`（推奨）
+
+```bash
+npx skills add satellitex/bootstrap-monorepo -g --skill '*' -a claude-code codex
+```
+
+- `.agents/skills/` の 2 つだけが検出される。`-g` は user scope（Claude Code は `~/.claude/skills`、Codex は `~/.agents/skills`）で、省略すると作業中の project に入る。
+- 既定では `~/.agents/skills/` に実体を置き、各 agent の skills ディレクトリから link する。link を避けたい場合は `--copy` を付ける。どちらでも兄弟の資産を解決できる。
+- 更新は `npx skills update`、削除は `npx skills remove`。
+
+#### B. `gh skill install`（GitHub CLI、preview）
+
+```bash
+gh skill install satellitex/bootstrap-monorepo .agents/skills/monorepo-bootstrap --agent claude-code --scope user
+gh skill install satellitex/bootstrap-monorepo .agents/skills/harness-adopt --agent claude-code --scope user
+```
+
+- skill は 1 回に 1 つなので、パスを指定して 2 回実行する。Codex 向けは `--agent codex`（install 先は `~/.agents/skills`）。
+- skill 名だけや `--all --allow-hidden-dirs` では指定しない。`monorepo-bootstrap/assets/.claude/skills/` の配布用 adapter（導入先へコピーする雛形）まで skill として検出・install される。
+- `gh auth login` 済みで実行する。ファイルを 1 つずつ API で取得するため、未認証だと rate limit で失敗する。
+- install 先の `SKILL.md` すべて（assets 内の adapter を含む）の frontmatter に、追跡用の `metadata`（`github-*` キー）が付く。`gh skill update` がこれを使うので install 先では消さない。導入先へコピーした adapter からは、MANIFEST の手順で除く（残ると `tests/harness` が失敗する）。
+- 更新は `gh skill update`。
+
+#### C. Codex の skill-installer
 
 ```bash
 INSTALLER=~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py
@@ -22,12 +47,16 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
   --dest ~/.claude/skills
 ```
 
-- Codex を導入していない（installer のスクリプトが無い）場合は、この repository を clone し、`.agents/skills/monorepo-bootstrap` と `.agents/skills/harness-adopt` を実体のまま `~/.claude/skills/` へコピーする（例: `cp -R .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt ~/.claude/skills/`）。`.claude/skills/` 側は link なのでコピー元にしない。
-- `--path` には `.agents/skills/` 側の実体を指定する。`.claude/skills/` 側は link なので指定しない。既定の download 方式では、link が「link 先のパスだけを書いたテキストファイル」として install され、エラーにならないまま skill として動かない（git 方式では installer が拒否する）。
-- 2 つは必ず同じ `--dest` に install し、`--name` で改名しない。harness-adopt は兄弟ディレクトリ `../monorepo-bootstrap/` の `assets/` をコピー元に使う。
+- Codex で `$skill-installer` に「satellitex/bootstrap-monorepo の `.agents/skills/monorepo-bootstrap` と `.agents/skills/harness-adopt` を install して」と頼んでもよい。
+- 2 つは必ず同じ `--dest` に install し、`--name` で改名しない。
+- 更新: installer は install 先が既にあると中断し、上書きしない。古い 2 つのディレクトリを削除してから、同じコマンドで install し直す（例: `rm -rf ~/.claude/skills/monorepo-bootstrap ~/.claude/skills/harness-adopt`）。版を固定するときは `--ref <tag または commit>` を付ける。
+
+#### 共通の注意
+
+- 指定するのは `.agents/skills/` 側の実体である。`.claude/skills/` 側は link なので指定しない（C の download 方式では、link が「link 先のパスだけを書いたテキストファイル」として install され、エラーにならないまま skill として動かない）。
+- どの CLI も使えない場合は、この repository を clone し、`cp -R .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt ~/.claude/skills/` のように実体をコピーする。
 - install 後、Codex は次のターンから認識する（出ない場合は再起動する）。Claude Code はセッション中でも認識する。ただし `~/.claude/skills` がセッション開始時に無かった場合は `/reload-skills` を実行する。
 - 呼び出しは、Claude Code では `/monorepo-bootstrap` `/harness-adopt`、Codex では `$monorepo-bootstrap` `$harness-adopt`。
-- 更新: installer は install 先が既にあると中断し、上書きしない。古い 2 つのディレクトリを削除してから、同じコマンドで install し直す（例: `rm -rf ~/.claude/skills/monorepo-bootstrap ~/.claude/skills/harness-adopt`）。版を固定するときは `--ref <tag または commit>` を付ける。
 - テンプレートを保守するときの注意: この repository 内で起動すると、repo の `.claude/skills/`（Claude Code）と `.agents/skills/`（Codex）の skill も読み込まれる。Claude Code では personal（`~/.claude/skills`）が project より優先されるため、install 済みの古い版が編集中の版を隠す。Codex では同名の skill が 2 つ並ぶ。保守中は install 済みの版を外すか、どちらの版が動いているかに注意する。
 
 ### 前提（共通）

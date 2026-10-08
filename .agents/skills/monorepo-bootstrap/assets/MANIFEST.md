@@ -4,7 +4,7 @@
 
 ## 使い方（bootstrap での適用手順）
 
-1. `core` 区分の資産を bootstrap 先へ同一相対パスでコピーする（本書はコピーしない）。
+1. `core` 区分の資産を bootstrap 先へ同一相対パスでコピーする（本書はコピーしない）。Skill を `gh skill install` で install した場合、assets 内の `SKILL.md` の frontmatter に installer の追跡用 `metadata`（`github-repo` などの `github-*` キー）が付いている。コピー後に `.claude/skills/*/SKILL.md` から `metadata` ブロックを除き、収録時の `name` と `description` だけに戻す（残っていると `tests/harness` の adapter 構造検査が失敗する）。
 2. opt-in グループ（一覧・採否基準・除去時の残存参照は「opt-in グループ」節）は、Intake / 計画時の採否判断に従い、採用グループのみコピーする。採否とその理由の記録先は、bootstrap では ADR 1 本（→ `../references/bootstrap-artifacts.md` §2.3）、adopt では PR 本文（→ `../../harness-adopt/SKILL.md` の成果物表）とする。不採用グループの資産はコピーしない。`docs/README.md` のディレクトリマップは、「opt-in」と付記した行のうち不採用グループの行を削除し、表の直前の HTML コメントも削除する。
 3. 明示 token を一括置換する: `{{PRODUCT_NAME}}` `{{GITHUB_ORG}}` `{{REPO_NAME}}` `{{PROJECT_LANGUAGE}}`。`{{PROJECT_LANGUAGE}}` は Intake で確認した project language（例: `日本語` / `English`）で、`docs/harness/OPERATING_MODEL.md` の言語ポリシー節が唯一の記入箇所である（他の資産は同節を参照するだけで言語名を持たない）。assets の運用文書は収録言語（日本語）のまま導入し、翻訳は Intake で明示された場合だけ行う。翻訳しても、識別子・パス・コマンド・TODO 記法・表構造・見出し・token は保持する。
 4. `TODO(...)` は次節「TODO 記法」に従って埋める。
