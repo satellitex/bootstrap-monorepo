@@ -76,7 +76,6 @@ harness-adopt [<target repo path>]
 - `assets/MANIFEST.md`
 - `assets/docs/harness/OPERATING_MODEL.md`
 - `assets/docs/harness/skills/shared/pr-creation.md`
-- `references/bootstrap-artifacts.md`
 - `references/ci-cd-runner-deploy.md`
 
 1 つでも無い場合は、対象 repo を変更せずに停止し、無いパスと次の案内をユーザーに伝える。「harness-adopt は兄弟 Skill monorepo-bootstrap の assets をコピー元に使う。2 つの Skill を同じ skills ディレクトリに install する（手順はテンプレート repo の README.md「インストール」）」。資産を手で再作成したり、Web から部分的に取得したりしない。
@@ -126,7 +125,7 @@ PR 本文に以下を確定して記録する（棚卸し表は「背景」、�
 
 ## Step 3: copy + 置換 + 非破壊マージ
 
-MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Self-check）を基本とし、既存資産と衝突する場合のみ以下のマージ規則を適用する。
+MANIFEST の「使い方」手順（copy → opt-in の採否（Step 2 で確定済み）→ token 置換 → TODO 充填 → Self-check）を基本とし、既存資産と衝突する場合のみ以下のマージ規則を適用する。
 導入先の実態に依存する関心事の置換は、MANIFEST の「導入先依存の関心事の索引」（branch-model / default-branch / root-config / hook-wiring / entry-adapters）と、「既定スタックと差し替え点」の表（コマンド契約・workspace・tool version・`PROJ_` prefix など）に従い、載っている全資産を対象にする。資産のファイル名は本書に書かず、この 2 つを正本にする。
 
 | 衝突対象 | マージ規則 |

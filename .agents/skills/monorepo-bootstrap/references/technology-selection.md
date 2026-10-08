@@ -23,7 +23,7 @@ For each domain, record the recommended choice, alternatives considered, rejecte
 | External agent / worker runtime boundary | What code runs outside the main app, what permissions it has, and how it is audited? |
 | Auth / identity | Which identity provider/session model/RBAC/tenant boundary fits the product and deploy model? |
 | Observability | Which logs, metrics, traces, errors, audit events, and alert routes are required from day one? |
-| CI/CD provider and deployment strategy | Which CI provider, preview strategy, promotion model, and required checks are used? |
+| CI/CD provider and deployment strategy | Which CI/CD provider runs deploys (the basic CI is GitHub Actions by default), and which preview strategy, promotion model, and required checks are used? |
 | CSS / UI styling strategy | If UI exists, which styling strategy fits design system, tokens, runtime cost, and team familiarity? |
 
 ## 2. Decision Matrix Shape

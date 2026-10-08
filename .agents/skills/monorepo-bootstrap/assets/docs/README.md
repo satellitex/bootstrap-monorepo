@@ -37,7 +37,7 @@
 - 確定仕様は `docs/requirements/`、設計判断は `docs/adr/` に置き、`docs/notes/` には残さない。
 - 受領した原本ファイルは `docs/customer/originals/` にのみ置く（採用している場合）。
 - `docs/requirements/` の要件は、確定（人間が明示的に `Status: Confirmed` にする）までは AI エージェントが起草・編集し、確定した要件は AI エージェントが編集しない（→ `docs/requirements/README.md`）。
-- `docs/customer/originals/` は人間が管理し、AI エージェントは編集しない。
+- `docs/customer/originals/` は人間が管理し、AI エージェントは編集しない（採用している場合）。
 - 各区画の `README.md` は区画の運用規約であり、`/readme-sync` が実体に合わせて更新してよい。
 
 ## 命名規約

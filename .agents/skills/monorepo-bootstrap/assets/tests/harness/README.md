@@ -13,7 +13,7 @@ node --test tests/harness/check-workflows.test.mjs # 1 検査だけ
 HARNESS_ROOT=/path/to/repo pnpm harness:test       # 検査対象のルートを差し替える
 ```
 
-- 依存は Node 標準（`node:test` / `node:fs` ほか）だけで、Node 22 以上で動く。turbo と workspace package は経由しない。repo 外のファイルを読む検査を task のキャッシュや path filter の裏に置くと、検査したい変更に限って実行されなくなる。path filter を足す場合は、`tests/harness/**`、`docs/**`、`.claude/**`、`.github/**`、`scripts/**`、ルート直下の `*.md`・`package.json`・`.mise.toml`・`.gitignore` を含める。
+- 依存は Node 標準（`node:test` / `node:fs` ほか）だけで、Node 22 以上で動く。turbo と workspace package は経由しない。repo 外のファイルを読む検査を task のキャッシュや path filter の裏に置くと、検査したい変更に限って実行されなくなる。path filter を足す場合は、`tests/harness/**`、`docs/**`、`.claude/**`、`.github/**`、`scripts/**`、ルート直下の `*.md`・`package.json`・`.mise.toml`・`.gitignore` を含める。あわせて、参照の実在を確かめる接頭辞（`support/markdown.mjs` の `PATH_PREFIXES`）の各ディレクトリも含める。
 - `run.mjs` を経由するのは、Node 21 以降は `node --test <ディレクトリ>` が失敗することと、検査ファイルまたは実行されたテストが 0 件でも `node --test` が成功終了し、何も検査していない green になることを避けるため。
 - `HARNESS_ROOT` は検査対象のルート（既定は `tests/harness/` の 2 階層上）。存在するディレクトリでなければ失敗する。
 - `HARNESS_TEMPLATE_ROOT=1` はテンプレートモードの切替で、置換前の明示 token（`PRODUCT_NAME` / `GITHUB_ORG` / `REPO_NAME` / `PROJECT_LANGUAGE`）を許容する。テンプレート資産そのものを検査するときだけテンプレート側の整合検査が設定し、bootstrap 先では設定しない。

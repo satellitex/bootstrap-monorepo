@@ -38,7 +38,7 @@
 
 振り分け先の rule ファイルが導入先に無い category（導入時に削除した rule の category）は使わず、横断方針として登録する。
 
-決めるもの: `slug`（`feedback_` プレフィックスを除いて kebab-case 化）、`target_path = docs/styles/team-feedback/<slug>.md`、`category` と振り分け先 rule、人間が読める rule タイトル。
+決めるもの: `slug`（ファイル名から拡張子と、あれば `feedback_` プレフィックスを除いて kebab-case 化）、`target_path = docs/styles/team-feedback/<slug>.md`、`category` と振り分け先 rule、人間が読める rule タイトル。
 
 強制機構がまだ無い rule は機械検証可能カテゴリに入れず、内容に応じた他の category で登録し、PR 本文に「強制機構 Issue の起票候補」として記載する（skill 自身は Issue を切らない）。
 

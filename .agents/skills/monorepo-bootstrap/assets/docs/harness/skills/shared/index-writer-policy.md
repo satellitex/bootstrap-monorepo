@@ -1,6 +1,6 @@
 # INDEX の更新主体（割当表・leaf 文書の要件・経過措置）
 
-この文書は `INDEX.md` ごとの更新主体の割当表、更新主体が行を起こすために leaf 文書が満たす要件、更新主体の routine を登録する前の経過措置の正本である。更新主体を 1 つに絞る理由と、実装 PR の作法の本文は `docs/styles/team-feedback/shared-aggregate-single-writer.md` に置き、ここには複製しない。
+この文書は `INDEX.md` ごとの更新主体の割当表、更新主体が行を起こすために leaf 文書が満たす要件、更新主体の routine を登録する前の経過措置の正本である。更新主体を 1 つに絞る理由（例外を含む）と、実装 PR の作法の本文は `docs/styles/team-feedback/shared-aggregate-single-writer.md` に置き、ここには複製しない。
 
 ## 割当表
 
@@ -38,7 +38,7 @@
 
 - 運用状態が「経過措置」の routine が更新主体の INDEX では、実装 PR は、追加・改名・削除する文書に対応する行を同一 PR で追加・更新・削除してよい。並列の PR と衝突した場合は rebase で解消する。
 - 運用状態が「単一 writer」の INDEX では、実装 PR は既存の INDEX を変更しない。経過措置の間に実装 PR が書いた行は、routine の初回実行が実体と突合して過不足を直す。
-- 人間と `/promote-memory` が更新主体の INDEX は、登録する routine がないため経過措置の対象外である。
+- `/promote-memory` と、leaf 文書を変更する PR が更新主体の INDEX は、登録する routine がないため経過措置の対象外である。
 - 状態の書き換えは、routine の登録を確認した人が行う。導入時の完了報告には、この表の各行を routine 登録の TODO として含める。
 
 ## 強制の範囲

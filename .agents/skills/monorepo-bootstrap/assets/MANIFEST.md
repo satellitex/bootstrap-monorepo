@@ -1,6 +1,6 @@
 # assets MANIFEST
 
-この文書は `assets/` 配下のテンプレート資産の正本台帳である。bootstrap 実行時は本表に従って copy → placeholder 置換 → 不要資産の削除を行う。資産の追加・削除時は本表を同一 PR で更新する（1:1 整合が受入条件）。設計判断の根拠は `../references/` 側に置き、本書には書かない。本書自身と、assets の外にあるテンプレート専用の検査（`../scripts/`）は、bootstrap 先へ配布しない。
+この文書は `assets/` 配下のテンプレート資産の正本台帳である。bootstrap 実行時は本表に従って、core の copy → opt-in の採否（不採用グループは copy しない）→ placeholder 置換 → TODO の充填を行う（手順は「使い方」）。資産の追加・削除時は本表を同一 PR で更新する（1:1 整合が受入条件）。設計判断の根拠は `../references/` 側に置き、本書には書かない。本書自身と、assets の外にあるテンプレート専用の検査（`../scripts/`）は、bootstrap 先へ配布しない。
 
 ## 使い方（bootstrap での適用手順）
 
@@ -298,7 +298,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 ## テンプレート自身の保守（配布しない）
 
-assets を変更したら、テンプレート repository の checkout のルートから次を実行する。skill installer で install した Skill や、bootstrap / adopt の実行中には実行しない（Self-check の対象でもない）。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
+`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら、テンプレート repository の checkout のルートから次を実行する。skill installer で install した Skill や、bootstrap / adopt の実行中には実行しない（Self-check の対象でもない）。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
 
 ```bash
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh
