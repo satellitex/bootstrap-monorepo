@@ -1,7 +1,8 @@
 # renovate-sync（依存 pin ↔ Renovate 設定の突合）
 
 > **opt-in:renovate** — 本 skill は Renovate を導入済みのリポジトリでのみ採用する。前提:
-> `renovate.json`（または同等の設定ファイル）が存在し、`LGTM` ラベルが repo に作成済みであること。
+> `renovate.json`（または同等の設定ファイル）が存在し、Renovate が作る PR に `renovate` ラベルが付く設定
+> （`labels`。Step 2 の絞り込みに使う）であり、`LGTM` ラベルが repo に作成済みであること。
 
 この文書は `/renovate-sync` の手順正本である。`renovate.json` と `origin/main` 上の依存 pin 箇所を突き合わせて 3 検査を実施し、違反があれば `renovate.json` の修正 PR（validator と設定の意味整合の検証つき）を作り、open Renovate PR の `LGTM` ラベルを検査結果に同期する。依存の実際の update（Renovate 本体の仕事）・依存定義ファイル自体の編集は扱わない。
 
@@ -95,15 +96,14 @@ rule を書くときの作法（確認時点の Renovate の挙動であり、�
 - `matchPackageNames` は packageName だけを見て、depName にはフォールバックしない。customManager が
   `packageNameTemplate` で名前を書き換える場合は、書き換えたあとの名前を `matchPackageNames` に含める。
   含めないと、その rule は一度も適用されない（dead rule）。
-- 脆弱性アラート由来の PR は manager ごとに別の `branchTopic` を要求し、`groupName` による統合を無効にしうる。
-  束ねる rule では `branchTopic` を `groupSlug` に固定する。
+- 脆弱性アラート由来の PR は、`vulnerabilityAlerts` の設定（既定は `groupName: null`）が `force` で
+  `packageRules` に優先するため、rule の `groupName` では束ねられない。
 
 ```json
 {
   "description": "pnpm を mise と package.json の packageManager で同一 PR に束ねる",
   "matchPackageNames": ["pnpm"],
-  "groupName": "pnpm",
-  "branchTopic": "{{{groupSlug}}}"
+  "groupName": "pnpm"
 }
 ```
 
@@ -123,8 +123,8 @@ manager / path、標準 manager で拾えないリテラルが対象。
 - 検査 1〜3 の問題はすべて `renovate.json` の編集で吸収する:
   - 検査 1: 漏れの原因別に吸収（`ignorePaths` の除外を狭める / 検査 2 のグルーピングへ統合 / 検査 3 の
     `customManagers` へ統合）。除外の解除は、除外パターンを狭めて表す。先頭 `!` の否定パターンで表さない
-  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchPackageNames` + `groupName` +
-    `branchTopic`。書き方は検査 2 の作法）を追加する。既存 rule とのコンフリクトを避けるため、
+  - 検査 2: 該当依存ごとに `packageRules` エントリ（`matchPackageNames` + `groupName`。
+    書き方は検査 2 の作法）を追加する。既存 rule とのコンフリクトを避けるため、
     より具体的な rule として配列末尾に置く（Renovate は配列順に評価し、後勝ち）
   - 検査 3: ファイル種・pin 形式ごとに `customManagers`（regex manager）エントリを追加する。
     追加後は検査 2 のグルーピング対象として再評価する
@@ -180,8 +180,7 @@ PROJ_RENOVATE_SYNC_NOTIFY_WEBHOOK_URL で注入する。実値はコミットし
    2. `ignorePaths` が、依存 pin を持つ代表的なファイル（`package.json`・`.mise.toml`・workflow 等、
       Scope のインベントリに載るもの）を除外していない。意図して置かれた既存の除外は維持されている。
       glob の判定はインベントリのパスに対して手元で評価し、評価できない形のパターンは除外とみなして不合格にする。
-   3. cross-manager の `packageRules` が、customManager の書き換え後の名前を `matchPackageNames` に含み、
-      `branchTopic` を `groupSlug` に固定している（検査 2 の作法）。
+   3. cross-manager の `packageRules` が、customManager の書き換え後の名前を `matchPackageNames` に含む（検査 2 の作法）。
 3. **検証ゲート**: `*.md` 以外の設定ファイルの変更のため、`gate:commit`（`docs/harness/skills/shared/verification-gates.md`）を実行する。
 
 ## Report shape

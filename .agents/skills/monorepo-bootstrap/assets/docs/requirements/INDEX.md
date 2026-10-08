@@ -1,7 +1,7 @@
 # Requirements INDEX
 
 > この文書は `docs/requirements/` 配下の要件一覧である。要件本文が正本であり、本表には 1 行要旨のみを書く。
-> 本ディレクトリは人間が管理する（AI エージェントは編集しない）。運用は [`README.md`](./README.md)。
+> 確定（`Status: Confirmed`）した要件は AI エージェントが編集しない。起草・確定の手順と INDEX の更新主体は [`README.md`](./README.md)。
 
 ## Business Requirement（BR）
 

@@ -112,9 +112,10 @@ fi
 # 限界: 本 hook は Claude Code の PreToolUse hook であり、**意図的な回避を防ぐ
 # セキュリティ境界ではない**。どの ref 名前空間まで広げても、ref を作らず
 # `git push origin <sha>:refs/heads/x` と raw SHA を送れば範囲外になる。Claude Code を
-# 経由しない端末からの push や --no-verify も同様に素通りする。あくまで「事故による
-# 秘密の push」を手前で止める best-effort ガードであり、CI は PR / push の全経路に効くが
-# 秘密検知を持たない（基礎 CI は format:check / test / build のみ）。
+# 経由しない端末からの push や、hook の `if` に一致しない形（`git -c ...` など）の
+# 操作も同様に素通りする。あくまで「事故による秘密の push」を手前で止める best-effort
+# ガードであり、CI は PR / push の全経路に効くが秘密検知を持たない（基礎 CI は
+# format:check / test / build のみ）。
 #
 # 残るトレードオフ: 未 push のローカル ref（stash 含む）に誤検知があると、無関係な branch の
 # push も止まる。ただし対象は「自分の手元にしか無い commit」に限られ、fetch 済み全 ref を

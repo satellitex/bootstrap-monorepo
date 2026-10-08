@@ -28,17 +28,17 @@
 
 選択された memory を Read し、以下を決める。category 推定は次の判断基準を使う:
 
-| category           | 振り分け先 rule ファイル                            | 該当する rule の性質                 |
-| ------------------ | --------------------------------------------------- | ------------------------------------ |
-| 横断方針           | `.claude/rules/team-policy.md`                      | 全領域に効く判断・運用方針           |
-| ハーネスフロー固有 | `.claude/rules/harness-development.md`              | 実装フロー / Skill / Agent 設計関連  |
-| プロダクト設計固有 | `.claude/rules/product-development.md`              | apps / packages / 要件マッピング関連 |
-| インフラ固有       | `.claude/rules/infra-development.md`                | IaC / CI / deploy 関連               |
-| 機械検証可能       | `.claude/rules/team-policy.md` の機械検証セクション | hook / CI / lint で強制可能なもの    |
+| category           | 振り分け先 rule ファイル                            | INDEX の節               | 該当する rule の性質                  |
+| ------------------ | --------------------------------------------------- | ------------------------ | ------------------------------------- |
+| 横断方針           | `.claude/rules/team-policy.md`                      | 横断方針                 | 全領域に効く判断・運用方針            |
+| ハーネスフロー固有 | `.claude/rules/harness-development.md`              | 実装フロー               | 実装フロー / Skill / Agent 設計関連   |
+| プロダクト設計固有 | `.claude/rules/product-development.md`              | プロダクト設計           | apps / packages / 要件マッピング関連  |
+| インフラ固有       | `.claude/rules/infra-development.md`                | インフラ（無ければ新設） | IaC / CI / deploy 関連                |
+| 機械検証可能       | `.claude/rules/team-policy.md` の機械検証セクション | 機械検証可能 rule        | hook / CI / lint で強制されているもの |
 
 決めるもの: `slug`（`feedback_` プレフィックスを除いて kebab-case 化）、`target_path = docs/styles/team-feedback/<slug>.md`、`category` と振り分け先 rule、人間が読める rule タイトル。
 
-機械検証可能カテゴリで強制機構が未整備の場合、PR 本文に「強制機構 Issue の起票候補」として記載する（skill 自身は Issue を切らない）。
+強制機構がまだ無い rule は機械検証可能カテゴリに入れず、内容に応じた他の category で登録し、PR 本文に「強制機構 Issue の起票候補」として記載する（skill 自身は Issue を切らない）。
 
 ### Step 3: team-feedback 正本ファイルを生成
 
@@ -74,7 +74,7 @@
 
 `docs/styles/team-feedback/INDEX.md` の更新主体は本 skill だけである（`docs/harness/skills/shared/index-writer-policy.md` の割当表。反映漏れの補完は `/docs-sync` が担う）。他の PR と skill はこの INDEX を編集しない。並列の PR が同じ表の末尾へ追記して衝突するのを避け、行の出所を 1 か所にするため。
 
-Step 2 で決めた category に対応するセクション表に 1 行追加する。機械検証可能カテゴリの場合は「強制機構」列に hook / CI のパスを記載する。
+Step 2 の表で category に対応する「INDEX の節」の表に 1 行追加する。「インフラ」節が INDEX に無ければ、プロダクト設計の節の次に同じ表形式（ガイド / 概要）で新設する。節の表が「（未登録）」の仮行だけを持つ場合は、その仮行を新しい行で置き換える。機械検証可能カテゴリの場合は「強制機構」列に hook / CI のパスを記載する。
 
 ### Step 5: `.claude/rules/<scope>.md` に pointer を追加
 
@@ -115,7 +115,7 @@ team-shared rule として `docs/styles/team-feedback/<slug>.md` に昇格済み
 - category（横断 / ハーネス / プロダクト / インフラ / 機械検証可能）
 - pointer を追加した `.claude/rules/<file>.md`
 - 個人 memory が pointer 化された旨（drift 防止）
-- 機械検証可能カテゴリの場合、強制機構（hook / CI）の有無、未整備なら Issue 候補
+- 機械検証可能カテゴリの場合は強制機構（hook / CI）のパス。他の category で登録した強制機構が未整備の rule は Issue 候補
 
 完了後、PR URL をユーザに報告する。
 

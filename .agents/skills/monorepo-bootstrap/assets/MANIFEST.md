@@ -32,7 +32,7 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | pnpm の版                                           | package.json の packageManager と .mise.toml                                                                                                                                                                | 2 か所に同じ版を pin する（dual-pin）。更新は同時に行う                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | prettier                                            | pre-format-check hook / .prettierignore                                                                                                                                                                     | md を含む手書き文書も整形対象で、収録 md は整形済みである。.prettierignore は生成物だけを除外する。除外を広げると、md だけの変更に使う `gate:docs`（format:check のみ）が検査対象を失うため、広げるときは `gate:docs` を再定義する。formatter の差し替えは hook 冒頭のコマンド変数で行う                                                                                                                                                                                                |
 | eslint + TypeScript                                 | post-edit-check hook の case 分岐                                                                                                                                                                           | 既定で `.ts` / `.tsx` / `.js` / `.jsx` の編集後に eslint と `tsc --noEmit` を呼ぶ。両者は root の devDependencies に含めないため、導入先の既存設定を使う。採用しない場合は該当 case と `.claude/hooks/tests/test-post-edit-check.sh` のケースを同時に削除し、他言語は hook 内の「言語別チェックの追加例」に従って case を足す                                                                                                                                                           |
-| gitleaks + mise + node 22 + jq                      | .mise.toml / .gitleaks.toml / pre-push hook。mise に依存する資産は `grep -rl mise .` で列挙する（hooks・settings.json の SessionStart 配線・ci.yml の `jdx/mise-action`・README.md のセットアップ手順など） | .mise.toml の pin を変更する。node は bootstrap 時点の最新 LTS を確認して pin する。gitleaks は pre-push hook でだけ使う（hook と CI の分担 → `docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」）。.gitleaks.toml は既定ルールを継承し、`[allowlist]` はコメントアウトした雛形である。gitleaks を外す場合は pre-push hook の秘密検知区画も外す。mise を使わない導入先は、.mise.toml を導入せず、検索に出る資産の mise 依存箇所を既存ツールの解決方法へ差し替える |
+| gitleaks + mise + node + jq                         | .mise.toml / .gitleaks.toml / pre-push hook。mise に依存する資産は `grep -rl mise .` で列挙する（hooks・settings.json の SessionStart 配線・ci.yml の `jdx/mise-action`・README.md のセットアップ手順など） | .mise.toml の pin を変更する。node は bootstrap 時点の最新 LTS を確認して pin する。gitleaks は pre-push hook でだけ使う（hook と CI の分担 → `docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」）。.gitleaks.toml は既定ルールを継承し、`[allowlist]` はコメントアウトした雛形である。gitleaks を外す場合は pre-push hook の秘密検知区画も外す。mise を使わない導入先は、.mise.toml を導入せず、検索に出る資産の mise 依存箇所を既存ツールの解決方法へ差し替える |
 | hook 環境変数 prefix `PROJ_`                        | hooks / tests / .env.example / `docs/harness/skills/shared/notification-contract.md` / `.claude/skills/review-cycle/references/notification-mapping.md` / `docs/harness/skills/renovate-sync.md`            | 全ファイル一括置換                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | エージェント作業ブランチ `agent/<skill>-YYYY-MM-DD` | shared/sync-pr-flow.md と、`grep -rl 'agent/' .` に出る資産（skill 正本・agent 定義・OPERATING_MODEL.md・scheduled-operations.md）                                                                          | 置換可。検索に出る全資産で同時に置換し、open PR ガードの prefix 判定と揃えること                                                                                                                                                                                                                                                                                                                                                                                                        |
 
@@ -61,26 +61,26 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 
 ### docs 正本（core）
 
-| パス                                    | 用途                                               |
-| --------------------------------------- | -------------------------------------------------- |
-| docs/README.md                          | docs のディレクトリマップ                          |
-| docs/harness/OPERATING_MODEL.md         | ハーネス運用の neutral 正本                        |
-| docs/harness/harness_authoring_guide.md | ハーネス文書の書き方規約                           |
-| docs/harness/scheduled-operations.md    | routine カタログと定期 workflow の設計ガイド       |
-| docs/adr/README.md                      | ADR 運用規約                                       |
-| docs/adr/INDEX.md                       | ADR 一覧（Status 別・空）                          |
-| docs/adr/template.md                    | ADR 本文テンプレート（様式）                       |
-| docs/requirements/README.md             | 要件正本の運用（ID 体系・定型構成・AI 編集対象外） |
-| docs/requirements/INDEX.md              | 要件一覧（空）                                     |
-| docs/product/ARCHITECTURE.md            | 内部設計正本の骨格                                 |
-| docs/product/TECH_STACK.md              | 技術スタック確定表の骨格                           |
-| docs/product/TERMS.md                   | ドメイン用語集の骨格                               |
-| docs/product/TEST_STRATEGY.md           | テスト戦略の骨格                                   |
-| docs/runbooks/README.md                 | 手順書の規約                                       |
-| docs/runbooks/INDEX.md                  | runbook 一覧の骨格                                 |
-| docs/notes/README.md                    | 調査層の運用規約                                   |
-| docs/notes/research/INDEX.md            | 調査ノート一覧（空）                               |
-| docs/audit/README.md                    | 外部監査レポートの命名規約                         |
+| パス                                    | 用途                                            |
+| --------------------------------------- | ----------------------------------------------- |
+| docs/README.md                          | docs のディレクトリマップ                       |
+| docs/harness/OPERATING_MODEL.md         | ハーネス運用の neutral 正本                     |
+| docs/harness/harness_authoring_guide.md | ハーネス文書の書き方規約                        |
+| docs/harness/scheduled-operations.md    | routine カタログと定期 workflow の設計ガイド    |
+| docs/adr/README.md                      | ADR 運用規約                                    |
+| docs/adr/INDEX.md                       | ADR 一覧（Status 別・空）                       |
+| docs/adr/template.md                    | ADR 本文テンプレート（様式）                    |
+| docs/requirements/README.md             | 要件正本の運用（ID 体系・定型構成・起草と確定） |
+| docs/requirements/INDEX.md              | 要件一覧（空）                                  |
+| docs/product/ARCHITECTURE.md            | 内部設計正本の骨格                              |
+| docs/product/TECH_STACK.md              | 技術スタック確定表の骨格                        |
+| docs/product/TERMS.md                   | ドメイン用語集の骨格                            |
+| docs/product/TEST_STRATEGY.md           | テスト戦略の骨格                                |
+| docs/runbooks/README.md                 | 手順書の規約                                    |
+| docs/runbooks/INDEX.md                  | runbook 一覧の骨格                              |
+| docs/notes/README.md                    | 調査層の運用規約                                |
+| docs/notes/research/INDEX.md            | 調査ノート一覧（空）                            |
+| docs/audit/README.md                    | 外部監査レポートの命名規約                      |
 
 ### styles（core）
 
@@ -269,7 +269,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 | グループ              | 除去する資産                                                                                                                                    | 処置の種類                                                                                                                           |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `opt-in:renovate`     | `renovate.json`・`/renovate-sync` の正本と adapter                                                                                              | 行の削除                                                                                                                             |
-| `opt-in:public-site`  | 公開区画の資産・skill 2 本の正本と adapter・profile 2 本・`post-edit-projection-reminder.sh` とそのテスト                                       | 行・項・節の削除。除外表の `docs/customer/**` は、列挙された他のパスを残して語句だけ削除                                             |
+| `opt-in:public-site`  | 公開区画の資産・skill 2 本の正本と adapter・profile 2 本・`post-edit-projection-reminder.sh` とそのテスト                                       | 行・項・節の削除。除外表の `docs/customer/**` は、列挙された他のパスを残して語句だけ削除。`docs/product/PUBLIC_*.md` は行ごと削除    |
 | `opt-in:submodule`    | `pre-commit-submodule-guard.sh`・`bin/submodule-guard.sh`・それぞれのテスト（`test-pre-commit-submodule-guard.sh` / `test-submodule-guard.sh`） | hook 本体とテストの一括削除（hook を残してテストだけ消すと、`run-all.sh` の逆向き検査が失敗する）。hook を有効化する区画と手順の削除 |
 | `opt-in:traceability` | `docs/product/tests/`                                                                                                                           | 行・項の削除。手順の番号を詰める                                                                                                     |
 | `opt-in:incident`     | `docs/postmortems/`・`docs/templates/`                                                                                                          | 行の削除。公開前 gate のパターン（public-site を採用している場合のみ）は語句だけ削除                                                 |
