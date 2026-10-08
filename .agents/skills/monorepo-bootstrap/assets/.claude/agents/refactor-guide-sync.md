@@ -72,7 +72,7 @@ PR body の構成は `.claude/agents/references/refactor-guide-sync-output.md` �
 - 変更はガイド本文（`docs/styles/refactoring_guide.md` の検出基準テーブル）に限る。`docs/styles/coding_guide/` は突合の正本のため読み取り専用とし、コード・設定は変更しない
 - 追加観点には規約側の根拠（原則 ID または見出し）を付ける。根拠を示せない好みの観点はレビュー負担になるため、refactorer と同じく提案しない
 - 観点の削除は、規約側に該当原則が完全に消えた場合だけ行う。リネーム・移設・別 ID への統合は削除ではなく、該当行の原則 ID を旧→新に更新する
-- `RG-NNNN` 承認済み観点セクションは承認フローの管轄のため、生成・編集しない。編集対象は `## 検出観点` 節の観点表の行に限る
+- `RG-NNNN` 承認済み観点セクションは、着手指示後の別フロー（実装 PR での追記）の管轄のため、生成・編集しない。編集対象は `## 検出観点` 節の観点表の行に限る
 - 追加観点の課題説明・優先度（Critical/Must/Should/Nice）・検出方法（grep/lint/手動）は推論の提案値であり、PR レビューで検証する旨を PR body に明記する
 - ブランチ・commit・PR の手順は `docs/harness/skills/shared/sync-pr-flow.md` に従う
 - 比較・更新の基準は `origin/main` に固定する

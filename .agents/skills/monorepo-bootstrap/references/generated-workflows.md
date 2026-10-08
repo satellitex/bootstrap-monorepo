@@ -60,7 +60,7 @@ Required behavior:
 - Infer milestone from the roadmap phase.
 - Infer Project board from issue category, if Projects are used.
 - Set default status to Todo or the target repo's equivalent.
-- Set a target/expired date only if the team uses date fields.
+- Set an Expired date only if the team uses date fields.
 - Support blocked-by and parent/sub-issue relationships as separate inputs and separate mutations when GitHub supports them in the target org.
 - Keep labels, milestones, and trailing machine-readable markers that the caller specified; read them back to verify.
 - Issue の作成・更新は自律実行してよい。作成後は読み戻して検証する。
@@ -194,7 +194,7 @@ open Issue を優先順に選び、`/multi-issue` に渡して Issue ごとに P
 | 優先順位 | 層（既定は `bug` ラベルのみ。優先 milestone は導入先が任意に定義する）→ `priority:*` ラベル → 作成日の古い順 |
 | 一次判定 | 受入条件が origin/main ですべて満たされている Issue は、受入条件ごとの根拠（commit / PR / ファイルと行）を書いて close する。条件は、受入条件ごとの根拠がある、reopen 履歴がない、照会に成功している、の 3 つ。前提の Issue が open なら deferred にして着手しない |
 | 着手状態の記録 | Issue コメントの先頭行に機械可読マーカーを書き、状態を持つ（下表）。claim を書いた直後に読み直し、先着（comment id が最小）でなければ自分の claim を deferred に書き換えて引く。同じ状態・理由ならコメントを重ねず書き換える |
-| 実行 | 選定した Issue を `/multi-issue` に渡す。PR 本文の先頭に出所マーカーを置く |
+| 実行 | 選定した Issue を種別によらず `/multi-issue` に明示的に渡す（明示呼び出しは振り分けを経ない → `docs/styles/team-feedback/implementation-flow-switch.md`「判定」）。PR 本文の先頭に出所マーカーを置く |
 | 上限 | `/multi-issue` の in-flight 上限（既定 3）を参照し、二重管理しない |
 | 報告 | 選定と除外の理由、close した Issue と根拠、deferred / failed / needs-human の Issue を完了報告に残す |
 

@@ -10,7 +10,7 @@ CI/CD は後回しにせず、runtime/provider selection と同じタイミン�
 
 | Area | Required decision |
 |------|-------------------|
-| CI provider | GitHub Actions, GitLab CI, Buildkite, provider-native CI, or other |
+| CI provider | 基礎 CI は GitHub Actions（`../assets/.github/workflows/ci.yml`）を既定とする。deploy を担う CI/CD は GitHub Actions, GitLab CI, Buildkite, provider-native CI などから比較する（→ `../SKILL.md`「Provider / Runtime Neutrality」） |
 | Required checks | 基礎 CI に何を足すか（§2 の拡張候補から選ぶ） |
 | Deployment trigger | branch deploy, PR preview, manual promotion, release tag |
 | Environments | local, preview, dev (main), prod (release), ephemeral review apps |
