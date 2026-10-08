@@ -45,7 +45,7 @@
 | `docs/product/**/*.md`                                                                               | `docs/adr/**`（決定層 / Why。時系列・経緯が本質）                                                                                                                                                |
 | `docs/styles/**/*.md`                                                                                | `docs/notes/**`（調査層。時系列前提）                                                                                                                                                            |
 | `docs/harness/*.md`（直下の運用正本）                                                                | `docs/postmortems/**`（opt-in 区画採用時。インシデント記録は時系列の経緯を書く場）                                                                                                               |
-| `.claude/rules/*.md`                                                                                 | `docs/requirements/**` / `docs/customer/**`（AI 編集対象外の正本）                                                                                                                               |
+| `.claude/rules/*.md`                                                                                 | `docs/requirements/**` / `docs/customer/**`（規範層の正本。docs-sync は編集しない）                                                                                                              |
 | リポジトリ root 直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離）                                                                                                                                                  |
 |                                                                                                      | `docs/product/PUBLIC_*.md`（`/public-arch-sync` 専管の射影物。opt-in 区画採用時）                                                                                                                |
 |                                                                                                      | `docs/styles/coding_guide/docs.md`（本 skill の SSOT 自身。違反例・lexicon を verbatim に含むため 3 原則 scan の対象外。リポジトリ内パスの実在検査は per-file 対象）                             |
@@ -64,13 +64,13 @@ root 直下の運用文書（`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md`）も�
 
 `docs/harness/skills/shared/implementation-consistency.md` が呼び出し側に求める項目を、次のとおり定める。
 
-| 項目                 | 値                                                                                                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 走査対象             | policy scan 対象・per-file 対象・`docs/runbooks/**/*.md`（`INDEX.md` と `README.md` を除く）。毎回全件を対象にする（巡回による分割が必要な規模になったら導入先が追加する） |
-| 突合先               | `origin/main` の実装（コード・設定・CI・スクリプト）と、規範層の記述                                                                                                       |
-| 編集可能スコープ     | 走査対象のうち、policy scan の EXCLUDE に当たらないファイル                                                                                                                |
-| 記述層・規範層の範囲 | 規範層は `docs/requirements/**`。`docs/customer/**` を採用している場合はそれも含む（`docs.md` の層の表が正本）。突合先として読むだけで編集しない。他の走査対象は記述層     |
-| 報告先               | 修正は PR 本文の「鮮度ドリフト・主張の修正」、「実装疑い」「判定不能」は「実装側判断要」                                                                                   |
+| 項目                 | 値                                                                                                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 走査対象             | policy scan 対象・per-file 対象・`docs/runbooks/**/*.md`（`INDEX.md` と `README.md` を除く）。毎回全件を対象にする（巡回による分割が必要な規模になったら導入先が追加する）                   |
+| 突合先               | `origin/main` の実装（コード・設定・CI・スクリプト）と、規範層の記述                                                                                                                         |
+| 編集可能スコープ     | 走査対象のうち、policy scan の EXCLUDE に当たらないファイル                                                                                                                                  |
+| 記述層・規範層の範囲 | 規範層は `docs/requirements/**`（`README.md` を除く）。`docs/customer/**` を採用している場合はそれも含む（`docs.md` の層の表が正本）。突合先として読むだけで編集しない。他の走査対象は記述層 |
+| 報告先               | 修正は PR 本文の「鮮度ドリフト・主張の修正」、「実装疑い」「判定不能」は「実装側判断要」                                                                                                     |
 
 ### INDEX 所管対象
 

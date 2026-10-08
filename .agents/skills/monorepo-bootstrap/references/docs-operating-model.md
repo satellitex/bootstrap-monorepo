@@ -30,7 +30,7 @@ Generate a docs knowledge hub first.
 | `docs/product/API_VERSIONING.md` | API contract versioning policy (opt-in:versioning) | Judgement principles, classification table, numbering window, release record items |
 | `docs/product/tests/` | Requirement-to-test matrix (opt-in:traceability) | Matrix files, schema, update rules |
 | `docs/adr/` | Decision layer | Why, alternatives, supersession, deprecation. The only ADR location |
-| `docs/requirements/` | Requirements canonical source | Human-approved; AI auto-edit is out of scope unless explicitly allowed |
+| `docs/requirements/` | Requirements canonical source | AI drafts requirements until a human explicitly confirms them (`Status: Confirmed`); AI does not edit confirmed requirements |
 | `docs/customer/` | Customer docs (opt-in:public-site) | Originals, safe summaries, customer runbooks |
 | `docs/notes/research/` | Research layer | Comparisons (including technology selection), external standards, investigations |
 | `docs/notes/mtgs/` | Meeting logs | Optional. Time-sequenced meeting records |

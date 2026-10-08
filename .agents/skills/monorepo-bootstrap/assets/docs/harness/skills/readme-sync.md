@@ -36,9 +36,9 @@ README が言及するコマンド・構成・ファイルが実体と食い違�
    実装側の根拠（パスと識別子）を示せない食い違いは検出として扱わない。
 4. 食い違いごとに、`docs/harness/skills/shared/implementation-consistency.md` の手順で
    「記述修正 / 実装疑い / 判定不能」に分類する（分類の定義は `docs/styles/coding_guide/docs.md` の
-   「矛盾の分類」節）。README は記述層に当たり、既定は「記述修正」である。ただし、人間が管理する区画
-   （`docs/requirements/` など。→ `docs/README.md`「運用ルール」）にある README は規範層として扱い、
-   書き換えずに「実装疑い / 判定不能」として記録する。
+   「矛盾の分類」節）。README は記述層に当たり、既定は「記述修正」である。AI の編集に制限がある区画
+   （`docs/requirements/` など）にある README も記述層として扱い、記述修正の対象にする
+   （→ `docs/README.md`「運用ルール」）。
 
 検出カテゴリの目安:
 

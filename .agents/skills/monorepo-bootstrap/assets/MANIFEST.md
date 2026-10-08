@@ -61,26 +61,26 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 
 ### docs 正本（core）
 
-| パス                                    | 用途                                               |
-| --------------------------------------- | -------------------------------------------------- |
-| docs/README.md                          | docs のディレクトリマップ                          |
-| docs/harness/OPERATING_MODEL.md         | ハーネス運用の neutral 正本                        |
-| docs/harness/harness_authoring_guide.md | ハーネス文書の書き方規約                           |
-| docs/harness/scheduled-operations.md    | routine カタログと定期 workflow の設計ガイド       |
-| docs/adr/README.md                      | ADR 運用規約                                       |
-| docs/adr/INDEX.md                       | ADR 一覧（Status 別・空）                          |
-| docs/adr/template.md                    | ADR 本文テンプレート（様式）                       |
-| docs/requirements/README.md             | 要件正本の運用（ID 体系・定型構成・AI 編集対象外） |
-| docs/requirements/INDEX.md              | 要件一覧（空）                                     |
-| docs/product/ARCHITECTURE.md            | 内部設計正本の骨格                                 |
-| docs/product/TECH_STACK.md              | 技術スタック確定表の骨格                           |
-| docs/product/TERMS.md                   | ドメイン用語集の骨格                               |
-| docs/product/TEST_STRATEGY.md           | テスト戦略の骨格                                   |
-| docs/runbooks/README.md                 | 手順書の規約                                       |
-| docs/runbooks/INDEX.md                  | runbook 一覧の骨格                                 |
-| docs/notes/README.md                    | 調査層の運用規約                                   |
-| docs/notes/research/INDEX.md            | 調査ノート一覧（空）                               |
-| docs/audit/README.md                    | 外部監査レポートの命名規約                         |
+| パス                                    | 用途                                            |
+| --------------------------------------- | ----------------------------------------------- |
+| docs/README.md                          | docs のディレクトリマップ                       |
+| docs/harness/OPERATING_MODEL.md         | ハーネス運用の neutral 正本                     |
+| docs/harness/harness_authoring_guide.md | ハーネス文書の書き方規約                        |
+| docs/harness/scheduled-operations.md    | routine カタログと定期 workflow の設計ガイド    |
+| docs/adr/README.md                      | ADR 運用規約                                    |
+| docs/adr/INDEX.md                       | ADR 一覧（Status 別・空）                       |
+| docs/adr/template.md                    | ADR 本文テンプレート（様式）                    |
+| docs/requirements/README.md             | 要件正本の運用（ID 体系・定型構成・起草と確定） |
+| docs/requirements/INDEX.md              | 要件一覧（空）                                  |
+| docs/product/ARCHITECTURE.md            | 内部設計正本の骨格                              |
+| docs/product/TECH_STACK.md              | 技術スタック確定表の骨格                        |
+| docs/product/TERMS.md                   | ドメイン用語集の骨格                            |
+| docs/product/TEST_STRATEGY.md           | テスト戦略の骨格                                |
+| docs/runbooks/README.md                 | 手順書の規約                                    |
+| docs/runbooks/INDEX.md                  | runbook 一覧の骨格                              |
+| docs/notes/README.md                    | 調査層の運用規約                                |
+| docs/notes/research/INDEX.md            | 調査ノート一覧（空）                            |
+| docs/audit/README.md                    | 外部監査レポートの命名規約                      |
 
 ### styles（core）
 

@@ -24,7 +24,7 @@ copy と置換の手順も書かない（手順は SKILL.md Step 5 と MANIFEST 
 | `docs/product/TECH_STACK.md` | 採用技術と provider/runtime/service selection の現在状態（選定ごとの ADR を参照） |
 | `docs/product/ARCHITECTURE.md` | system boundary、data flow、dependency direction。冒頭にプロダクト概要 |
 | `docs/product/TERMS.md` / `TEST_STRATEGY.md` | ドメイン用語とテスト戦略の現在状態 |
-| `docs/requirements/` | 要件正本。AI の自動編集対象外 |
+| `docs/requirements/` | 要件正本。確定までは AI が起草し、人間が明示的に確定した要件は AI が編集しない |
 | `docs/notes/research/` | 技術調査、技術選定の比較（一次情報の URL と確認日）、外部資料 |
 | `docs/runbooks/` | deploy、rollback、secrets、runner operations。`README.md` が手順の必須要素を定める |
 | `docs/styles/coding_guide/docs.md` | docs 層分離、現状層 3 原則、実装整合の原則 |
