@@ -104,7 +104,7 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
 1. `git diff origin/main...HEAD` を読み、受入条件と突合する
 2. 検証ゲート（`gate:commit`）の再実行または結果の裏取り。PJ 固有の追加ゲートを定義した Issue はそれも裏取りする
 3. 計画で凍結パスを指定した場合: `git diff --name-only` に当該パスが含まれないこと
-4. 既存の INDEX.md が変更されていないこと。確認のコマンドと、経過措置中の INDEX の扱いは `docs/harness/skills/shared/index-writer-policy.md` の「強制の範囲」に従う。含まれていれば Planner が当該 hunk を戻す（worker への差し戻しは不要）
+4. 既存の INDEX.md が変更されていないこと。確認のコマンドと、経過措置中の INDEX・leaf 文書を変更する PR が更新主体の INDEX（要件一覧など）の扱いは `docs/harness/skills/shared/index-writer-policy.md` の「強制の範囲」に従う。含まれていれば Planner が当該 hunk を戻す（worker への差し戻しは不要）
 5. トレーサビリティ運用（opt-in）を採用している PJ では、テストの追加・変更に対応して matrix が更新されていること（更新規則は `docs/product/tests/README.md`）
 
 不合格なら差し戻し内容を明記した再実装プロンプトで worker を再起動する。
@@ -188,7 +188,7 @@ GitHub Issue #<N> を Planner の実装計画に従って TDD で実装してく
 ## リポジトリ規約
 - push・PR 作成・Issue 操作・外部通知は行いません（オーケストレーターの役割です）
 - --no-verify を使わず、hook や検証が失敗したら原因を直してください
-- 既存の INDEX.md は変更しません（更新主体は docs/harness/skills/shared/index-writer-policy.md の割当表に従います。経過措置中の INDEX を除く）。新規に作るファイルは、冒頭見出しと直後のリード文だけで何の文書か分かるように書いてください
+- 既存の INDEX.md は変更しません（更新主体は docs/harness/skills/shared/index-writer-policy.md の割当表に従います。経過措置中の INDEX と、要件一覧のように対応する文書と同じ PR で更新する INDEX を除く）。新規に作るファイルは、冒頭見出しと直後のリード文だけで何の文書か分かるように書いてください
 
 ## 最終報告に含める項目
 - 変更ファイル一覧と定量サマリ

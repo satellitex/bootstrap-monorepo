@@ -6,16 +6,17 @@
 
 上から順に評価し、最初に一致した行を適用する。
 
-| INDEX                                                                                                          | 更新主体                  | 更新契機                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/adr/INDEX.md`                                                                                            | `/adr-compress`           | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
-| `docs/styles/team-feedback/INDEX.md`                                                                           | `/promote-memory`         | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う                                                                                 |
-| `docs/requirements/INDEX.md`                                                                                   | 要件ファイルを変更する PR | 要件の追加・改訂・削除と同一 PR で行を更新する（起草は AI、確定は人間 → `docs/requirements/README.md`）。実装 PR は変更しない                              |
-| `docs/customer/**/INDEX.md`（採用している場合）                                                                | 人間                      | AI エージェントは編集しない（→ `docs/README.md`）                                                                                                          |
-| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync`              | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める                                                                                               |
+| INDEX                                                                                                          | 更新主体                      | 更新契機                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/adr/INDEX.md`                                                                                            | `/adr-compress`               | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
+| `docs/styles/team-feedback/INDEX.md`                                                                           | `/promote-memory`             | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う                                                                                 |
+| `docs/requirements/INDEX.md`                                                                                   | 要件ファイルを変更する PR     | 要件の追加・改訂・削除と同一 PR で行を更新する（起草は AI、確定は人間 → `docs/requirements/README.md`）。実装 PR は変更しない                              |
+| `docs/customer/**/INDEX.md`（採用している場合）                                                                | サマリ・runbook を変更する PR | サマリ・runbook の追加・改名・削除と同一 PR で行を更新する（→ `docs/customer/README.md`「作業フロー」）                                                    |
+| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync`                  | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める                                                                                               |
 
 - 新しい INDEX を追加するときは、この表に行を足す。足さなければ「上記以外」の行が適用される。
-- 更新主体は直列に実行される 1 つの主体であり、同じ INDEX を同時に書き換える PR が存在しない。
+- routine・skill の更新主体は直列に実行される 1 つの主体であり、同じ INDEX を同時に書き換える PR が存在しない。
+- leaf 文書を変更する PR が更新主体の INDEX（要件一覧など）は、同じ INDEX を書き換える PR が並行しうる。後からマージする PR が rebase で行を揃える。
 
 ## leaf 文書の要件
 
@@ -42,7 +43,7 @@
 
 ## 強制の範囲
 
-並列実装フロー（`/multi-issue`）の検収は、差分に既存の `INDEX.md` の変更が含まれないことを次のコマンドで確認する。出力が空であることが合格条件で、経過措置中の INDEX（上表）の変更は出力から除いて判定する。
+並列実装フロー（`/multi-issue`）の検収は、差分に既存の `INDEX.md` の変更が含まれないことを次のコマンドで確認する。出力が空であることが合格条件で、経過措置中の INDEX（上表）の変更と、leaf 文書を変更する PR が更新主体の INDEX のうち同じ PR が対応する leaf 文書も変更しているものは、出力から除いて判定する。
 
 ```bash
 git diff --name-only --diff-filter=M origin/main...HEAD | grep -E '(^|/)INDEX\.md$'

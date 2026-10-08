@@ -19,17 +19,17 @@ per-file 鮮度検証（実コード・設定との突合）の対象ファイ�
 
 以下のパスは本ガイドの 3 原則の対象外。各層の役割（次節）に従う。
 
-| 除外パス                                                             | 理由                                                                                                                                                               |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/adr/**`                                                        | 決定層（Why）。代替案・撤回・選定理由を時系列で記録する場であり、責務が異なる                                                                                      |
-| `docs/notes/**`                                                      | 調査層 + 議事録。時系列前提の調査ログであり、経緯・候補比較を含むことが本質                                                                                        |
-| `docs/requirements/**`                                               | 要件正本。起草・確定の手順（`docs/requirements/README.md`）で管理し、確定した要件は AI が編集しない（`README.md` は `/readme-sync` が更新する）                    |
-| `docs/postmortems/**`（opt-in 区画採用時）                           | インシデント記録。時系列の経緯を書く場であり、責務が異なる                                                                                                         |
-| `docs/customer/**`（opt-in 区画採用時）                              | 顧客資料。AI 自動編集の対象外（`README.md` は `/readme-sync` が更新する）                                                                                          |
-| `**/README.md`                                                       | `/readme-sync` が担当する責務領域。docs-sync は重複を避けて対象外                                                                                                  |
-| `docs/product/PUBLIC_*.md`（opt-in 区画採用時）                      | `/public-arch-sync` が専管する公開射影物。直接編集せず内部正本から射影で更新するため、docs-sync は重複を避けて対象外                                               |
-| `docs/styles/coding_guide/docs.md`                                   | 本ガイド自身（違反例・lexicon を verbatim に含むため自己検査の対象外）                                                                                             |
-| `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**` | skill / agent の操作仕様文書（手順文中の「代わりに」等 instructional な語彙を含むため対象外。重複は `/gc-scan`、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
+| 除外パス                                                             | 理由                                                                                                                                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/adr/**`                                                        | 決定層（Why）。代替案・撤回・選定理由を時系列で記録する場であり、責務が異なる                                                                                                                              |
+| `docs/notes/**`                                                      | 調査層 + 議事録。時系列前提の調査ログであり、経緯・候補比較を含むことが本質                                                                                                                                |
+| `docs/requirements/**`                                               | 要件正本。起草・確定の手順（`docs/requirements/README.md`）で管理し、確定した要件は AI が編集しない（`README.md` は `/readme-sync` が更新する）                                                            |
+| `docs/postmortems/**`（opt-in 区画採用時）                           | インシデント記録。時系列の経緯を書く場であり、責務が異なる                                                                                                                                                 |
+| `docs/customer/**`（opt-in 区画採用時）                              | 顧客資料。区画の規約（`docs/customer/README.md`）と公開基準（`docs/CUSTOMER_PUBLISH_POLICY.md`）に従う。`originals/` の受領原本は人間が管理し、AI は編集しない（`README.md` は `/readme-sync` が更新する） |
+| `**/README.md`                                                       | `/readme-sync` が担当する責務領域。docs-sync は重複を避けて対象外                                                                                                                                          |
+| `docs/product/PUBLIC_*.md`（opt-in 区画採用時）                      | `/public-arch-sync` が専管する公開射影物。直接編集せず内部正本から射影で更新するため、docs-sync は重複を避けて対象外                                                                                       |
+| `docs/styles/coding_guide/docs.md`                                   | 本ガイド自身（違反例・lexicon を verbatim に含むため自己検査の対象外）                                                                                                                                     |
+| `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**` | skill / agent の操作仕様文書（手順文中の「代わりに」等 instructional な語彙を含むため対象外。重複は `/gc-scan`、サイズ・1:1 対応・パス実在は CI の機械検査が担当）                                         |
 
 ## 層の分離（4 層モデル）
 
