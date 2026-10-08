@@ -20,7 +20,7 @@ README が言及するコマンド・構成・ファイルが実体と食い違�
 ## Scope
 
 - INCLUDE: リポジトリ内の全 README（root / `apps/*` / `packages/*` / `docs/` 配下等）
-- EXCLUDE: `node_modules/`、ビルド成果物ディレクトリ（`dist/` 等）、`.git/`、`.claude/worktrees/`、人間が管理する区画（`docs/requirements/**` など。→ `docs/README.md`「運用ルール」）
+- EXCLUDE: `node_modules/`、ビルド成果物ディレクトリ（`dist/` 等）、`.git/`、`.claude/worktrees/`
 
 対象ファイルの列挙は `origin/main` の tree に対して行う
 （`docs/harness/skills/shared/sync-prelude.md` の規約）。
@@ -36,7 +36,9 @@ README が言及するコマンド・構成・ファイルが実体と食い違�
    実装側の根拠（パスと識別子）を示せない食い違いは検出として扱わない。
 4. 食い違いごとに、`docs/harness/skills/shared/implementation-consistency.md` の手順で
    「記述修正 / 実装疑い / 判定不能」に分類する（分類の定義は `docs/styles/coding_guide/docs.md` の
-   「矛盾の分類」節）。README は記述層に当たり、既定は「記述修正」である。
+   「矛盾の分類」節）。README は記述層に当たり、既定は「記述修正」である。ただし、人間が管理する区画
+   （`docs/requirements/` など。→ `docs/README.md`「運用ルール」）にある README は規範層として扱い、
+   書き換えずに「実装疑い / 判定不能」として記録する。
 
 検出カテゴリの目安:
 

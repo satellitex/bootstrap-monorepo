@@ -43,7 +43,7 @@ Planner は Issue ごとに任意の凍結パスを計画で指定できる（�
   ├── Step 2: 方針確定・提示（承認ゲートなし・待たずに続行）
   ├── Step 3: 実装ループ（wave 単位: worktree → worker → 検収）
   ├── Step 4: 仕上げ（Issue ごと: /simplify → 独立 review pass → Architecture Sync → 衝突検査 → PR 作成）
-  └── Step 5: /review-cycle（対話 run のみ。open PR 群へ round-robin）→ 完了報告
+  └── Step 5: /review-cycle（open PR 群へ round-robin）→ 完了報告
 ```
 
 ## Step 0: セットアップ
@@ -132,7 +132,7 @@ worker の報告は裏取りしてから採る。worktree で以下を自ら検�
 
 ## Step 5: /review-cycle と完了処理
 
-1. PR は作成され次第 `/review-cycle`（`docs/harness/skills/review-cycle.md`）の対象に加える。open PR が複数ある間は 1 PR の LGTM まで直列で回さず、各イテレーション（CI 待機 → 判定表 → 対応）を open PR 群へ round-robin で適用する（1 PR の CI・レビュー待ちの間に他 PR を先へ進める）。無人 run では `/review-cycle` を起動せず、open PR の一覧を完了報告に載せて返る（扱いは実行モードによる → `docs/harness/skills/shared/unattended-contract.md`）。
+1. PR は作成され次第 `/review-cycle`（`docs/harness/skills/review-cycle.md`）の対象に加える。open PR が複数ある間は 1 PR の LGTM まで直列で回さず、各イテレーション（CI 待機 → 判定表 → 対応）を open PR 群へ round-robin で適用する（1 PR の CI・レビュー待ちの間に他 PR を先へ進める）。実行モードによらず起動する。`/review-cycle` の待機には上限があり、無人 run でも LGTM か終了理由の通知まで自律で進む。
 2. 完了報告: Issue → PR 対応表 / 対象外とした Issue と理由 / 保留した PR と衝突予測の相手 / deferred とした後続 Issue / 起票した派生 Issue / worker・sub-planner・Reviewer の起動回数と差し戻し回数。
 3. マージ済み Issue の worktree を `git worktree remove` で後片付けする（未マージ分は残す）。
 
