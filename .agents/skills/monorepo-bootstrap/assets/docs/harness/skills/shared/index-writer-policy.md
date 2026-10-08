@@ -6,12 +6,13 @@
 
 上から順に評価し、最初に一致した行を適用する。
 
-| INDEX                                                                                                          | 更新主体          | 更新契機                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/adr/INDEX.md`                                                                                            | `/adr-compress`   | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
-| `docs/styles/team-feedback/INDEX.md`                                                                           | `/promote-memory` | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う                                                                                 |
-| `docs/requirements/INDEX.md`、`docs/customer/**/INDEX.md`（採用している場合）                                  | 人間              | AI エージェントは編集しない（→ `docs/README.md`）                                                                                                          |
-| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync`      | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める                                                                                               |
+| INDEX                                                                                                          | 更新主体                  | 更新契機                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/adr/INDEX.md`                                                                                            | `/adr-compress`           | routine。ADR 本体の冒頭見出しと Status 表から、Status 別に決定的に再構築する。ファイルがあって行がない状態、行があってファイルがない状態も再構築で吸収する |
+| `docs/styles/team-feedback/INDEX.md`                                                                           | `/promote-memory`         | rule の昇格時に、分類別の節へ 1 行追加する。反映漏れは `/docs-sync` が補う                                                                                 |
+| `docs/requirements/INDEX.md`                                                                                   | 要件ファイルを変更する PR | 要件の追加・改訂・削除と同一 PR で行を更新する（起草は AI、確定は人間 → `docs/requirements/README.md`）。実装 PR は変更しない                              |
+| `docs/customer/**/INDEX.md`（採用している場合）                                                                | 人間                      | AI エージェントは編集しない（→ `docs/README.md`）                                                                                                          |
+| 上記以外（`docs/runbooks/INDEX.md`、`docs/notes/research/INDEX.md`、`docs/styles/coding_guide/INDEX.md` など） | `/docs-sync`              | routine。実ディレクトリと INDEX の行を突合し、過不足を埋める                                                                                               |
 
 - 新しい INDEX を追加するときは、この表に行を足す。足さなければ「上記以外」の行が適用される。
 - 更新主体は直列に実行される 1 つの主体であり、同じ INDEX を同時に書き換える PR が存在しない。

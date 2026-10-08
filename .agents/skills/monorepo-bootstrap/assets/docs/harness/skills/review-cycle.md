@@ -127,7 +127,7 @@ profile のマッピング表を読み込み、PR author の GitHub アカウン
 webhook へ POST する。メッセージ構造:
 
 ```
-Review Cycle <完了 | 要対応> — #<PR 番号> <PR タイトル>
+Review Cycle <完了 | 終了 | 要対応> — #<PR 番号> <PR タイトル>
 
 <メンション> <通知の主旨の 1 文>
 
@@ -142,7 +142,7 @@ Review Cycle <完了 | 要対応> — #<PR 番号> <PR タイトル>
 PR: <PR URL>
 ```
 
-見出しの「完了」は `LGTM` と `all-skipped` のときだけ使い、他の終了理由は「要対応」とする。
+見出しの語は、`LGTM` のとき「完了」、情報通知の `all-skipped` / `closed` のとき「終了」、エスカレーション通知のとき「要対応」とする。
 
 ### 3.4: 通知の不変条件
 

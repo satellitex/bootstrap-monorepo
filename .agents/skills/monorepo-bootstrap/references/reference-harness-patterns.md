@@ -24,7 +24,7 @@ copy と置換の手順も書かない（手順は `../SKILL.md` Step 5 と MANI
 | `docs/product/TECH_STACK.md` | 採用技術と provider/runtime/service selection の現在状態（選定ごとの ADR を参照） |
 | `docs/product/ARCHITECTURE.md` | system boundary、data flow、dependency direction。冒頭にプロダクト概要 |
 | `docs/product/TERMS.md` / `TEST_STRATEGY.md` | ドメイン用語とテスト戦略の現在状態 |
-| `docs/requirements/` | 要件正本。AI の自動編集対象外 |
+| `docs/requirements/` | 要件正本。確定までは AI が起草し、人間が明示的に確定した要件は AI が編集しない |
 | `docs/notes/research/` | 技術調査、技術選定の比較（一次情報の URL と確認日）、外部資料 |
 | `docs/runbooks/` | deploy、rollback、secrets、runner operations。`README.md` が手順の必須要素を定める |
 | `docs/styles/coding_guide/docs.md` | docs 層分離、現状層 3 原則、実装整合の原則 |
@@ -91,7 +91,7 @@ skill は 2 層構成にする。正本を片方のツールに閉じないた�
 | `adr-compactor` | `.claude/agents/adr-compactor.md` | ADR コーパス | Status 追従、圧縮案、INDEX 再構築 | 判断内容を改変しない |
 | `refactor-guide-sync` | `.claude/agents/refactor-guide-sync.md` | 規約正本、リファクタガイド | 観点の追加・削除・根拠パス修正 | 規約内容そのものを決めない |
 
-小規模 repo では、opt-in:traceability の matrix 運用と `architecture-sync` を後回しにできる。GC と ADR 圧縮は文書量が閾値に達してから routine 登録すればよい。
+小規模 repo では、opt-in:traceability の matrix 運用を後回しにできる。`architecture-sync` は core で、`multi-issue` の仕上げが Issue ごとに起動するため後回しにしない（ハーネスのみの diff では実質 no-op になる）。GC と ADR 圧縮は文書量が閾値に達してから routine 登録すればよい。
 
 ## 4. 承認が必要な操作
 
@@ -177,7 +177,7 @@ bootstrap 直後の PR checklist:
 ## 9. PR Contract
 
 PR 本文は標準節を既定とする。定義と各節に書くことは `../assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」が正本である。
-bootstrap / adopt の PR は、これに「承認ログ（課金・秘密値）」と「移管先の文書」の 2 節を加える。節構成のテンプレートは `bootstrap-artifacts.md` にある。
+bootstrap / adopt の PR は、これに「承認ログ（課金・秘密値）」と「移管先の文書」の 2 節を加える。bootstrap の節構成のテンプレートは `bootstrap-artifacts.md` にあり、adopt の各節の内容は `../../harness-adopt/SKILL.md` の「成果物」の表が正本である。
 
 PR 本文に最低限入れる情報と、その置き場:
 

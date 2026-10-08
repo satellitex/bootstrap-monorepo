@@ -44,7 +44,7 @@ git / gh 操作はすべて作成先を対象に実行し（cwd が作成先で�
 
 ### Provider / Runtime Neutrality
 
-- template は特定 provider、runtime model、database、storage、queue/workflow、auth、observability、CI/CD provider を既定採用として書かない。
+- template は特定 provider、runtime model、database、storage、queue/workflow、auth、observability、CI/CD provider を既定採用として書かない。ただし、リポジトリ基盤は GitHub、基礎 CI は `assets/.github/workflows/ci.yml`（GitHub Actions）を既定とし、deploy を担う CI/CD は Gate A で比較する。
 - user が provider や既存技術の制約を指定した場合だけ、その選択肢を優先候補として比較する。
 - user が指定していない場合は、複数 provider / runtime option を比較し、Gate A で推奨案と代替案を提示する。
 - provider 固有の CLI、binding、secret、deploy 手順は、template 本体へ直書きせず、target repo の `docs/runbooks/` または provider-specific reference へ分離する。
@@ -230,7 +230,7 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 基本方針:
 
 - package manager、workspace、task runner、TypeScript/config、formatter/linter を先に固定する
-- tool/runtime version 管理は `mise` を既定にし、runtime、package manager、主要 CLI version、local dev task を repository-local な `.mise.toml` などへ記録する。node の既定 pin は、bootstrap 時に公式のリリース一覧で最新の LTS を確認し、`.mise.toml` と `package.json`（`packageManager` / `engines`）を揃える
+- tool/runtime version 管理は `mise` を既定にし、runtime、package manager、主要 CLI version、local dev task を repository-local な `.mise.toml` などへ記録する。node の既定 pin は、bootstrap 時に公式のリリース一覧で最新の LTS を確認し、`.mise.toml` と `package.json` の `engines` を揃える
 - `pnpm-workspace.yaml` は assets の内容（`apps/*` と `packages/*` の列挙）が hooks の外部契約になる。scaffold が別の内容を生成した場合は assets に合わせ、再生成で上書きしない
 - `apps/`, `packages/`, `infra/`, `docs/`, `scripts/` の境界を app topology decision に沿って明確にする
 - 最初から full-stack を広げすぎず、deploy 可能な vertical slice を 1 本作る

@@ -20,7 +20,7 @@
 
 PR の base は常に既定ブランチ（`main`）である。`release` には prod リリース手順（→ `docs/harness/skills/deploy-verify.md`「release 反映（prod）」）でのみ反映するため、自動 PR の base にしない。
 
-`gh pr create` は `--base` 未指定でも既定ブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `origin/main` を fetch し、HEAD との merge-base を計算できることを確認する。計算できなければ PR を作らず、失敗として報告する。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）の場合は `git fetch --unshallow` を案内し、それ以外は origin への fetch 権限とネットワーク接続の確認を案内する。
+`gh pr create` は `--base` 未指定でも既定ブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `origin/main` を fetch し、HEAD との merge-base を計算できることを確認する。計算できない場合は、原因を切り分ける。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）なら `git fetch --unshallow` を実行して merge-base を再計算し、なお計算できなければ PR を作らず、失敗として報告する。fetch 権限やネットワーク接続など、それ以外の原因は run 側で直せないため、PR を作らず、失敗として報告し、origin への fetch 権限とネットワーク接続の確認を案内する。
 
 ### 積み上げ PR を作らない
 

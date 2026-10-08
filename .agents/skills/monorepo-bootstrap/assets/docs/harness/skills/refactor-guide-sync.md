@@ -12,7 +12,7 @@
 ## Source of truth
 
 `docs/styles/coding_guide/**/*.md`（規約正本。INDEX 漏れ自体も検出対象のため一覧の起点は
-INDEX ではなく Glob 全件）。
+INDEX ではなく `origin/main` の tree の全件）。
 
 ## Compared against
 
@@ -46,7 +46,7 @@ refactor-guide-sync agent（`.claude/agents/refactor-guide-sync.md`）を起動�
 | 変更なしメッセージ | `[refactor-guide-sync] 差分なし。refactoring_guide.md は coding_guide の現状と整合しています。`                                                         |
 | ブランチ           | `agent/refactor-guide-sync-{YYYY-MM-DD}`                                                                                                                |
 | git add            | `docs/styles/refactoring_guide.md` のみ                                                                                                                 |
-| commit             | `docs: sync refactoring_guide with coding_guide (YYYY-MM-DD)`                                                                                           |
+| commit             | `docs: sync refactoring_guide (YYYY-MM-DD)`                                                                                                             |
 | PR title           | `docs: refactor-guide-sync (YYYY-MM-DD)`                                                                                                                |
 | PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、追加 / 削除 / 根拠修正 / リネーム更新の候補別一覧（各候補に規約側の根拠パスを併記）を加える |
 

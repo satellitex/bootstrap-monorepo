@@ -21,6 +21,7 @@ description: 既存 repository に運用テンプレート（docs 規約 / skill
 - 本書の `../monorepo-bootstrap/...` は、この SKILL.md があるディレクトリ（以下 `<SKILL_DIR>`。Claude Code では skill 起動時に示される base directory）からの相対パスであり、作業ディレクトリ（cwd）や対象 repo からの相対ではない。資産のコピー元は `<SKILL_DIR>/../monorepo-bootstrap/assets/`、台帳は `<SKILL_DIR>/../monorepo-bootstrap/assets/MANIFEST.md`（以下 MANIFEST）。copy は「コピー元の `assets/<path>` → 対象 repo の `<path>`」で行う。
 - 対象 repo は git 管理下にあり、既定 branch へ PR を出せること。作業ディレクトリは対象 repo を既定とする。対象 repo の外で起動した場合だけ Target repo path を受け取り、Claude Code では対象 repo を追加作業ディレクトリにする（`--add-dir <target>`）。
 - git / gh 操作はすべて対象 repo に対して実行する（cwd が対象 repo でなければ `git -C <target>` / `gh -R <owner>/<repo>`）。Skill の install 先（`<SKILL_DIR>` とその兄弟ディレクトリ）には何も書き込まない。
+- 作業の途中で会話の文脈が圧縮された後は、現在の Step の節を本ファイルから読み直してから再開する。
 
 ## 入力
 
@@ -43,7 +44,7 @@ description: 既存 repository に運用テンプレート（docs 規約 / skill
 
 導入の成果物は、専用のディレクトリやファイルとして作らない。棚卸し、マージ判断、スキップ一覧、残 TODO は PR 本文の節に書く。
 Step 1・2 の間は、PR 本文を commit しない作業用ファイルとして書き進め、Step 5 で `gh pr create --body-file` へ渡す。対象 repo に PR テンプレートがある場合は、その節に標準節を対応づける。
-PR 本文の節構成は、標準節と、導入の PR に加える 2 節（承認ログ（課金・秘密値） / 移管先の文書）である。定義は `../monorepo-bootstrap/assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」「bootstrap / adopt の PR に加える節」が正本、節ごとの書き方は `../monorepo-bootstrap/references/bootstrap-artifacts.md` にある。
+PR 本文の節構成は、標準節と、導入の PR に加える 2 節（承認ログ（課金・秘密値） / 移管先の文書）である。節構成の定義は `../monorepo-bootstrap/assets/docs/harness/skills/shared/pr-creation.md`「PR 本文の標準節」「bootstrap / adopt の PR に加える節」が正本、各節の内容は次の表が正本である。
 
 | 成果物 | PR 本文の節 | 内容 |
 |--------|-------------|------|
@@ -87,7 +88,7 @@ harness-adopt [<target repo path>]
 | 棚卸し対象 | 見るもの |
 |-----------|---------|
 | 入口 adapter | `AGENTS.md` / `CLAUDE.md` の有無と内容、既存の運用規約 |
-| Claude 入口の置き場 | ルートの `CLAUDE.md` と `.claude/CLAUDE.md` のどちらにあるか（両方にあるか）。Claude Code は project instructions を `./CLAUDE.md` または `./.claude/CLAUDE.md` から読む（公式 docs「How Claude remembers your project」、確認日 2026-10-07）。入口が 2 か所にあると、更新漏れで内容が食い違うため、追記先を 1 か所に決める材料にする |
+| Claude 入口の置き場 | ルートの `CLAUDE.md` と `.claude/CLAUDE.md` のどちらにあるか（両方にあるか）。Claude Code は project instructions を `./CLAUDE.md` または `./.claude/CLAUDE.md` から読む（公式 docs「How Claude remembers your project」、確認日 2026-10-07）。入口が 2 か所にあると、更新漏れで内容が食い違うため、両方にある場合は両方へ追記し、重複を PR 本文に記録する材料にする |
 | docs 構造 | `docs/` の層構造、ADR 置き場、Issue ごとの計画・成果物の置き場、調査ノートの置き場、styles/規約文書の有無 |
 | .claude ハーネス | `settings.json`（hook 配線・permissions）、既存 skills / agents / rules |
 | hooks | 既存の pre-commit / pre-push 相当（husky、lefthook、git hooks 直置き等を含む） |
@@ -131,7 +132,7 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 | 衝突対象 | マージ規則 |
 |----------|-----------|
 | 既存 `AGENTS.md` / `CLAUDE.md` | 上書きしない（索引の entry-adapters）。assets の `AGENTS.md` / `CLAUDE.md` の各節の箇条書きをすべて（冒頭の説明文は除く）、既存の入口へ「運用正本」節として逐語で追記する。作業ブランチ行の既定ブランチ名は導入先に合わせる。既存記述と矛盾する場合は既存優先とし、矛盾点を PR 本文に列挙する。ルートの `README.md` は、既存があれば「開発スタイル」の pointer だけを追記し、無い場合だけ骨格を新規作成する |
-| Claude の入口が `.claude/CLAUDE.md` にある | pointer 節を `.claude/CLAUDE.md` へ追記し、ルートの `CLAUDE.md` を新規作成しない。ルートと `.claude/` の両方に `CLAUDE.md` がある場合は、どちらも改変せず、重複を PR 本文に記録する |
+| Claude の入口が `.claude/CLAUDE.md` にある | pointer 節を `.claude/CLAUDE.md` へ追記し、ルートの `CLAUDE.md` を新規作成しない。ルートと `.claude/` の両方に `CLAUDE.md` がある場合は、両方へ同じ pointer 節を追記し、入口が 2 か所にある事実を PR 本文に記録して、統合は別 Issue にする |
 | 片方の adapter のみ存在 | 無い側を assets の雛形から新規作成し、両者の重要ルールを対称にする。既存の `AGENTS.md` があり `CLAUDE.md` を新規作成する場合は、`CLAUDE.md` が存在すると Claude Code は既定では `AGENTS.md` を読まないため、新規の `CLAUDE.md` に `@AGENTS.md` の import 行を含める（挙動は Claude Code の版により異なるため、導入時に公式 docs「How Claude remembers your project」の AGENTS.md の節で確認する） |
 | 既存 `.claude/settings.json`（索引の hook-wiring） | 既存の hook 配線・permissions を保持したまま、テンプレートの hook 配線を追記マージする。同一イベント・同一 matcher に既存 hook がある場合は、テンプレートの hook を併記する（一致した hook は並列に実行され、配列の順序は実行順を定めない）。既存 hook とテンプレートの hook が同じファイルを書き換える場合は、分担を PR 本文に記録する。pre-push の `if` に既存の `Bash(git push *)` がある場合は、`Bash(git -C *)` の条件を追加する。commit 系の hook（pre-format-check と、採用していれば pre-commit-submodule-guard）も同じ理由で `Bash(git commit *)` に加えて `Bash(git -C *)` の条件を併記する（`if` は `git -C <dir> <subcommand>` の形を `git push *` や `git commit *` と照合しないため） |
 | 既存 `.claude/skills/` / `.claude/rules/` / `.claude/agents/` に同名あり | 導入をスキップし、PR 本文の「スコープ外」に「同名スキップ」と記録する（既存優先）。別名で内容が重複する場合は併存させ、統合提案のみ残す |
@@ -162,12 +163,12 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 2. `pnpm harness:test`（`pnpm` を使わない導入先は `node tests/harness/run.mjs`）を実行し green を確認する。失敗の読み方は、対象 repo に copy した `tests/harness/README.md`「検査一覧」に従う。導入起因は直し、既存違反は Step 3 の規則で扱う。
 3. `docs/harness/skills/shared/verification-gates.md` の `gate:commit` を実際に実行し、既存 scripts 名とのマッピングが正しいことを確認する（fail する check は「既存の失敗」か「導入起因」かを切り分け、導入起因のみ修正する）。
 4. MANIFEST の Self-check を全項目実施する。
-5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、Claude の入口が 1 か所のみであること、post-edit-check が対象 repo の実ファイルで package を解決できること。
+5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、導入で Claude の入口を増やしていないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、post-edit-check が対象 repo の実ファイルで package を解決できること。
 6. 導入した検査が実際の PR で起動すること: 対象 workflow の trigger と `if` 条件を読み、検査入力だけを変更した PR で起動するかを確認して PR 本文の「検証結果」に記録する。検査入力は、hooks のテストが読む `.claude/hooks/**`・`.claude/bin/**`、ハーネスの機械検査が走査する `docs/**`・`.claude/**`・`.github/**`・`scripts/**`・ルート直下の `*.md`・`package.json`・`.mise.toml`・`.gitignore`・`tests/harness/**` と、ハーネス文書が参照するパスである（走査範囲の正本は `tests/harness/` の各検査の冒頭コメント）。
 
 ## Step 5: 完了処理と open PR
 
-1. PR 本文を確定する（標準 5 節、承認ログ、移管先の文書。導入資産一覧、スキップ一覧と理由、検証結果、残 TODO を含める。`../monorepo-bootstrap/references/bootstrap-artifacts.md`）。
+1. PR 本文を確定する（標準 5 節、承認ログ、移管先の文書。導入資産一覧、スキップ一覧と理由、検証結果、残 TODO を含める）。
 2. 対象 repo の既定 branch を基点に導入 branch を切り、Conventional Commits で commit する（既存規約があればそれに従う）。
 3. open PR を作成する（既定の完了形）。作成手順は `docs/harness/skills/shared/pr-creation.md` に従い、通常 PR（draft にしない）で作る。
 4. 完了報告に人間への引き継ぎを明記する: routine 登録（対象 repo の `docs/harness/scheduled-operations.md` のカタログ参照）、TODO のままの magic value、秘密値が必要な設定（webhook 等）、専用 workflow を併設した場合の required check への登録。
@@ -182,7 +183,7 @@ MANIFEST の「使い方」手順（copy → token 置換 → TODO 充填 → Se
 ## Self-check
 
 - [ ] Step 0 の前提検査を通過し、資産のコピー元は `<SKILL_DIR>/../monorepo-bootstrap/assets/` だけである。Skill の install 先ディレクトリに変更を加えていない
-- [ ] Step 4 の 1〜6 を実施し、結果を PR 本文の「検証結果」に記録した（既存ファイルの削除・移動・リネームが無いこと、既存 adapter の記述が保持され Claude の入口が 1 か所のみであること、導入した検査が起動することを含む）。専用 workflow を併設した場合、required check への登録が人間への引き継ぎに載っている
+- [ ] Step 4 の 1〜6 を実施し、結果を PR 本文の「検証結果」に記録した（既存ファイルの削除・移動・リネームが無いこと、既存 adapter の記述が保持され、導入で Claude の入口を増やしていないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、導入した検査が起動することを含む）。専用 workflow を併設した場合、required check への登録が人間への引き継ぎに載っている
 - [ ] PR 本文に棚卸し表、衝突一覧、マージ判断、opt-in 採否、token 値がある
 - [ ] 既存のルート設定（`package.json` / `turbo.json` / `.gitignore` 等）を上書きしておらず、追記マージのみである。既存 adapter は pointer 節の追記のみである（新規作成の場合は両 adapter が対称）
 - [ ] `docs/harness/OPERATING_MODEL.md` の skill コマンド一覧と「領域別 rule の読み場面」表が、導入した skill と rule に一致している（未導入の行が残っていない）。`.claude/skills/*/SKILL.md` と `docs/harness/skills/*.md` の 1:1 対応が導入分について成立している
