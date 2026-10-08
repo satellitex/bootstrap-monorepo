@@ -28,4 +28,4 @@ feature 追加ファイルでの停止や、ブランチ差分による検出結
 
 検査の結果、文書・コメントへの編集（自動編集の対象）が 0 件で、実装疑い・判定不能（→ `docs/harness/skills/shared/implementation-consistency.md`）や `needs_new_doc` などの起票要候補だけが残る run は、ブランチも commit も PR も作らず、所見を根拠付きで完了報告に列挙して終了する。報告のみの PR を作らないため、所見の記録先は完了報告になる。
 
-編集が 1 件以上ある run では、同じ種類の所見を PR 本文（`docs/harness/skills/shared/sync-pr-flow.md` §4 の「実装側判断要」区分）に載せる。
+編集が 1 件以上ある run では、同じ種類の所見を PR 本文（`docs/harness/skills/shared/sync-pr-flow.md` §4。実装疑い・判定不能は「実装側判断要」区分、`needs_new_doc` は「起票要候補」区分）に載せる。

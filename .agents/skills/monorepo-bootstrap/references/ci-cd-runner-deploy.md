@@ -147,12 +147,12 @@ repo settings の変更は自律実行してよい（承認の定義 → `../ass
 
 | Setting | Decision |
 |---------|----------|
-| default merge strategy | merge commit, squash, rebase, or restricted combination |
+| default merge strategy | merge commit, squash, rebase, or restricted combination。release 反映 PR は merge commit でマージする（→ §6.1） |
 | squash merge policy | title/body source, commit message convention |
 | auto-delete merged branches | enabled/disabled and exceptions |
 | branch protection | protected branches, bypass rules, required reviews |
 | required checks | exact check names and environments |
-| environments | dev (main) / prod (release) の保護設定と reviewer |
+| environments | dev (main) / prod (release) の保護設定。prod の deploy job に required reviewers を置かない（prod 反映の承認は release 反映 PR のマージ 1 か所 → `../assets/docs/harness/skills/deploy-verify.md`「承認モデルの適用」） |
 | status checks for docs/security | 拡張として採用した check のみ |
 
 ## 5. Self-Hosted Runner Operations
@@ -188,10 +188,7 @@ service-runner に interactive shell の状態があると仮定しない。work
 | `main` | dev | CI と build が通れば自律 deploy してよい |
 | `release` | prod | prod リリース手順を踏んでから反映する |
 
-prod リリース手順:
-
-1. main の安全性確認（CI green、smoke、既知の未解決リスクの確認）
-2. release への反映手順の確認（反映範囲、migration、rollback 経路、切り戻し条件）
+prod リリース手順は、main の安全性確認 → release への反映手順の確認の 2 段で踏む。具体（R1〜R6。merge commit 限定、承認は release 宛て PR のマージ 1 か所）は `../assets/docs/harness/skills/deploy-verify.md`「release 反映（prod）」が正本であり、ここには複製しない。smoke・既知の未解決リスクの確認を要件にする PJ は、R2 の PJ 固有ゲートに記入する。
 
 ### 6.2 戦略の選択
 

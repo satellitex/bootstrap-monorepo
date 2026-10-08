@@ -48,9 +48,6 @@ gh issue create \
 - テストへの影響: {なし / テスト追加が必要 / テスト修正が必要}
 - 削減見込み行数（コード量削減の観点のみ。テストを含むネットの行数）: {N} 行
 - 公開 API・配布物に当たる候補: {なし / あり: 削除が後方互換を壊す可能性を具体的に書く}
-
----
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```

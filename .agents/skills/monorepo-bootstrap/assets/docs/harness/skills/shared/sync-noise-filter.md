@@ -16,7 +16,7 @@ PR のコメント・レビュー本文のうち、次の 3 つは対応対象�
 
 - 除外したコメントの本文は、後続の手順（subagent を含む）へ渡さず、会話へ貼り付けない。長文の本文が文脈を占有し、対応すべき指摘を埋もれさせるためである。記録するのは「CI ノイズ」としての件数だけにする。
 - 機械生成コメントの詳細確認が必要なときは、コメント本文ではなく artifact / workflow run の URL を開き、必要な差分・エラー行だけを読む。
-- マーカー文字列は、導入先の CI レビュー bot・自動コメント bot に合わせて決める。値の置き場は呼び出し側 skill の profile（`.claude/skills/<name>/references/`）で、本書は判定の形だけを定める。調整箇所を profile に限ることで、2 つの skill の判定が食い違わない。
+- マーカー文字列は、導入先の CI レビュー bot・自動コメント bot に合わせて決める。値の置き場は `/review-cycle` の profile（`.claude/skills/review-cycle/references/ci-and-conflict-profile.md` の「CI レビュー bot」節）の 1 か所で、`/handle-review` を単独で呼ぶ場合も同じ値を読む。本書は判定の形だけを定める。調整箇所を 1 か所に限ることで、2 つの skill の判定が食い違わない。
 
 ## 2. 違反の退避先の既存性を確認する
 

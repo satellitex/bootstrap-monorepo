@@ -35,6 +35,8 @@ Issue の内容を加味して Label, Project, Assignee, Relationships, Status, 
 
 magic value（Project ID, フィールド ID, ラベル一覧, マイルストーン等）は `.claude/skills/create-issue/references/project-fields.md` に集約されている。API 操作の実行前にこのファイルを読み込み、正しい ID を使う。
 
+profile に `Expired date` のフィールド ID が無い PJ（期限運用を採用していない PJ）では、Step 1 の Expired date の策定、Step 5、Step 7 の Expired date の読み戻しを省略し、出力に「期限運用なし」と書く。
+
 ## フロー
 
 ### Step 1: パラメータの策定

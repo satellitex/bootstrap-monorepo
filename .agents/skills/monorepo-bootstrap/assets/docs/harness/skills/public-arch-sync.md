@@ -79,7 +79,7 @@
 | 変更なしメッセージ | `[public-arch-sync] 変更なし。PUBLIC_ARCHITECTURE.md は内部正本の現状射影と整合しています。` |
 | ブランチ           | `agent/public-arch-sync-{YYYY-MM-DD}`                                                        |
 | git add            | `docs/product/PUBLIC_ARCHITECTURE.md` のみ                                                   |
-| commit             | `docs: sync PUBLIC_ARCHITECTURE with internal source (YYYY-MM-DD)`                           |
+| commit             | `docs: sync PUBLIC_ARCHITECTURE (YYYY-MM-DD)`                                                |
 | PR title           | `docs: public-arch-sync (YYYY-MM-DD)`                                                        |
 | PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の区分を加える |
 

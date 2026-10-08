@@ -185,7 +185,7 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 ### 8.2 実装キュー
 
 open Issue を優先順に選び、`/multi-issue` に渡して Issue ごとに PR を作る。
-前提は、GitHub Issues を issue tracker とすること、`/multi-issue` が無人 run で待たずに PR の open まで進んで返ること（`/review-cycle` を run の中で起動しない。待機が run を止めるため）である。
+前提は、GitHub Issues を issue tracker とすること、`/multi-issue` が無人 run でも人の応答を待たず、PR の open から `/review-cycle` の終了（LGTM または終了理由の通知）まで進んで返ることである（`/review-cycle` の待機には上限があり、run を止めない → `docs/harness/skills/review-cycle.md`）。
 
 | 段 | 内容 |
 |----|------|

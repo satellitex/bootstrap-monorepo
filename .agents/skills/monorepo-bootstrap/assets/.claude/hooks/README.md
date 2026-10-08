@@ -30,7 +30,7 @@ post-edit-check.sh の既定の対象言語は TS / JS（`.ts` / `.tsx` / `.js` 
 
 どのゲートを hook と CI のどちらが実行するか、hook にだけ置かれる検査をどう扱うかは `docs/harness/skills/shared/verification-gates.md`「ゲートごとの実行先」が正本である。ここには hook 側の性質だけを書く。
 
-- hook は Claude Code 経由の操作だけに効く best-effort のローカルガードで、事故を手前で止める。`--no-verify`・Claude Code 外の端末・他ツールからの操作は素通りするため、意図的な回避を防ぐ境界ではない。
+- hook は Claude Code 経由の操作だけに効く best-effort のローカルガードで、事故を手前で止める。Claude Code 外の端末・他ツールからの操作や、hook の `if` に一致しない形（`git -c ...` など）の操作は素通りするため、意図的な回避を防ぐ境界ではない。
 - 全履歴の秘密走査など定期検査を足す場合は `docs/harness/scheduled-operations.md` の設計ガイドに従う。
 
 ## 設計原則: fail-open / fail-closed

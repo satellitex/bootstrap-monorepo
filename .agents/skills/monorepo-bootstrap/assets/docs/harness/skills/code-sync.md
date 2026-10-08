@@ -172,7 +172,7 @@ PR body に明記して人間に委ねる。
 | 変更なしメッセージ | `[code-sync] 変更なし。ソースコメントは origin/main の現状規約と整合しています。`               |
 | ブランチ           | `agent/code-sync-{YYYY-MM-DD}`                                                                  |
 | git add            | 修正したソースファイルのみ                                                                      |
-| commit             | `refactor: sync source code comments with current-state rules (YYYY-MM-DD)`                     |
+| commit             | `refactor: sync source comments (YYYY-MM-DD)`                                                   |
 | PR title           | `refactor: code-sync (YYYY-MM-DD)`                                                              |
 | PR body            | 標準 5 節（`docs/harness/skills/shared/pr-creation.md`）に、下記 Report shape の 6 区分を加える |
 

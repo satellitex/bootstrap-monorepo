@@ -19,8 +19,7 @@
     {
       "description": "pnpm を mise と package.json の packageManager で同一 PR に束ねる（dual-pin）",
       "matchPackageNames": ["pnpm"],
-      "groupName": "pnpm",
-      "branchTopic": "{{{groupSlug}}}"
+      "groupName": "pnpm"
     }
   ]
 }

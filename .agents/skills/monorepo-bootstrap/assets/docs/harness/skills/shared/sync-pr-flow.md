@@ -93,8 +93,8 @@ skill 規定ブランチを切る。同一セッションで複数の sync 系 s
 `docs/harness/skills/shared/pr-creation.md`「書き込みの経路」に従う。
 
 title / body は呼び出し側 skill 文書の差分テーブルに従い、標準節に検出結果の節を加えた構成にする。
-実装疑い・判定不能・`needs_new_doc` は、本文の「実装側判断要」区分に根拠付きで列挙する
-（形式 → `docs/harness/skills/shared/implementation-consistency.md`）。
+実装疑い・判定不能は本文の「実装側判断要」区分に（形式 → `docs/harness/skills/shared/implementation-consistency.md`）、
+`needs_new_doc` は「起票要候補」区分に（→ `docs/harness/skills/shared/sync-noise-filter.md` §2）、いずれも根拠付きで列挙する。
 起票元 Issue が無い保守 PR のため closing keyword は不要である（特定 Issue 起点で実行した場合の記載を含め
 → `docs/harness/skills/shared/pr-creation.md`「closing keyword の注入」）。PR 作成後、PR URL を console に報告する。
 
