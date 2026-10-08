@@ -36,6 +36,8 @@
 | インフラ固有       | `.claude/rules/infra-development.md`                | インフラ（無ければ新設） | IaC / CI / deploy 関連                |
 | 機械検証可能       | `.claude/rules/team-policy.md` の機械検証セクション | 機械検証可能 rule        | hook / CI / lint で強制されているもの |
 
+振り分け先の rule ファイルが導入先に無い category（導入時に削除した rule の category）は使わず、横断方針として登録する。
+
 決めるもの: `slug`（`feedback_` プレフィックスを除いて kebab-case 化）、`target_path = docs/styles/team-feedback/<slug>.md`、`category` と振り分け先 rule、人間が読める rule タイトル。
 
 強制機構がまだ無い rule は機械検証可能カテゴリに入れず、内容に応じた他の category で登録し、PR 本文に「強制機構 Issue の起票候補」として記載する（skill 自身は Issue を切らない）。
@@ -112,7 +114,7 @@ team-shared rule として `docs/styles/team-feedback/<slug>.md` に昇格済み
 `gh pr create` で PR を起票し（規約: `docs/harness/skills/shared/pr-creation.md`）、本文に次を含める:
 
 - 昇格した rule の概要
-- category（横断 / ハーネス / プロダクト / インフラ / 機械検証可能）
+- category（Step 2 の表の値）
 - pointer を追加した `.claude/rules/<file>.md`
 - 個人 memory が pointer 化された旨（drift 防止）
 - 機械検証可能カテゴリの場合は強制機構（hook / CI）のパス。他の category で登録した強制機構が未整備の rule は Issue 候補
