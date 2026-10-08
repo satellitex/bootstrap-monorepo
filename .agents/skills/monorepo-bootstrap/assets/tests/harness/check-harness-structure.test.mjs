@@ -59,6 +59,13 @@ const MISE_TOML = ".mise.toml";
 const ENTRY_ADAPTERS = ["AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md"];
 
 /**
+ * skill installer（`gh skill install`）が install 先の SKILL.md の frontmatter に付ける追跡用キー。
+ * テンプレートの skill を gh skill で install すると assets 内の adapter にも付くため、copy 後に
+ * 残っていないことを確かめる（値はテンプレート repo の ref で、導入先には意味が無い）。
+ */
+const INSTALLER_METADATA = /^\s+github-(?:repo|ref|path|pinned|tree-sha):/m;
+
+/**
  * 導入先の既存違反を一時的に許容するサイズ超過の除外。`{ path, reason }`。
  * 既定は空。許容した path が上限内に収まったら stale として失敗にするため、
  * 違反を解消したら同じ PR で除外も削除する。
@@ -424,6 +431,11 @@ describe("構造 gate: skill 正本と adapter の 1:1・薄さ", () => {
         if (!text.includes(`docs/harness/skills/${name}.md`)) {
           violations.push(
             `${file}  正本 docs/harness/skills/${name}.md への参照が無い`,
+          );
+        }
+        if (fm.fields.has("metadata") && INSTALLER_METADATA.test(text)) {
+          violations.push(
+            `${file}  skill installer が付けた追跡用 metadata（github-* キー）が残っている。metadata ブロックを除去する`,
           );
         }
       }

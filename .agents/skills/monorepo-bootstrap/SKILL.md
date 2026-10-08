@@ -12,8 +12,13 @@ description: 新規 repo、または技術選定・基盤構築からやり直�
 bootstrap 先では vendor/tool 固有の手順を入口ファイルへ閉じ込めない。
 Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通の運用正本は `docs/harness/` と `docs/product/` 配下に置く。
 
-既存のスタック・コード・CI を維持したまま運用ハーネスだけを導入する場合は、本 Skill ではなく `harness-adopt` Skill（`../harness-adopt/SKILL.md`）を使う。
+既存のスタック・コード・CI を維持したまま運用ハーネスだけを導入する場合は、本 Skill ではなく兄弟 Skill `harness-adopt`（同じ skills ディレクトリに install されたもの。`<SKILL_DIR>/../harness-adopt/SKILL.md`）を使う。
 本 Skill は、新規 repo または技術選定・基盤構築からやり直す repo を対象とする。
+
+## パスの基準
+
+本書の `assets/`・`references/` は、この SKILL.md があるディレクトリ（以下 `<SKILL_DIR>`。Claude Code では skill 起動時に示される base directory）からの相対パスであり、作業ディレクトリ（cwd）や作成先からの相対ではない。copy は「`<SKILL_DIR>/assets/<path>` → 作成先の `<path>`」で行う。それ以外のパス（`docs/...`・`.claude/...`・`.agents/...`・`tests/harness/`・`AGENTS.md` など）は作成先 repo のパスである。
+本 Skill は skill installer などで install した Skill として実行でき、テンプレート repo の checkout は不要である。
 
 ## 作業を再開するとき
 
@@ -24,13 +29,13 @@ Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通
 | 項目 | 必須 | 説明 | 例 |
 |------|------|------|----|
 | Product overview | Yes | 誰のどんな課題を解くか、主要機能、想定ユーザ | `/monorepo-bootstrap B2B SaaS の請求照合プロダクト` |
-| Target location | Yes（作業ディレクトリが作成先の repo なら省略可） | 作成先。ローカルパス、または GitHub repo 名（`<owner>/<repo>`）。`{{GITHUB_ORG}}` と `{{REPO_NAME}}` の値もここから決める。テンプレート repo 自体は作成先にしない | `/path/to/new-repo`, `example-org/new-repo` |
+| Target location | Yes（作業ディレクトリが作成先の repo なら省略可） | 作成先。ローカルパス、または GitHub repo 名（`<owner>/<repo>`）。`{{GITHUB_ORG}}` と `{{REPO_NAME}}` の値もここから決める。テンプレート repo 自体と、Skill の install 先（`<SKILL_DIR>` とその親）は作成先にしない | `/path/to/new-repo`, `example-org/new-repo` |
 | Constraints | No | 予算、cloud/provider 制約、既存技術、納期、規制、運用体制 | `組織標準 provider 優先、DB は PostgreSQL` |
 | Existing repository | No | 空 repo か、既存コードを含む repo か | `既存 Next.js app あり` |
 | Deploy goal | No | dev (main) / prod (release) のどこまで deploy するか | `dev まで` |
 | Project language | No | Issue / PR / ADR / docs / review comment の既定言語。assets の運用文書は日本語で収録されており、翻訳は明示された場合のみ（Language Policy 参照） | `日本語`, `English` |
 
-git / gh 操作はすべて作成先を対象に実行し（`git -C <作成先>` / `gh -R <owner>/<repo>`）、テンプレート repo 側には commit / branch / PR を作らない。
+git / gh 操作はすべて作成先を対象に実行し（cwd が作成先でなければ `git -C <作成先>` / `gh -R <owner>/<repo>`）、テンプレート repo 側と Skill の install 先（`<SKILL_DIR>`）には commit / branch / PR やファイルの書き込みをしない。
 
 入力が足りない場合は、作業を止めずに仮定を明示して Discovery を始める。
 既定は自律実行とし、人間の明示承認が必須なのは課金と秘密値の 2 つのみ（→ `assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
@@ -92,7 +97,7 @@ PR 本文の節構成と、移管先の文書のテンプレートは `reference
 必要に応じて以下を読む。
 Skill 本体は orchestration に限定し、詳細 checklist と template は references を正本にする。
 
-| 参照 | 使う場面 |
+| 参照（`<SKILL_DIR>` 相対） | 使う場面 |
 |------|----------|
 | `assets/MANIFEST.md` | ハーネス/docs/CI 資産を copy・置換・削除するとき（資産台帳の正本） |
 | `references/bootstrap-artifacts.md` | PR 本文の節構成と、各層へ移す文書のテンプレートが必要なとき |
