@@ -87,7 +87,7 @@ harness-adopt [<target repo path>]
 | 棚卸し対象 | 見るもの |
 |-----------|---------|
 | 入口 adapter | `AGENTS.md` / `CLAUDE.md` の有無と内容、既存の運用規約 |
-| Claude 入口の置き場 | ルートの `CLAUDE.md` と `.claude/CLAUDE.md` のどちらにあるか（両方にあるか）。Claude Code は project instructions を `./CLAUDE.md` または `./.claude/CLAUDE.md` から読む（公式 docs「How Claude remembers your project」、確認日 2026-10-07）。入口が 2 か所にあると、更新漏れで内容が食い違うため、両方にある場合は両方へ追記し、重複を PR 本文に記録する材料にする |
+| Claude の読み込み条件 | 既存の `CLAUDE.md`・`.claude/CLAUDE.md`・`CLAUDE.local.md` と祖先の入口、Claude Code の版を確認する。`AGENTS.md` の直接読み込み条件と一次情報は `../monorepo-bootstrap/references/docs-operating-model.md`「Claude Code の読み込み条件」を参照する |
 | docs 構造 | `docs/` の層構造、ADR 置き場、Issue ごとの計画・成果物の置き場、調査ノートの置き場、styles/規約文書の有無 |
 | .claude ハーネス | `settings.json`（hook 配線・permissions）、既存 skills / agents / rules |
 | hooks | 既存の pre-commit / pre-push 相当（husky、lefthook、git hooks 直置き等を含む） |
@@ -130,9 +130,9 @@ MANIFEST の「使い方」手順（copy → opt-in の採否（Step 2 で確定
 
 | 衝突対象 | マージ規則 |
 |----------|-----------|
-| 既存 `AGENTS.md` / `CLAUDE.md` | 上書きしない（索引の entry-adapters）。assets の `AGENTS.md` / `CLAUDE.md` の各節の箇条書きをすべて（冒頭の説明文は除く）、既存の入口へ「運用正本」節として逐語で追記する。作業ブランチ行の既定ブランチ名は導入先に合わせる。既存記述と矛盾する場合は既存優先とし、矛盾点を PR 本文に列挙する。ルートの `README.md` は、既存があれば「開発スタイル」の pointer だけを追記し、無い場合だけ骨格を新規作成する |
-| Claude の入口が `.claude/CLAUDE.md` にある | pointer 節を `.claude/CLAUDE.md` へ追記し、ルートの `CLAUDE.md` を新規作成しない。ルートと `.claude/` の両方に `CLAUDE.md` がある場合は、両方へ同じ pointer 節を追記し、入口が 2 か所にある事実を PR 本文に記録して、統合は別 Issue にする |
-| 片方の adapter のみ存在 | 無い側を assets の雛形から新規作成し、両者の重要ルールを対称にする。既存の `AGENTS.md` があり `CLAUDE.md` を新規作成する場合は、`CLAUDE.md` が存在すると Claude Code は既定では `AGENTS.md` を読まないため、新規の `CLAUDE.md` に `@AGENTS.md` の import 行を含める（挙動は Claude Code の版により異なるため、導入時に公式 docs「How Claude remembers your project」の AGENTS.md の節で確認する） |
+| 共通入口 `AGENTS.md` | 無ければ assets の `AGENTS.md` から作成する。既存なら上書きせず、assets の各節の箇条書きをすべて（冒頭の説明文は除く）「運用正本」節として逐語で追記する（索引の entry-adapters）。作業ブランチ行の既定ブランチ名は導入先に合わせる。既存記述と矛盾する場合は既存優先とし、矛盾点を PR 本文に列挙する。ルートの `README.md` は、既存があれば「開発スタイル」の pointer だけを追記し、無い場合だけ骨格を新規作成する |
+| 既存の `CLAUDE.md` / `.claude/CLAUDE.md` | 既存の内容と配置を保持する。「運用正本」節に `docs/harness/OPERATING_MODEL.md` への pointer と共通入口の import（ルートなら `@AGENTS.md`、`.claude/` 内なら `@../AGENTS.md`）を、既にあれば重複させず追記する。両方にある場合は両方を対象にし、重複を PR 本文に記録する。入口統合の依頼が無ければ、既存入口の削除・移動はしない |
+| Claude 専用入口が無い | `CLAUDE.md` を新規作成しない。共通の `AGENTS.md` を使い、読み込み条件を満たすことを確認する。祖先の入口や `CLAUDE.local.md`、対応版未満などで直接読み込めない場合は、必要な更新・設定を PR 本文に記録する |
 | 既存 `.claude/settings.json`（索引の hook-wiring） | 既存の hook 配線・permissions を保持したまま、テンプレートの hook 配線を追記マージする。同一イベント・同一 matcher に既存 hook がある場合は、テンプレートの hook を併記する（一致した hook は並列に実行され、配列の順序は実行順を定めない）。既存 hook とテンプレートの hook が同じファイルを書き換える場合は、分担を PR 本文に記録する。pre-push の `if` に既存の `Bash(git push *)` がある場合は、`Bash(git -C *)` の条件を追加する。commit 系の hook（pre-format-check と、採用していれば pre-commit-submodule-guard）も同じ理由で `Bash(git commit *)` に加えて `Bash(git -C *)` の条件を併記する（`if` は `git -C <dir> <subcommand>` の形を `git push *` や `git commit *` と照合しないため） |
 | 既存 `.claude/skills/` / `.claude/rules/` / `.claude/agents/` に同名あり | 導入をスキップし、PR 本文の「スコープ外」に「同名スキップ」と記録する（既存優先）。別名で内容が重複する場合は併存させ、統合提案のみ残す |
 | 既存のルート設定（索引の root-config に載るファイル） | 上書きしない。不足している script 名・pipeline 定義・ignore パターン・設定項目のみを追記マージし、既存の dependencies / packageManager / 既存設定はすべて保持する。`.gitleaks.toml` の雛形は `[allowlist]` をコメントアウトした形であり、空の `[allowlist]` を持つ設定は gitleaks が設定エラーにするため、コメントアウトのまま追記する |
@@ -162,7 +162,7 @@ MANIFEST の「使い方」手順（copy → opt-in の採否（Step 2 で確定
 2. `pnpm harness:test`（`pnpm` を使わない導入先は `node tests/harness/run.mjs`）を実行し green を確認する。失敗の読み方は、対象 repo に copy した `tests/harness/README.md`「検査一覧」に従う。導入起因は直し、既存違反は Step 3 の規則で扱う。
 3. `docs/harness/skills/shared/verification-gates.md` の `gate:commit` を実際に実行し、既存 scripts 名とのマッピングが正しいことを確認する（fail する check は「既存の失敗」か「導入起因」かを切り分け、導入起因のみ修正する）。
 4. MANIFEST の Self-check を全項目実施する。
-5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、導入で Claude の入口を増やしていないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、post-edit-check が対象 repo の実ファイルで package を解決できること。
+5. 導入固有の check: 既存ファイルを削除・移動していないこと（`git -C <対象 repo> status` で D / R が無い）、既存 adapter の既存記述が保持されていること、共通の `AGENTS.md` があり、導入で `CLAUDE.md` を新規作成していないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、post-edit-check が対象 repo の実ファイルで package を解決できること。
 6. 導入した検査が実際の PR で起動すること: 対象 workflow の trigger と `if` 条件を読み、検査入力だけを変更した PR で起動するかを確認して PR 本文の「検証結果」に記録する。検査入力は、hooks のテストが読む `.claude/hooks/**`・`.claude/bin/**`、ハーネスの機械検査が走査する `docs/**`・`.claude/**`・`.github/**`・`scripts/**`・ルート直下の `*.md`・`package.json`・`.mise.toml`・`.gitignore`・`tests/harness/**` と、ハーネス文書が参照するパスである（走査範囲の正本は `tests/harness/` の各検査の冒頭コメント）。
 
 ## Step 5: 完了処理と open PR
@@ -182,9 +182,9 @@ MANIFEST の「使い方」手順（copy → opt-in の採否（Step 2 で確定
 ## Self-check
 
 - [ ] Step 0 の前提検査を通過し、資産のコピー元は `<SKILL_DIR>/../monorepo-bootstrap/assets/` だけである。Skill の install 先ディレクトリに変更を加えていない
-- [ ] Step 4 の 1〜6 を実施し、結果を PR 本文の「検証結果」に記録した（既存ファイルの削除・移動・リネームが無いこと、既存 adapter の記述が保持され、導入で Claude の入口を増やしていないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、導入した検査が起動することを含む）。専用 workflow を併設した場合、required check への登録が人間への引き継ぎに載っている
+- [ ] Step 4 の 1〜6 を実施し、結果を PR 本文の「検証結果」に記録した（既存ファイルの削除・移動・リネームが無いこと、既存 adapter の記述が保持され、共通の `AGENTS.md` があり、導入で `CLAUDE.md` を新規作成していないこと（導入前から 2 か所にある場合は PR 本文に記録したこと）、導入した検査が起動することを含む）。専用 workflow を併設した場合、required check への登録が人間への引き継ぎに載っている
 - [ ] PR 本文に棚卸し表、衝突一覧、マージ判断、opt-in 採否、token 値がある
-- [ ] 既存のルート設定（`package.json` / `turbo.json` / `.gitignore` 等）を上書きしておらず、追記マージのみである。既存 adapter は pointer 節の追記のみである（新規作成の場合は両 adapter が対称）
+- [ ] 既存のルート設定（`package.json` / `turbo.json` / `.gitignore` 等）を上書きしておらず、追記マージのみである。既存 adapter は pointer / import 節の追記のみであり、新規作成する入口は `AGENTS.md` である
 - [ ] `docs/harness/OPERATING_MODEL.md` の skill コマンド一覧と「領域別 rule の読み場面」表が、導入した skill と rule に一致している（未導入の行が残っていない）。`.claude/skills/*/SKILL.md` と `docs/harness/skills/*.md` の 1:1 対応が導入分について成立している
 - [ ] 導入資産に導入先と異なるブランチモデル・既定ブランチ名が残っていない（MANIFEST の索引の検索コマンドで確認）
 - [ ] 不採用 opt-in グループ・不採用 core 資産（deploy-verify / infra-development 等の判断分）が copy されていない

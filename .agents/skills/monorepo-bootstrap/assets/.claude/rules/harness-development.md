@@ -20,7 +20,7 @@ paths:
 - skill の追加・削除: 正本と adapter を 1:1 で揃え、`docs/harness/OPERATING_MODEL.md` の skill コマンド一覧を同一 PR で更新する
 - 定期実行に載せる場合は `docs/harness/scheduled-operations.md` の routine カタログも同一 PR で更新する
 - rule の追加・削除: `docs/harness/OPERATING_MODEL.md` の「領域別 rule の読み場面」表を同一 PR で更新する
-- 入口 adapter（`AGENTS.md` / `CLAUDE.md`）・rules・skill 一覧を変更したら、adapter が `docs/harness/OPERATING_MODEL.md` とずれていないか確認する
+- 入口 adapter（`AGENTS.md`）・rules・skill 一覧を変更したら、adapter が `docs/harness/OPERATING_MODEL.md` とずれていないか確認する
 - ハーネス文書・設定・workflow を変更したら、`pnpm harness:test` を実行する。検査の一覧と追加手順は `tests/harness/README.md`
 
 横断的な team rule は [team-policy.md](team-policy.md) を参照。

@@ -46,7 +46,7 @@
 | `docs/styles/**/*.md`                                                                                | `docs/notes/**`（調査層。時系列前提）                                                                                                                                                            |
 | `docs/harness/*.md`（直下の運用正本）                                                                | `docs/postmortems/**`（opt-in 区画採用時。インシデント記録は時系列の経緯を書く場）                                                                                                               |
 | `.claude/rules/*.md`                                                                                 | `docs/requirements/**` / `docs/customer/**`（規範層の正本。docs-sync は編集しない）                                                                                                              |
-| リポジトリ root 直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離）                                                                                                                                                  |
+| リポジトリ root 直下の `*.md`（`README.md` を除く。`AGENTS.md` / `DEVELOPMENT.md` 等） | `**/README.md`（`/readme-sync` 担当、責務分離）                                                                                                                                                  |
 |                                                                                                      | `docs/product/PUBLIC_*.md`（`/public-arch-sync` 専管の射影物。opt-in 区画採用時）                                                                                                                |
 |                                                                                                      | `docs/styles/coding_guide/docs.md`（本 skill の SSOT 自身。違反例・lexicon を verbatim に含むため 3 原則 scan の対象外。リポジトリ内パスの実在検査は per-file 対象）                             |
 |                                                                                                      | `docs/harness/skills/**` / `.claude/agents/**` / `.claude/skills/**`（操作仕様文書。手順例の `#N` 等を含むため対象外。重複は `/gc-scan` 担当、サイズ・1:1 対応・パス実在は CI の機械検査が担当） |
@@ -57,7 +57,7 @@
 `git ls-tree -r --name-only origin/main` に INCLUDE → EXCLUDE の順で grep フィルタをかける形でよい。
 root 直下の `*.md` は、パスに `/` を含まない `^[^/]+\.md$` で絞り、`README.md` を除く。
 
-root 直下の運用文書（`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md`）も「現状の事実のみ」の文体を保つ。
+root 直下の運用文書（`AGENTS.md` / `DEVELOPMENT.md`）も「現状の事実のみ」の文体を保つ。
 導入先の初期状態によっては、初回の実行で違反が出ることがある。
 
 ### 実装整合の突合対象

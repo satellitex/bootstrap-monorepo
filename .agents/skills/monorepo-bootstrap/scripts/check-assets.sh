@@ -251,7 +251,6 @@ check_denylist() {
     "$SKILL_DIR/SKILL.md" \
     "$SKILL_DIR/../harness-adopt/SKILL.md" \
     "$repo_root/AGENTS.md" \
-    "$repo_root/CLAUDE.md" \
     "$repo_root/README.md"; do
     [ -e "$target" ] || continue
     grep -rnIiE -f "$TMP/deny.txt" "$target" >>"$TMP/deny_hits.txt" 2>/dev/null || true

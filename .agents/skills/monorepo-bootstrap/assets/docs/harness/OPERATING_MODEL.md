@@ -1,6 +1,6 @@
 # 運用モデル（neutral 正本）
 
-この文書はリポジトリ運用の tool-neutral な正本であり、`AGENTS.md` / `CLAUDE.md` 両 adapter から参照される。docs の正本 pointer・ハーネス構成・領域別 rule の読み場面・ツール固有手段の読み替え・エージェントフロー・skill コマンド一覧・承認モデル・言語ポリシー・ブランチ / commit / ラベル規約を定める。個別 skill の手順本文は `docs/harness/skills/` に置き、ここには書かない。
+この文書はリポジトリ運用の tool-neutral な正本であり、共通入口の `AGENTS.md` から参照される。docs の正本 pointer・ハーネス構成・領域別 rule の読み場面・ツール固有手段の読み替え・エージェントフロー・skill コマンド一覧・承認モデル・言語ポリシー・ブランチ / commit / ラベル規約を定める。個別 skill の手順本文は `docs/harness/skills/` に置き、ここには書かない。
 
 ## プロダクト
 
@@ -37,7 +37,7 @@ opt-in の行は、採用したグループの分だけを置く。
 正本と adapter の 2 層で管理する:
 
 - **neutral 正本**: 手順・判断基準は tool-neutral に `docs/harness/` へ置く。skill 手順は `docs/harness/skills/<name>.md`、skill 固有の詳細（圧縮規則・出力形式など）は同名ディレクトリの `docs/harness/skills/<name>/<topic>.md`、skill 横断の共通契約は `docs/harness/skills/shared/<topic>.md`（sync 系専用は `sync-` 接頭辞。一覧は同ディレクトリ）。
-- **thin adapter**: `AGENTS.md` / `CLAUDE.md` / `.claude/skills/<name>/SKILL.md` は正本への参照だけを持つ薄い入口とし、詳細手順を二重管理しない。
+- **thin adapter**: `AGENTS.md` / `.claude/skills/<name>/SKILL.md` は正本への参照だけを持つ薄い入口とし、詳細手順を二重管理しない。
 
 `.claude/` 配下:
 

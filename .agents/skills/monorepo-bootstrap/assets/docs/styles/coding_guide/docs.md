@@ -12,7 +12,7 @@
 | `docs/product/**/*.md`（ARCHITECTURE / TECH_STACK / TERMS / TEST_STRATEGY 等）               | 本ガイドの「現状層の 3 原則」を適用 |
 | `docs/styles/**/*.md`                                                                        | 同上                                |
 | `docs/harness/*.md`（直下のみ。`skills/` 配下は除外）                                        | 同上                                |
-| ルート直下の `*.md`（`README.md` を除く。`CLAUDE.md` / `AGENTS.md` / `DEVELOPMENT.md` など） | 同上                                |
+| ルート直下の `*.md`（`README.md` を除く。`AGENTS.md` / `DEVELOPMENT.md` など） | 同上                                |
 | `.claude/rules/*.md`                                                                         | 同上                                |
 
 per-file 鮮度検証（実コード・設定との突合）の対象ファイルは `.claude/skills/docs-sync/references/freshness-policy.md`（プロジェクト profile）で定義する。TERMS.md の「初出」列の扱いは後述の例外規定に従う。

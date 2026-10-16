@@ -9,7 +9,7 @@ The goal is to keep agent entrypoints thin, place durable project operations und
 | Principle | Rule |
 |-----------|------|
 | Agent-only files | Put only files that agents directly load or execute under `.agents/` or `.claude/`. |
-| Thin adapters | Keep `AGENTS.md` and `CLAUDE.md` short pointers to shared docs and commands. Do not duplicate detailed procedures. |
+| Thin adapters | Keep `AGENTS.md` a shared, short pointer to docs and commands. Do not duplicate detailed procedures. |
 | Durable project docs | Put operating model, workflow procedures, runbooks, ADRs, and product docs under `docs/`. |
 | Execution records in the PR | Keep per-issue plans, rejected alternatives, and verification results in the PR body and commit messages. Do not create per-issue artifact files under `docs/`. |
 | Bootstrap / adopt artifacts | Write in-progress results as PR body sections, then move confirmed content into the existing layers (research, ADR, product docs, OPERATING_MODEL). The destinations are listed in `../SKILL.md`. |
@@ -151,7 +151,7 @@ MANIFEST に含まれない bootstrap 固有の成果物は、専用ファイル
 
 ## 9. Adapter Rules
 
-`AGENTS.md` and `CLAUDE.md` should include:
+`AGENTS.md` should include:
 
 - short repo purpose
 - pointer to `docs/harness/OPERATING_MODEL.md`
@@ -161,7 +161,7 @@ MANIFEST に含まれない bootstrap 固有の成果物は、専用ファイル
 - approval model summary（1 行の要旨と `docs/harness/OPERATING_MODEL.md`「承認モデル」への pointer）
 - secret constraints（secret 値を commit しない）
 
-They should not include:
+It should not include:
 
 - full issue lifecycle procedure
 - full CI/CD runbook
@@ -169,8 +169,17 @@ They should not include:
 - duplicated workflow bodies
 - product-specific research summaries
 
-Claude の入口は 1 か所に置く。新規 bootstrap ではルートの `CLAUDE.md` を使う。既存 repo が `.claude/CLAUDE.md` を使っている場合は、そこへ pointer 節を追記し、ルートに重複して作らない（`harness-adopt` の入口の置き場の規則）。導入前から両方にある repo では、両方へ同じ pointer 節を追記し、統合は別 Issue にする。
-既存の adapter を持つ導入先では、既存の記述を優先する。
+リポジトリ入口は Codex / Claude Code 共通の `AGENTS.md` に一本化する。新規 bootstrap では `CLAUDE.md` を生成しない。既存 repo の導入では既存規約を保持し、`harness-adopt` のマージ規則に従う。入口の統合が依頼された場合は、固有の指示を `AGENTS.md` または参照先の正本へ移してから旧入口を削除する。
+
+### Claude Code の読み込み条件
+
+確認日: 2026-10-16。一次情報: [How Claude remembers your project](https://code.claude.com/docs/en/memory#agentsmd)。
+
+- 直接読み込みは v2.1.277 以降で対応する。v2.1.281 より前には provider や telemetry 設定による制限もあるため、対応版へ更新する。
+- 既定では cwd と祖先ディレクトリに `CLAUDE.md`・`.claude/CLAUDE.md`・`CLAUDE.local.md` があると `AGENTS.md` が読み込まれない。併用する場合は `/config` の Project instructions を `claude-md-and-agents-md` にする。user scope の `~/.claude/CLAUDE.md` と `.claude/rules/` はこの抑止条件に含まれない。
+- 組み込みの AGENTS.md plugin が無効な場合や更新直後の最初の session では、直接読み込みが使えない場合がある。起動時の読み込み表示で確認する。
+- `--add-dir` の追加先では `AGENTS.md` は自動ロードされない。対象 repo を cwd にして起動するか、その入口を明示的に読む。
+- 互換対応が必要な既存 repo では、旧入口の `@AGENTS.md`（`.claude/CLAUDE.md` からは `@../AGENTS.md`）で共通指示を参照できる。テンプレートの標準資産には旧入口を含めない。
 
 Claude slash commands or subagents may exist, but they should point to shared docs instead of becoming the only source of truth.
 
