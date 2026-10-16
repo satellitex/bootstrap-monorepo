@@ -1,6 +1,6 @@
 # AGENTS.md
 
-この repository は Codex / Claude 両対応の monorepo 運用テンプレート（skills: `monorepo-bootstrap` / `harness-adopt`）です。Codex で作業する場合は、このファイルをルート入口として扱ってください。
+この repository は Codex / Claude 両対応の monorepo 運用テンプレート（skills: `monorepo-bootstrap` / `harness-adopt`）です。Codex / Claude Code 共通のルート入口は、このファイルです。
 
 ## 既定方針
 
@@ -22,15 +22,15 @@
 
 テンプレート資産の実体は `.agents/skills/monorepo-bootstrap/assets/`（台帳は `assets/MANIFEST.md`）で、両 skill が共用する。
 他の repository で使う場合は、両 skill を `npx skills` / `gh skill` / Codex の skill-installer のいずれかで同じ skills ディレクトリへ install する（手順 → `README.md`「インストール」）。
-Codex で実行するときは各正本の SKILL.md を読み、定義された手順どおり進める。
+Codex では各正本、Claude Code では各 Claude 側入口の SKILL.md を読み、定義された手順どおり進める。
 
 ## 両対応の保守ルール
 
-- `AGENTS.md` と `CLAUDE.md` は薄い adapter とし、詳細手順を二重管理しない。
+- リポジトリ入口は `AGENTS.md` に一本化する。薄い adapter とし、詳細手順を二重管理しない。
 - skill 本文、`references/`、`assets/` を変更する場合は、`.agents/skills/` 側を編集する。
-- `SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら `bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh`（テンプレート専用の整合検査）を実行する。使い方は `README.md` の「テンプレートの整合検査」を参照する。
+- `SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `README.md`）を変更したら `bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh`（テンプレート専用の整合検査）を実行する。使い方は `README.md` の「テンプレートの整合検査」を参照する。
 - `.claude/skills/` 配下の link を実体ファイルに置き換えない。
-- bootstrap 先 repository では、共通正本を `docs/harness/OPERATING_MODEL.md` など neutral な場所へ置き、`AGENTS.md` と `CLAUDE.md` から参照する。
+- bootstrap 先 repository では、共通正本を `docs/harness/OPERATING_MODEL.md` など neutral な場所へ置き、`AGENTS.md` から参照する。
 
 ## Git / quality
 

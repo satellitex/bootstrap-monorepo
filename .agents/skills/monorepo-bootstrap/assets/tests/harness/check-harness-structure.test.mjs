@@ -55,7 +55,7 @@ const SCHEDULED_OPERATIONS = "docs/harness/scheduled-operations.md";
 const PRE_PUSH_HOOK = ".claude/hooks/pre-push-ci-check.sh";
 const MISE_TOML = ".mise.toml";
 
-/** 入口の薄い adapter。いずれも OPERATING_MODEL を参照する。 */
+/** 共通入口と、adopt 先に残る既存の Claude 入口。いずれも OPERATING_MODEL を参照する。 */
 const ENTRY_ADAPTERS = ["AGENTS.md", "CLAUDE.md", ".claude/CLAUDE.md"];
 
 /**
@@ -658,7 +658,7 @@ describe("構造 gate: 自己テスト", () => {
   const goodTable = [
     "| ファイル種別 | 上限 | 根拠 |",
     "|---|---|---|",
-    "| OPERATING_MODEL.md / CLAUDE.md / AGENTS.md | ≤200 行 | a |",
+    "| OPERATING_MODEL.md / AGENTS.md | ≤200 行 | a |",
     "| skill 正本（`docs/harness/skills/<name>.md`） | ≤500 行 | b |",
     "| thin adapter（`.claude/skills/<name>/SKILL.md`） | ≤20 行 | c |",
     "| Agent 定義（`.claude/agents/*.md`） | ≤250 行 | d |",

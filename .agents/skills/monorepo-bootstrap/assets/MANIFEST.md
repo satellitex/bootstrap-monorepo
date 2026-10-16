@@ -46,8 +46,7 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | ------------------------ | ------------------------------------- |
 | MANIFEST.md              | 本書（bootstrap 先へはコピーしない）  |
 | README.md                | 人間向けの入口（pointer 中心）        |
-| AGENTS.md                | Codex 入口の薄い adapter              |
-| CLAUDE.md                | Claude 入口の薄い adapter             |
+| AGENTS.md                | Codex / Claude Code 共通入口の薄い adapter |
 | DEVELOPMENT.md           | 人間向け開発スタイル                  |
 | .gitignore               | git の除外設定                        |
 | .mise.toml               | ツールバージョンの正本（pin）         |
@@ -292,13 +291,13 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 | default-branch | 既定ブランチ名（main）。`origin/main` として参照される               | `grep -rlE 'origin/main\|DEFAULT_BRANCH' .` と、`.github/workflows/ci.yml` の `branches:`    | 入口 adapter・skill 正本・`docs/harness/skills/shared/`・agent 定義・hook のテスト・基礎 CI。既定ブランチが main でない導入先は、検索結果の全ファイルを置換する                                                                                                                                                                                                                                                                                                                |
 | root-config    | 導入先に同名のファイルがあるときは上書きせず、不足項目だけを追記する | （該当ファイルを列挙）                                                                       | `.gitignore` / `.mise.toml` / `.gitleaks.toml` / `.prettierignore` / `.env.example` / `renovate.json` / `pnpm-workspace.yaml` / `package.json` / `turbo.json`。`.gitleaks.toml` の `[allowlist]` は、値を入れるまでコメントアウトのままにする（値が無い `[allowlist]` は gitleaks が設定エラーにする）                                                                                                                                                                         |
 | hook-wiring    | 導入先に既存の hook 設定があるときは残したまま追記する               | （該当ファイルを確認）                                                                       | `.claude/settings.json`。pre-push hook と commit 系の hook（pre-format-check・採用していれば pre-commit-submodule-guard）は、`Bash(git push *)` または `Bash(git commit *)` に加えて `Bash(git -C *)` の `if` を持つ。既存の設定が `git push` / `git commit` だけを照合している場合は、`git -C` の `if` を追加する。追記する hook の `command` は `bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/<hook ファイル名>` の形にする（cwd に依存しない起動。→ `.claude/hooks/README.md`） |
-| entry-adapters | 導入先に既存の入口があるときは上書きせず、pointer 節だけを追記する   | （該当ファイルを確認）                                                                       | `AGENTS.md` / `CLAUDE.md` / `README.md`（README は無い場合だけ骨格を新規作成し、あれば「開発スタイル」の pointer だけを追記する）                                                                                                                                                                                                                                                                                                                                              |
+| entry-adapters | 導入先に既存の入口があるときは上書きせず、pointer 節だけを追記する   | （該当ファイルを確認）                                                                       | `AGENTS.md` / 既存の `CLAUDE.md`・`.claude/CLAUDE.md` / `README.md`（既存の Claude 入口は harness-adopt のマージ規則に従って保持する。README は無い場合だけ骨格を新規作成し、あれば「開発スタイル」の pointer だけを追記する）                                                                                                                                                                                                                                                                                                                                              |
 
 言語は `{{PROJECT_LANGUAGE}}` の記入箇所（OPERATING_MODEL の言語ポリシー節）、ツール・版・workspace は「既定スタックと差し替え点」の表が、それぞれ索引の役割を持つ。
 
 ## テンプレート自身の保守（配布しない）
 
-`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら、テンプレート repository の checkout のルートから次を実行する。skill installer で install した Skill や、bootstrap / adopt の実行中には実行しない（Self-check の対象でもない）。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
+`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `README.md`）を変更したら、テンプレート repository の checkout のルートから次を実行する。skill installer で install した Skill や、bootstrap / adopt の実行中には実行しない（Self-check の対象でもない）。検査項目と、固有語 denylist の形式は、`../scripts/check-assets.sh` の冒頭コメントが正本である。
 
 ```bash
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh
