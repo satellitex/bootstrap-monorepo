@@ -7,15 +7,14 @@ copy と置換の手順も書かない（手順は `../SKILL.md` Step 5 と MANI
 ## 1. Repository Knowledge Map
 
 `../assets/` は「bootstrap 先のディレクトリ構造をミラーしたコピー元」であり、入口を薄く、正本を `docs/` に置く構造を前提にしている。
-両入口（`AGENTS.md` / `CLAUDE.md`）に同じ詳細を複製せず、docs 正本へ参照させる。
+共通入口の `AGENTS.md` は docs 正本を参照し、詳細を複製しない。
 
 | 収録資産（assets 内の相対パス） | 設計上の役割 |
 |-------------------------------|--------------|
-| `AGENTS.md` | Codex 用入口。repo の目的と正本 docs への pointer だけを持つ thin adapter |
-| `CLAUDE.md` | Claude 用入口。`AGENTS.md` と同じ共通正本を指す。rules の読み込まれ方だけが固有 |
+| `AGENTS.md` | Codex / Claude Code 共通入口。repo の目的と正本 docs への pointer だけを持つ thin adapter |
 | `DEVELOPMENT.md` | 人間向けの開発スタイル。承認ポイントとフローを人間の言葉で書く |
 | `docs/README.md` | docs ナレッジハブ。置き場所、INDEX の更新主体、命名規約 |
-| `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認モデル、言語ポリシー、品質基準。両 adapter の参照先 |
+| `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認モデル、言語ポリシー、品質基準。共通入口の参照先 |
 | `docs/harness/harness_authoring_guide.md` | ハーネス文書の書き方（サイズ上限、分離原則、プロンプト記述） |
 | `docs/harness/scheduled-operations.md` | routine 登録カタログ、起動プロンプトの正準形、定期 workflow を足すときの設計ガイド |
 | `docs/harness/skills/<name>.md` | workflow 手順の tool-neutral 正本 |
@@ -43,7 +42,7 @@ copy と置換の手順も書かない（手順は `../SKILL.md` Step 5 と MANI
 | `docs/harness/skills/create-issue.md` + `.claude/skills/create-issue/references/project-fields.md` | labels、milestones、Projects、field の magic value |
 
 常時読むファイルは短くし、更新頻度が低い詳細は docs へ逃がす。
-`AGENTS.md` と `CLAUDE.md` の文言は、片方だけに重要ルールが入らないように同期する。
+入口の共通指示は `AGENTS.md` に集約する。
 
 ## 2. Workflow / Skill Layers
 
@@ -208,7 +207,7 @@ closing keyword の規則は `docs/styles/team-feedback/pr-closing-keyword.md` �
 推奨:
 
 - docs 正本は `docs/` に置く
-- `AGENTS.md` と `CLAUDE.md` は thin adapter にする
+- `AGENTS.md` は thin adapter にする
 - workflow 名は tool-neutral にする
 - tool 固有の実装詳細は adapter 側に閉じ込める
 - provider 固有の CLI や binding は target repo の runbook に閉じ込める

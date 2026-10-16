@@ -1,6 +1,6 @@
 # ハーネスオーサリングガイド
 
-> この文書はハーネス文書（skill 正本・thin adapter・agent 定義・OPERATING_MODEL / CLAUDE.md / AGENTS.md）の作成・編集規約である。
+> この文書はハーネス文書（skill 正本・thin adapter・agent 定義・OPERATING_MODEL / AGENTS.md）の作成・編集規約である。
 > 個々の skill / agent の内容はここに書かない。運用モデル自体は [OPERATING_MODEL.md](OPERATING_MODEL.md) が正本。
 
 ## 背景
@@ -23,7 +23,7 @@ skill の手順は tool-neutral な正本と、AI ツールごとの薄い adapt
 - sync 系 skill に共通する契約（origin/main 基準・0 件終了・open PR ガード等）は `docs/harness/skills/shared/` に置き、各正本から参照して本文に複製しない
 - skill 固有だが tool-neutral な詳細（圧縮規則・判定表の詳細・出力形式など）は、正本と同名のディレクトリ `docs/harness/skills/<name>/<topic>.md` に置き、正本から参照する
 - プロジェクト固有値（ID・マッピング等の magic value）は `.claude/skills/<name>/references/` 配下の profile に分離する
-- 同様に、リポジトリ入口の `CLAUDE.md` / `AGENTS.md` は薄い adapter とし、運用の実体は [OPERATING_MODEL.md](OPERATING_MODEL.md)（neutral 正本）に置く
+- 同様に、リポジトリ入口の `AGENTS.md` は薄い adapter とし、運用の実体は [OPERATING_MODEL.md](OPERATING_MODEL.md)（neutral 正本）に置く
 
 thin adapter の正準形:
 
@@ -69,7 +69,7 @@ agent 定義は、本文の先頭（H1 の直後）を `> 役割: <担当と担�
 
 | ファイル種別                                     | 上限      | 根拠                                                               |
 | ------------------------------------------------ | --------- | ------------------------------------------------------------------ |
-| OPERATING_MODEL.md / CLAUDE.md / AGENTS.md       | ≤200 行   | 全セッションで常に読み込まれる（または常時参照される）ため最小限に |
+| OPERATING_MODEL.md / AGENTS.md       | ≤200 行   | 全セッションで常に読み込まれる（または常時参照される）ため最小限に |
 | skill 正本（`docs/harness/skills/<name>.md`）    | ≤500 行   | 超過時は `references/` または `shared/` に分離                     |
 | thin adapter（`.claude/skills/<name>/SKILL.md`） | ≤20 行    | ポインタ以上の内容を持たせない                                     |
 | Agent 定義（`.claude/agents/*.md`）              | ≤250 行   | 単一責務の原則。超過は責務肥大化の兆候                             |
@@ -83,7 +83,7 @@ agent 定義は、本文の先頭（H1 の直後）を `> 役割: <担当と担�
    - コアの正本にはフロー定義・ステップ手順・判断基準のみを残す
 2. **Agent 定義が上限を超える場合**: 責務の分割を検討する（例: 生成役と評価役の分離）
    - もしくは詳細を `.claude/agents/references/` に分離する（下記「Agent 定義の references/ 分離パターン」参照）
-3. **OPERATING_MODEL.md / CLAUDE.md / AGENTS.md が上限を超える場合**: 詳細をリンク先に移動し、ポインタのみを残す
+3. **OPERATING_MODEL.md / AGENTS.md が上限を超える場合**: 詳細をリンク先に移動し、ポインタのみを残す
 
 #### Agent 定義の references/ 分離パターン
 
@@ -252,7 +252,7 @@ subagent（特に実装を担う worker）に渡すプロンプトへ、タス�
 
 | 層           | 読み込みタイミング   | 配置先                                                     |
 | ------------ | -------------------- | ---------------------------------------------------------- |
-| 常時参照     | セッション開始時     | CLAUDE.md / AGENTS.md（adapter 経由で OPERATING_MODEL.md） |
+| 常時参照     | セッション開始時     | AGENTS.md（adapter 経由で OPERATING_MODEL.md） |
 | フェーズ参照 | 特定ステップ実行時   | skill 正本、Agent 定義、`docs/harness/skills/<name>/`      |
 | オンデマンド | 明示的に参照された時 | references/、docs/requirements/                            |
 
@@ -328,7 +328,7 @@ resolve_git_target commit "$HOOK_CMD" "$HOOK_BASE_DIR"
 
 ## チェックリスト
 
-skill 正本 / adapter / Agent / OPERATING_MODEL / CLAUDE.md を新規作成・編集する際は以下を確認する:
+skill 正本 / adapter / Agent / OPERATING_MODEL / AGENTS.md を新規作成・編集する際は以下を確認する:
 
 - [ ] サイズ制約を満たしている（上記テーブル参照。機械検査は `tests/harness/`）
 - [ ] neutral 正本と thin adapter が 1:1 対応している（片方だけの追加・削除・リネームをしていない）

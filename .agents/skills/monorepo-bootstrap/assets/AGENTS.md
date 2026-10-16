@@ -1,6 +1,6 @@
 # AGENTS.md
 
-この文書は {{PRODUCT_NAME}} リポジトリにおける Codex 入口の薄い adapter である。運用の詳細はここに書かない。
+この文書は {{PRODUCT_NAME}} リポジトリにおける Codex / Claude Code 共通入口の薄い adapter である。運用の詳細はここに書かない。
 
 ## 最初に読む正本
 

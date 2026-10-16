@@ -61,6 +61,7 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 
 ### 前提（共通）
 
+- Claude Code は `AGENTS.md` の直接読み込みに対応した v2.1.277 以降を使う。読み込み条件と既存入口からの移行は [入口の互換条件](.agents/skills/monorepo-bootstrap/references/docs-operating-model.md#claude-code-の読み込み条件) を参照する。
 - 2 つの skill を同じ skills ディレクトリへ install する（手順は「インストール」）。片方だけの install では harness-adopt が動かない。この repository の clone は、テンプレートを保守する場合だけ必要。
 - `gh` CLI が認証済みであること（Issue / PR / repo 操作に使う）。
 - 承認モデル: 人間の明示承認が必須なのは課金と秘密値のみで、それ以外は open PR の提出まで自律実行される（定義 → `.agents/skills/monorepo-bootstrap/assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
@@ -92,8 +93,7 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 
 ## 構成
 
-- `AGENTS.md`: Codex 用のルート入口
-- `CLAUDE.md`: Claude 用のルート入口
+- `AGENTS.md`: Codex / Claude Code 共通のルート入口
 - `.agents/skills/monorepo-bootstrap/`: bootstrap skill の正本
   - `SKILL.md`: bootstrap の手順本体
   - `references/`: 設計根拠と縮約判断の参照
@@ -104,7 +104,7 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 
 ### テンプレートの整合検査
 
-`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `CLAUDE.md` / `README.md`）を変更したら、次を実行する（bash と node が必要。引数はない）。
+`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `README.md`）を変更したら、次を実行する（bash と node が必要。引数はない）。
 
 ```bash
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh

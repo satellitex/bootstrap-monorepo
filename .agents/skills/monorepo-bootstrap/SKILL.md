@@ -10,7 +10,7 @@ description: 新規 repo、または技術選定・基盤構築からやり直�
 ハーネス・docs・CI の実体はスクラッチ生成せず、`assets/`（台帳: `assets/MANIFEST.md`）からの copy + placeholder 置換で展開する。
 
 bootstrap 先では vendor/tool 固有の手順を入口ファイルへ閉じ込めない。
-Codex は `AGENTS.md`、Claude は `CLAUDE.md` を薄い adapter にし、共通の運用正本は `docs/harness/` と `docs/product/` 配下に置く。
+Codex / Claude Code 共通の `AGENTS.md` を薄い adapter にし、共通の運用正本は `docs/harness/` と `docs/product/` 配下に置く。
 
 既存のスタック・コード・CI を維持したまま運用ハーネスだけを導入する場合は、本 Skill ではなく兄弟 Skill `harness-adopt`（同じ skills ディレクトリに install されたもの。`<SKILL_DIR>/../harness-adopt/SKILL.md`）を使う。
 本 Skill は、新規 repo または技術選定・基盤構築からやり直す repo を対象とする。
@@ -54,11 +54,13 @@ git / gh 操作はすべて作成先を対象に実行し（cwd が作成先で�
 
 | 領域 | Codex | Claude | 共通化方針 |
 |------|-------|--------|------------|
-| 常時入口 | `AGENTS.md` | `CLAUDE.md` | どちらも短い pointer にし、詳細は `docs/` に置く |
+| 常時入口 | `AGENTS.md` | `AGENTS.md` | 共通の短い pointer にし、詳細は `docs/` に置く |
 | Workflow 実行 | Skill 名または明示プロンプト | slash command / Skill | 手順名は tool-neutral にする |
 | 作業計画 | plan / Todo / diff | Todo / subagent / diff | PR 本文・commit・ADR で引き継ぐ |
 | 実装者/評価者分離 | 別セッション、別 reviewer、明示 review pass | subagent / evaluator | 「作る役」と「評価する役」を概念として分ける |
-| ローカル規約 | repo の `AGENTS.md` 優先 | repo の `CLAUDE.md` 優先 | 両方ある場合は矛盾しない thin adapter にする |
+| ローカル規約 | repo の `AGENTS.md` 優先 | repo の `AGENTS.md` 優先 | 既存の入口がある場合は固有の規約を保持する |
+
+Claude Code の版と入口の読み込み条件は `references/docs-operating-model.md`「Claude Code の読み込み条件」を確認する。新規 bootstrap では `CLAUDE.md` を生成しない。
 
 ### Language Policy
 
@@ -253,7 +255,7 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 - ハーネス運用の neutral 正本は `docs/harness/OPERATING_MODEL.md`、skill 手順の正本は `docs/harness/skills/<name>.md`、skill 横断の共通契約は `docs/harness/skills/shared/`（sync 専用は `sync-` 接頭辞）に置く。
 - ADR は `docs/adr/` の 1 箇所のみ。技術選定の調査は `docs/notes/research/`、計画と検証結果は PR 本文に置く。Issue ごとの成果物ファイルは作らない。
 - INDEX（ADR・調査ノート・runbook など）の更新主体は `docs/harness/skills/shared/index-writer-policy.md` の割当表に従う。更新する routine の登録は完了報告の TODO に含め、登録前の経過措置では、bootstrap の PR が同一 PR で INDEX の行を追加してよい。
-- `AGENTS.md` と `CLAUDE.md` は thin adapter とし、詳細手順を二重管理しない。
+- `AGENTS.md` は thin adapter とし、詳細手順を二重管理しない。
 
 ### 5.2 Docs 鮮度維持 workflow
 
@@ -272,8 +274,7 @@ copy 済み資産のうち、adapter と magic value の位置は次のとおり
 
 | ファイル/領域 | 目的 |
 |---------------|------|
-| `AGENTS.md` | Codex 用 thin adapter。`docs/harness/OPERATING_MODEL.md` への pointer |
-| `CLAUDE.md` | Claude 用 thin adapter。`AGENTS.md` と同じ共通正本への pointer |
+| `AGENTS.md` | Codex / Claude Code 共通の thin adapter。`docs/harness/OPERATING_MODEL.md` への pointer |
 | `docs/harness/OPERATING_MODEL.md` | Codex / Claude 共通の作業フロー、承認モデル、言語ポリシー、品質基準 |
 | `docs/harness/skills/*.md` | tool-neutral な workflow 手順の正本 |
 | `docs/harness/skills/shared/` | skill 横断の共通契約（無人 run・INDEX の更新主体・PR 作成・検証ゲートなど。sync 専用は `sync-` 接頭辞） |
@@ -397,7 +398,7 @@ product completion までの task は、1 session で完了可能な issue 粒�
 - [ ] `assets/MANIFEST.md` の Self-check を全項目実施した
 - [ ] `pnpm harness:test` が green
 - [ ] tool/runtime version 管理と local dev command が `mise` を入口にしている
-- [ ] `AGENTS.md` / `CLAUDE.md` は thin adapter で、詳細手順を二重管理していない
+- [ ] `AGENTS.md` は thin adapter で、詳細手順を二重管理していない
 - [ ] local と CI の検査の差が、`docs/harness/skills/shared/verification-gates.md` の名前付き組合せ（`gate:push` / `gate:ci`）の表で説明できる
 - [ ] self-hosted runner を使う場合、service manager、user/credentials、CLI version、logs/status/restart runbook がある
 - [ ] deploy URL と smoke test 結果が PR 本文の「検証結果」にあり、`docs/harness/skills/deploy-verify.md` の `TODO` が 0（または不採用として除去済み）

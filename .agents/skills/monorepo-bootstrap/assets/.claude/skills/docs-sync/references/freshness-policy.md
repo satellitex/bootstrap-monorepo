@@ -41,7 +41,7 @@ per-file 検証は以下 3 型の組合せで書く。各対象ファイルの�
 | `docs/product/TECH_STACK.md`       | 版数突合: `.mise.toml` `[tools]` のツール版数と本文の版数記述。実在チェック: 確定スタック一覧のライブラリ名が monorepo 内のいずれかの `package.json` の dependencies / devDependencies に存在するか                                          |
 | `docs/product/TERMS.md`            | 実在チェック: 「初出」列の要件 ID（`(?:BR\|IF\|DATA\|FR\|NFR\|SEC)-\d{4}(?:-FIX)?`）に対応するファイルが `docs/requirements/` に実在するか                                                                                                   |
 | `DEVELOPMENT.md`                   | 実在チェック: ハーネス構成表などバッククォートで書かれたリポジトリ相対パスの実在（critical）。リンク解決: 文中リンクの実在。列挙したものの実在だけを検査し、列挙の完全性は検査しない（skill 一覧の正本は `docs/harness/OPERATING_MODEL.md`） |
-| `AGENTS.md` / `CLAUDE.md`          | 実在チェック: 参照先パスの実在（critical）。突合: 承認モデルの要旨・言語ポリシー・ブランチ規約が `docs/harness/OPERATING_MODEL.md` と矛盾しないか（major。adapter 側が古いときは記述修正として adapter を直す）                              |
+| `AGENTS.md`          | 実在チェック: 参照先パスの実在（critical）。突合: 承認モデルの要旨・言語ポリシー・ブランチ規約が `docs/harness/OPERATING_MODEL.md` と矛盾しないか（major。adapter 側が古いときは記述修正として adapter を直す）                              |
 | `docs/styles/coding_guide/docs.md` | 実在チェック: バッククォートで書かれたリポジトリ相対パスの実在（critical）。3 原則の lexicon は適用しない（違反例を verbatim に含むため）                                                                                                    |
 
 ## 共通の検出フロー
