@@ -2,6 +2,18 @@
 
 Codex と Claude Code で使えるモノレポ運用テンプレートです。新規プロジェクトの立ち上げと、既存リポジトリへの開発ルールや CI の導入に使えます。
 
+## assets の構成
+
+2 つのスキルは、導入先に合わせて同じ `assets/` から必要なファイルを選びます。[テンプレート資産の一覧](.agents/skills/monorepo-bootstrap/assets/MANIFEST.md#資産一覧)
+
+| 場所 | 用途 |
+| --- | --- |
+| ルート | `AGENTS.md` を共通の入口にし、mise・pnpm・Turborepo の設定で開発環境を整える |
+| `docs/` | 要件、設計判断（ADR）、運用手順を記録する。`docs/harness/skills/` には両エージェントが使う手順を収録 |
+| `.claude/` | Claude Code のスキル呼び出し口、エージェント、開発ルール、コミット前や push 前のフック |
+| `.github/workflows/` · `tests/harness/` | GitHub Actions でテストとビルドを実行し、文書の参照先やスキルの構成も検査する |
+| `scripts/` | 任意で導入できるチャット受付や PR 自動マージのスクリプト |
+
 ## インストール
 
 認証済みの GitHub CLI（`gh`）を用意し、2 つのスキルを一緒にインストールします。
