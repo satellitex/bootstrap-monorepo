@@ -260,7 +260,7 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 ### 5.2 Docs 鮮度維持 workflow
 
 sync 系 skill（readme-sync / docs-sync / code-sync など）は `assets/MANIFEST.md` の core に含まれており、copy で導入される。
-product 固有の鮮度維持対象を追加する場合のみ、`references/generated-workflows.md` §2 の 10 項目契約に従って新しい sync doc を設計する。実装キュー・棚卸し・観測点検のような実行系 routine は資産に収録しておらず、需要が出た時点で同 §8 のレシピに従って追加する。
+product 固有の鮮度維持対象を追加する場合のみ、`references/generated-workflows.md` §2 の 10 項目契約に従って新しい sync doc を設計する。チャットで受け付けた依頼の実装には MANIFEST の opt-in:chat-feedback を使う。その他の実装キュー・棚卸し・観測点検は、需要に応じて同 §8 のレシピで追加する。
 
 ### 5.3 Issue lifecycle
 

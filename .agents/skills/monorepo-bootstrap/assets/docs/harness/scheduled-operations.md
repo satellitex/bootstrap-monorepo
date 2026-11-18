@@ -6,17 +6,19 @@
 
 ## routine 登録カタログ
 
-| 頻度                                  | エントリポイント       | 目的                                                          |
-| ------------------------------------- | ---------------------- | ------------------------------------------------------------- |
-| 週次                                  | `/readme-sync`         | README と実コードの乖離を検出し修正 PR                        |
-| 週次                                  | `/docs-sync`           | docs「現状層」の鮮度ドリフト・原則違反を検出し修正 PR         |
-| 週次                                  | `/code-sync`           | ソースコメントの 3 原則違反・内部参照を検出し修正 PR          |
-| 週次（opt-in:renovate 採用時のみ）    | `/renovate-sync`       | 依存 pin と Renovate 設定の検知漏れを検出し改善 PR            |
-| 週次（opt-in:public-site 採用時のみ） | `/public-arch-sync`    | 内部設計正本と公開射影の差分を検出し追従 PR                   |
-| 隔週                                  | `/gc-scan`             | ハーネスの重複・孤児・デッド参照を検出し修正 PR               |
-| 隔週                                  | `/adr-compress`        | ADR コーパスの肥大化を圧縮する PR                             |
-| 隔週                                  | `/refactor-guide-sync` | 規約正本とリファクタガイドの検出基準を突合する PR             |
-| 夜間                                  | `/refactor-sync`       | リファクタ観点を検出し提案 Issue を起票（コードは変更しない） |
+| 頻度                                         | エントリポイント       | 目的                                                          |
+| -------------------------------------------- | ---------------------- | ------------------------------------------------------------- |
+| 週次                                         | `/readme-sync`         | README と実コードの乖離を検出し修正 PR                        |
+| 週次                                         | `/docs-sync`           | docs「現状層」の鮮度ドリフト・原則違反を検出し修正 PR         |
+| 週次                                         | `/code-sync`           | ソースコメントの 3 原則違反・内部参照を検出し修正 PR          |
+| 週次（opt-in:renovate 採用時のみ）           | `/renovate-sync`       | 依存 pin と Renovate 設定の検知漏れを検出し改善 PR            |
+| 週次（opt-in:public-site 採用時のみ）        | `/public-arch-sync`    | 内部設計正本と公開射影の差分を検出し追従 PR                   |
+| 定期（opt-in:chat-feedback、受付間隔を設定） | `/feedback-triage`     | 提案・承認・起票と元スレッドへの進捗返信                      |
+| 定期（opt-in:chat-feedback、実装間隔を設定） | `/feedback-implement`  | 承認済み Issue を選び、既存の実装手順を起動                   |
+| 隔週                                         | `/gc-scan`             | ハーネスの重複・孤児・デッド参照を検出し修正 PR               |
+| 隔週                                         | `/adr-compress`        | ADR コーパスの肥大化を圧縮する PR                             |
+| 隔週                                         | `/refactor-guide-sync` | 規約正本とリファクタガイドの検出基準を突合する PR             |
+| 夜間                                         | `/refactor-sync`       | リファクタ観点を検出し提案 Issue を起票（コードは変更しない） |
 
 エントリポイントに引数が要る skill は、この列に引数まで書く（`/<skill-name> <引数>`）。起動プロンプトはこの列から導く（次節）。
 
@@ -25,7 +27,8 @@
 - **cron 登録は repo 外で人間が行う**（エージェント実行環境の scheduler 機能、または任意の外部 cron）。repo 内にはエントリポイントと手順正本だけを置く。bootstrap の完了報告には「routine 登録が未実施」を TODO として必ず含める。
 - routine の実体（scheduler 上の設定）は repo の外にある。repo が正本とするのはこのカタログと次節の起動プロンプトの形で、scheduler 側の設定は写しとして扱う。カタログの行を変えたら、scheduler 側も同時に更新する。写しが先に変わると、カタログが実際の登録と食い違うため。
 - カタログに載せるのは routine で起動する skill だけにする。手動起動だけの skill（`/runbook-alignment` など）は載せない。カタログを scheduler 側の登録と 1 対 1 に保つため。
-- 同一 skill の tick 重複は各 skill 側の open PR ガード（`docs/harness/skills/shared/sync-pr-flow.md`）が防ぐ。scheduler 側での排他は不要。
+- sync 系の tick 重複は各 skill 側の open PR ガード（`docs/harness/skills/shared/sync-pr-flow.md`）で扱う。
+- opt-in:chat-feedback の両 routine と手動 run は、同じ repo の全受付先で 1 本の直列キューを共有する。実行中は次回を待機させる。初回は各受付先で `/feedback-triage --dry-run`、実装対象の確認には `/feedback-implement --dry-run` を使う。リリースは導入先の周期と承認手順に従う。定期リリースを採用する場合は既存の配備ジョブを使う。`/deploy-verify prod` を定期起動する構成では反映 PR まで進み、マージまで委任済みの場合だけ登録時に `--merge` を付ける。次の triage が配備結果を確認する。
 - routine が作る PR は `agent/<skill-name>-YYYY-MM-DD` ブランチに作る（→ `docs/harness/skills/shared/sync-pr-flow.md`）。PR / Issue に付ける `routine:<skill-name>` ラベルの一覧は `.claude/skills/create-issue/references/project-fields.md` を正本とする。`/refactor-sync` は PR を作らず、提案 Issue を起票する。
 
 ## routine 起動プロンプトの正準形
@@ -71,6 +74,7 @@ routine と skill 群が前提とする外部リソース。bootstrap 時に作�
 
 - [ ] ラベル — TODO(取得方法: `.claude/skills/create-issue/references/project-fields.md` のラベルの各節（既定ラベル・routine ラベル）に従い、採用した skill の分を `gh label create` で作成する。存在しないラベルを指定した `gh pr create` / `gh issue create` は失敗するため、routine の登録より前に作成する。skill はラベルを作らない)
 - [ ] GitHub Project — TODO(取得方法: org / repo の Project を作成し、Project ID とフィールド ID を `gh project list` / `gh project field-list` で取得して `.claude/skills/create-issue/references/project-fields.md` に記入)
+- [ ] opt-in:chat-feedback — `.claude/skills/feedback-triage/references/chat-profile.md` に従い、受付先、bot、承認者と必要なラベルを用意し、選択したサービスの読み書きをテスト用スレッドで確認する。
 - [ ] 通知 webhook — TODO(取得方法: チャットツール側で webhook を発行し、通知先の環境変数へ投入する。変数名と解決順は `docs/harness/skills/shared/notification-contract.md`、`/review-cycle` の通知先は `.claude/skills/review-cycle/references/notification-mapping.md` に記入する。webhook URL は秘密値のため人間が投入する)
 
 ## 定期 GitHub Actions workflow を追加する場合の設計ガイド

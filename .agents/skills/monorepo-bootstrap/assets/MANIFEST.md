@@ -133,6 +133,9 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | docs/harness/skills/promote-memory.md                    | 個人 memory から team rule への昇格      | core               |
 | docs/harness/skills/runbook-alignment.md                 | 運用手順書と実装の照合                   | core               |
 | docs/harness/skills/deploy-verify.md                     | デプロイ一気通貫と release 反映の骨格    | core               |
+| docs/harness/skills/feedback-triage.md | チャットで承認された提案の起票と進捗返信 | opt-in:chat-feedback |
+| docs/harness/skills/feedback-implement.md | 承認済み Issue の実装と結果の返信 | opt-in:chat-feedback |
+| docs/harness/skills/shared/chat-feedback.md | 投稿・承認・Issue とスレッドの対応 | opt-in:chat-feedback |
 | docs/harness/skills/renovate-sync.md                     | 依存 pin と Renovate 設定の突合          | opt-in:renovate    |
 | docs/harness/skills/public-arch-sync.md                  | 内部正本から公開射影への追従             | opt-in:public-site |
 | docs/harness/skills/customer-doc-review.md               | 対外ドキュメントのレビュー               | opt-in:public-site |
@@ -144,6 +147,7 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | .claude/skills/&lt;name&gt;/SKILL.md                              | 上記各 skill の薄い adapter（同名で 1:1）                                                       | 正本と同区分       |
 | .claude/skills/multi-issue/references/model-profile.md            | モデル名と subagent 起動パラメータの profile                                                    | core               |
 | .claude/skills/create-issue/references/project-fields.md          | Project / ラベル / マイルストーンの profile                                                     | core               |
+| .claude/skills/feedback-triage/references/chat-profile.md | Slack / Discord の受付先、承認者と導入設定 | opt-in:chat-feedback |
 | .claude/skills/docs-sync/references/freshness-policy.md           | 鮮度検証対象の profile                                                                          | core               |
 | .claude/skills/review-cycle/references/notification-mapping.md    | 通知手段と宛先の profile                                                                        | core               |
 | .claude/skills/review-cycle/references/ci-and-conflict-profile.md | conflict 解消と CI 修正の profile                                                               | core               |
@@ -203,6 +207,21 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | tests/harness/harness-gates-e2e.test.mjs              | gate の結合テスト                                                                                                             |
 | tests/harness/harness-support.test.mjs                | support とランナーの自己テスト                                                                                                |
 
+### チャットからのフィードバック（opt-in:chat-feedback）
+
+| パス | 用途 |
+| --- | --- |
+| scripts/feedback/chat.mjs | Slack / Discord 共通の CLI |
+| scripts/feedback/decision.mjs | 最新の案と承認者のリアクションの照合 |
+| scripts/feedback/slack.mjs | Slack の履歴・スレッド・リアクション |
+| scripts/feedback/discord.mjs | Discord の履歴・スレッド・リアクション |
+| scripts/feedback/attachment.mjs | 添付の取得と一時保存 |
+| scripts/feedback/error.mjs | 利用者に表示する診断 |
+| tests/harness/feedback-chat.test.mjs | CLI と添付取得の回帰テスト |
+| tests/harness/feedback-decision.test.mjs | 承認・否決・改訂済みの案の判定 |
+| tests/harness/feedback-slack.test.mjs | Slack adapter の回帰テスト |
+| tests/harness/feedback-discord.test.mjs | Discord adapter の回帰テスト |
+
 ### 公開区画（opt-in:public-site をまとめて採否判断）
 
 | パス                                | 用途                       |
@@ -250,6 +269,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 採用する project                                                             | 不採用にする場合                                   |
 | --------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| `opt-in:chat-feedback` | Slack または Discord の投稿から、承認を経て GitHub Issues で変更を追跡する | この受付経路を使わない |
 | `opt-in:renovate`     | Renovate で依存を更新する                                                    | Renovate を使わない                                |
 | `opt-in:public-site`  | 顧客・提携組織など外部へドキュメントや射影版の設計文書を公開する             | 公開先が無い                                       |
 | `opt-in:submodule`    | git submodule を含む repository                                              | submodule を持たない                               |
@@ -267,6 +287,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 除去する資産                                                                                                                                    | 処置の種類                                                                                                                           |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `opt-in:chat-feedback` | 受付・実装の両 skill、profile、共通契約、CLI 一式と対応テスト | skill 表・routine・無人 run 契約・ラベル・テスト一覧の該当箇所と設定例の該当区画を削除 |
 | `opt-in:renovate`     | `renovate.json`・`/renovate-sync` の正本と adapter                                                                                              | 行の削除                                                                                                                             |
 | `opt-in:public-site`  | 公開区画の資産・skill 2 本の正本と adapter・profile 2 本・`post-edit-projection-reminder.sh` とそのテスト                                       | 行・項・節の削除。除外表の `docs/customer/**` は、列挙された他のパスを残して語句だけ削除。`docs/product/PUBLIC_*.md` は行ごと削除    |
 | `opt-in:submodule`    | `pre-commit-submodule-guard.sh`・`bin/submodule-guard.sh`・それぞれのテスト（`test-pre-commit-submodule-guard.sh` / `test-submodule-guard.sh`） | hook 本体とテストの一括削除（hook を残してテストだけ消すと、`run-all.sh` の逆向き検査が失敗する）。hook を有効化する区画と手順の削除 |

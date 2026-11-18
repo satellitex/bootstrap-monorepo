@@ -11,7 +11,7 @@
 - opt-in グループ（一覧は MANIFEST）は Intake の整理と制約から採否を判断し、採用グループのみ copy する。
 - MANIFEST にない鮮度境界（env examples、API schema、security policy、async runbook、runner 運用など）が product に必要な場合のみ、新しい sync workflow を §2 の契約に従って `docs/harness/skills/<name>.md` として追加設計する。
 
-不要な workflow を先回りで作らない。追加は「対応する surface が product に実在する」ことを条件にする。実行系の routine（実装キュー・棚卸し・観測点検）は資産に収録せず、§8 のレシピとして持つ。
+不要な workflow を先回りで作らない。追加は「対応する surface が product に実在する」ことを条件にする。チャット受付からの実装には opt-in:chat-feedback を使う。その他の実装キュー・棚卸し・観測点検は §8 のレシピで設計する。
 
 ## 2. Generic `*-sync` Shape
 
@@ -183,6 +183,8 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 | 検証 | 起票の後に Issue を読み戻し、マーカーが保持されていることを確認する |
 
 ### 8.2 実装キュー
+
+チャットの承認を起点とする導入先は、収録済みの `feedback-implement` を使う。以下は他の起点から Issue を選ぶ場合のレシピである。
 
 open Issue を優先順に選び、`/multi-issue` に渡して Issue ごとに PR を作る。
 前提は、GitHub Issues を issue tracker とすること、`/multi-issue` が無人 run でも人の応答を待たず、PR の open から `/review-cycle` の終了（LGTM または終了理由の通知）まで進んで返ることである（`/review-cycle` の待機には上限があり、run を止めない → `docs/harness/skills/review-cycle.md`）。

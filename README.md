@@ -84,6 +84,10 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 3. 以降は自律実行される: 現状棚卸し（棚卸し表を PR 本文に作成）→ 導入計画 → `assets/` からの copy + 既存資産との非破壊マージ（既存優先。既存ファイルの削除・移動はしない）→ 検証 → open PR。
 4. 人間がやること: A と同じ（承認・レビュー・routine 登録・TODO 値の充填）。
 
+### チャットのフィードバックを受け付ける
+
+新規・既存どちらの導入でも `opt-in:chat-feedback` と受付先（Slack または Discord）を指定する。担当者は元の投稿のスレッドで項目ごとの起票案を確認し、✅ で承認、❌ で見送りを選べる。承認した項目の Issue、PR、反映結果も同じスレッドで追跡できる。接続先と承認者の設定、初回の疎通確認は[受付 profile](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)を参照する。
+
 ### 使い分け
 
 | 状況 | 入口 |
