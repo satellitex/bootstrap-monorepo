@@ -1,136 +1,42 @@
 # bootstrap-monorepo
 
-Codex / Claude 両対応の monorepo 運用テンプレート repository。
-「0 から repo を作る」bootstrap と、「既にある repo へ運用ハーネスを導入する」adopt の 2 つの入口 skill と、そのコピー元となる実体テンプレート資産を管理する。
+Codex と Claude Code で使えるモノレポ運用テンプレートです。新規プロジェクトの立ち上げと、既存リポジトリへの開発ルールや CI の導入に使えます。
 
-## 使い方
+## インストール
 
-### インストール
+認証済みの GitHub CLI（`gh`）を用意し、2 つのスキルを一緒にインストールします。
 
-2 つの skill（`monorepo-bootstrap` と `harness-adopt`）を、同じ skills ディレクトリへまとめて install する。harness-adopt は兄弟ディレクトリ `../monorepo-bootstrap/` の `assets/` をコピー元に使うため、片方だけでは動かない。次のどの方法でもよい。
-
-#### A. `npx skills`（推奨）
-
-```bash
+```sh
 npx skills add satellitex/bootstrap-monorepo -g --skill '*' -a claude-code codex
 ```
 
-- `.agents/skills/` の 2 つだけが検出される。`-g` は user scope（Claude Code は `~/.claude/skills`、Codex は `~/.agents/skills`）で、省略すると作業中の project に入る。
-- 既定では `~/.agents/skills/` に実体を置き、各 agent の skills ディレクトリから link する。link を避けたい場合は `--copy` を付ける。どちらでも兄弟の資産を解決できる。
-- 更新は `npx skills update`、削除は `npx skills remove`。
+`-g` を付けると、どのプロジェクトからでも使えます。Claude Code は v2.1.277 以降が必要です。[ほかのインストール方法と更新手順](docs/installation.md) · [Claude Code の読み込み条件](.agents/skills/monorepo-bootstrap/references/docs-operating-model.md#claude-code-の読み込み条件)
 
-#### B. `gh skill install`（GitHub CLI、preview）
+## 使い方
 
-```bash
-gh skill install satellitex/bootstrap-monorepo .agents/skills/monorepo-bootstrap --agent claude-code --scope user
-gh skill install satellitex/bootstrap-monorepo .agents/skills/harness-adopt --agent claude-code --scope user
-```
+作業先のディレクトリで Codex または Claude Code を起動し、チャットに入力します。
 
-- skill は 1 回に 1 つなので、パスを指定して 2 回実行する。Codex 向けは `--agent codex`（install 先は `~/.agents/skills`）。
-- skill 名だけや `--all --allow-hidden-dirs` では指定しない。`monorepo-bootstrap/assets/.claude/skills/` の配布用 adapter（導入先へコピーする雛形）まで skill として検出・install される。
-- `gh auth login` 済みで実行する。ファイルを 1 つずつ API で取得するため、未認証だと rate limit で失敗する。
-- install 先の `SKILL.md` すべて（assets 内の adapter を含む）の frontmatter に、追跡用の `metadata`（`github-*` キー）が付く。`gh skill update` がこれを使うので install 先では消さない。導入先へコピーした adapter からは、MANIFEST の手順で除く（残ると `tests/harness` が失敗する）。
-- 更新は `gh skill update`。
+| やりたいこと | Codex | Claude Code |
+| --- | --- | --- |
+| 技術選定からモノレポを立ち上げ、デプロイを検証する | `$monorepo-bootstrap 社内の備品予約アプリを作りたい` | `/monorepo-bootstrap 社内の備品予約アプリを作りたい` |
+| 既存の技術構成を保ちながら開発ルールや CI を導入する | `$harness-adopt` | `/harness-adopt` |
 
-#### C. Codex の skill-installer
+どちらも変更を検証して Pull Request を作成します。課金や秘密値の設定には承認が必要です。[新規プロジェクトの手順](.agents/skills/monorepo-bootstrap/SKILL.md) · [既存リポジトリへの導入手順](.agents/skills/harness-adopt/SKILL.md)
 
-```bash
-INSTALLER=~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py
+## オプション
 
-# Codex（既定の install 先は $CODEX_HOME/skills）
-python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
-  --path .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt
+導入時に必要な機能を選べます。[テンプレート資産とオプションの一覧](.agents/skills/monorepo-bootstrap/assets/MANIFEST.md#opt-in-グループ)
 
-# Claude Code（personal skills へ install）
-python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
-  --path .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt \
-  --dest ~/.claude/skills
-```
+- Slack や Discord の投稿を、担当者の承認後に GitHub Issue にする。[チャットからの受付](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)
+- `auto-implement` ラベル付きの Issue を定期的に実装し、PR を作る。[Issue の定期実装](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/daily-implement.md)
+- 指定した条件を満たす PR を開発ブランチへ自動マージする。[PR の自動マージ](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/pr-auto-merge.md)
 
-- Codex で `$skill-installer` に「satellitex/bootstrap-monorepo の `.agents/skills/monorepo-bootstrap` と `.agents/skills/harness-adopt` を install して」と頼んでもよい。
-- 2 つは必ず同じ `--dest` に install し、`--name` で改名しない。
-- 更新: installer は install 先が既にあると中断し、上書きしない。古い 2 つのディレクトリを削除してから、同じコマンドで install し直す（例: `rm -rf ~/.claude/skills/monorepo-bootstrap ~/.claude/skills/harness-adopt`）。版を固定するときは `--ref <tag または commit>` を付ける。
+## テンプレートの整合検査
 
-#### 共通の注意
+このリポジトリの文書・スキル・資産を変更したら、ルートで次のコマンドを実行します。Bash と Node.js が必要です。
 
-- 指定するのは `.agents/skills/` 側の実体である。`.claude/skills/` 側は link なので指定しない（C の download 方式では、link が「link 先のパスだけを書いたテキストファイル」として install され、エラーにならないまま skill として動かない）。
-- どの CLI も使えない場合は、この repository を clone し、`cp -R .agents/skills/monorepo-bootstrap .agents/skills/harness-adopt ~/.claude/skills/` のように実体をコピーする。
-- install 後、Codex は次のターンから認識する（出ない場合は再起動する）。Claude Code はセッション中でも認識する。ただし `~/.claude/skills` がセッション開始時に無かった場合は `/reload-skills` を実行する。
-- 呼び出しは、Claude Code では `/monorepo-bootstrap` `/harness-adopt`、Codex では `$monorepo-bootstrap` `$harness-adopt`。
-- テンプレートを保守するときの注意: この repository 内で起動すると、repo の `.claude/skills/`（Claude Code）と `.agents/skills/`（Codex）の skill も読み込まれる。Claude Code では personal（`~/.claude/skills`）が project より優先されるため、install 済みの古い版が編集中の版を隠す。Codex では同名の skill が 2 つ並ぶ。保守中は install 済みの版を外すか、どちらの版が動いているかに注意する。
-
-### 前提（共通）
-
-- Claude Code は `AGENTS.md` の直接読み込みに対応した v2.1.277 以降を使う。読み込み条件と既存入口からの移行は [入口の互換条件](.agents/skills/monorepo-bootstrap/references/docs-operating-model.md#claude-code-の読み込み条件) を参照する。
-- 2 つの skill を同じ skills ディレクトリへ install する（手順は「インストール」）。片方だけの install では harness-adopt が動かない。この repository の clone は、テンプレートを保守する場合だけ必要。
-- `gh` CLI が認証済みであること（Issue / PR / repo 操作に使う）。
-- 承認モデル: 人間の明示承認が必須なのは課金と秘密値のみで、それ以外は open PR の提出まで自律実行される（定義 → `.agents/skills/monorepo-bootstrap/assets/docs/harness/OPERATING_MODEL.md`「承認モデル」）。
-
-### A. 0 から新しい repo を作る — `/monorepo-bootstrap`
-
-技術選定・モノレポ基盤・ハーネス・CI/CD・初期実装・deploy 検証までを一気通貫で行う。
-
-1. 作成先のディレクトリ（新規の空ディレクトリ、または作成先 repo の checkout）で Claude Code（または Codex）を起動する。
-2. `/monorepo-bootstrap <product overview>` を実行し、作成先（ローカルパス or GitHub repo 名）、制約（provider / DB / 納期など）、project language、deploy 目標を伝える。
-3. 以降は自律実行される: 技術調査 → Gate A（選定を領域ごとの ADR と TECH_STACK に確定）→ 実装計画 → 基盤 scaffold → `assets/` からの copy + placeholder 置換 → 環境 / CI → 初期実装 → deploy 検証 → open PR。
-4. 人間がやること: 課金・秘密値の承認、導入 PR のレビューとマージ、routine 登録（生成された `docs/harness/scheduled-operations.md` のカタログ参照）。
-
-### B. 既にある repo に導入する — `/harness-adopt`
-
-既存のスタック・コード・CI を維持したまま、運用ハーネス（docs 規約 / skills / agents / rules / hooks / 基礎 CI）だけを導入する。
-
-1. 導入先 repo の checkout で Claude Code（または Codex）を起動する。別の場所から起動する場合だけ、Claude Code では対象 repo を追加作業ディレクトリにする（例: `claude --add-dir /path/to/target-repo`）。
-2. `/harness-adopt` を実行する（cwd が導入先なら引数は不要。別の場所から起動した場合だけ、対象 repo の絶対パスを渡す）。必要なら project language と opt-in 採否（opt-in グループの一覧は monorepo-bootstrap skill の `assets/MANIFEST.md`）を添える。
-3. 以降は自律実行される: 現状棚卸し（棚卸し表を PR 本文に作成）→ 導入計画 → `assets/` からの copy + 既存資産との非破壊マージ（既存優先。既存ファイルの削除・移動はしない）→ 検証 → open PR。
-4. 人間がやること: A と同じ（承認・レビュー・routine 登録・TODO 値の充填）。
-
-### チャットのフィードバックを受け付ける
-
-新規・既存どちらの導入でも `opt-in:chat-feedback` と受付先（Slack または Discord）を指定する。担当者は元の投稿のスレッドで項目ごとの起票案を確認し、✅ で承認、❌ で見送りを選べる。承認した項目の Issue、PR、反映結果も同じスレッドで追跡できる。接続先と承認者を設定し、初回は dry-run で受付を確認する。[受付 profile](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)
-
-### Issue を定期的に実装する
-
-`opt-in:daily-implement` を選ぶと、`/daily-implement` が `auto-implement` ラベル付きの open Issue を選び、PR を作る。手動で登録した Issue、着手が決まった `/refactor-sync` の提案、チャットで自動実装まで承認された依頼を、同じキューで扱える。[実装手順](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/daily-implement.md)
-
-受付と実装は個別に採用できる。チャット受付だけなら承認した要望を Issue にして担当者が実装する。定期実装を採用した場合は、すべての出所の自動実装を `/daily-implement` に集約する。既存キューがあればその実装処理を委譲先として使い、同じ Issue を選ぶ定期実行を一本化する。
-
-### 開発ブランチへのマージを委任する
-
-`opt-in:pr-auto-merge` を選び、対象ブランチ、保留条件、実行上限を設定する。PR 作成後、レビュー対応後、定期実行から同じ手順を使える。`/pr-auto-merge --dry-run` で候補と判定理由を確認できる。採番も採用する場合は、マージ処理後の開発ブランチを採番規定に引き渡す。[自動マージ手順](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/pr-auto-merge.md)
-
-### 使い分け
-
-| 状況 | 入口 |
-|------|------|
-| 新規 repo / 既存 repo でも技術選定・基盤構築からやり直す | `/monorepo-bootstrap` |
-| 既存スタックを維持して運用ハーネスだけ入れる | `/harness-adopt` |
-
-## 構成
-
-- `AGENTS.md`: Codex / Claude Code 共通のルート入口
-- `.agents/skills/monorepo-bootstrap/`: bootstrap skill の正本
-  - `SKILL.md`: bootstrap の手順本体
-  - `references/`: 設計根拠と縮約判断の参照
-  - `assets/`: bootstrap / adopt 先へ copy する実体テンプレート資産。台帳は `assets/MANIFEST.md`
-  - `scripts/check-assets.sh`: テンプレート専用の整合検査。bootstrap / adopt 先へは配布しない
-- `.agents/skills/harness-adopt/`: 既存 repo 導入 skill の正本（資産は monorepo-bootstrap の `assets/` を共用）
-- `.claude/skills/`: この repository 内で使う Claude 向け入口。中身は `.agents` 側へ link（skill installer の `--path` には指定しない）
-
-### テンプレートの整合検査
-
-`SKILL.md`、`references/`、`assets/`、入口文書（`AGENTS.md` / `README.md`）を変更したら、次を実行する（bash と node が必要。引数はない）。
-
-```bash
+```sh
 bash .agents/skills/monorepo-bootstrap/scripts/check-assets.sh
 ```
 
-検査項目と、固有語 denylist の形式は、スクリプト冒頭のコメント（`.agents/skills/monorepo-bootstrap/scripts/check-assets.sh`）が正本である。denylist は固有語そのものを repo へ混入させないため repo の外に置き、環境変数 `TEMPLATE_DENYLIST_FILE` にファイルのパスを渡す（未設定の場合、この検査は skip と表示される）。
-終了コードは、すべて通過（skip を含む）なら 0、1 つ以上失敗なら 1。
-
-## 目的
-
-任意のプロダクト概要から、技術調査、技術選定の確定、モノレポ基盤、ハーネス、CI/CD、初期実装、deploy 検証までを自律実行するための template を管理する。
-
-ハーネス・docs・CI の実体はスクラッチ生成せず、`assets/MANIFEST.md` を台帳として copy と placeholder 置換で展開する。
-
-詳細な進め方は各 SKILL.md を参照する。重複管理を避けるため、skill 本文と references と assets は `.agents` 側を正本にする。
+固有語も検査する場合は、リポジトリ外のパターンファイルを環境変数 `TEMPLATE_DENYLIST_FILE` に指定します。[検査項目とファイル形式](.agents/skills/monorepo-bootstrap/scripts/check-assets.sh)
