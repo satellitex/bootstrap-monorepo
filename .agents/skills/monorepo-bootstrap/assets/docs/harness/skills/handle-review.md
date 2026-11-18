@@ -20,11 +20,12 @@ PR レビューコメントを取得し、批判的に評価した上で自律�
 | 項目    | 必須 | 説明                                          | 例                    |
 | ------- | ---- | --------------------------------------------- | --------------------- |
 | PR 番号 | No   | 対象 PR。省略時は現在ブランチの PR を自動検出 | `/handle-review #<N>` |
+| `--reply-only` | No | 指摘を評価して理由を返信し、コードの修正が必要なものは作成者に返す | `/handle-review --reply-only #<N>` |
 
 ## フロー
 
 ```
-/handle-review [#PR]
+/handle-review [--reply-only] [#PR]
   ├─ 1. PR 特定とコメント取得
   ├─ 2. 前処理（ADR ルックアップ・重複グルーピング）
   ├─ 3. コメント分析と対応方針の策定（自律判断・first-match 判定表）
@@ -35,6 +36,8 @@ PR レビューコメントを取得し、批判的に評価した上で自律�
   └─ 8. 結果サマリ出力（Comment ID 付き）
 ```
 
+`--reply-only` は Step 1〜3 の読み取り・判定と、Step 4 の返信、Step 8 の結果報告だけを行う。Issue・ADR・修正ブランチの作成、本文編集、commit、push は行わない。対応不要と確認した指摘には根拠を返信し、解決したスレッドのみ resolve する。修正・人の判断・別 Issue での追跡を要する指摘は、その理由を返信して未解決のまま残し、サマリに `要対応` と対象 ID を記録する。同じ指摘に同じ根拠の返信があれば再投稿を省く。このモードでの `Changes committed: No` は全指摘の解決を意味しない。
+
 ## Step 1: PR 特定とコメント取得
 
 PR 番号が未指定の場合、現在のブランチから PR を自動検出する。
@@ -44,6 +47,7 @@ PR 番号が未指定の場合、現在のブランチから PR を自動検出�
 1. 未解決のレビューコメント（スレッド）
 2. `CHANGES_REQUESTED` レビュー（本文付き）
 3. 本文付きの `COMMENTED` レビュー（bot からの指摘を含む）。本文が空のもの（GitHub が line comment 時に自動生成するレビュー）は除外する
+4. PR の会話欄のうち、差分に関する具体的な修正・判断を求めるコメント
 
 非アクションの CI ノイズ（機械生成コメント、auto マーカー付きの `LGTM` のみのコメント、check status の通知のみの CI イベント）は、`docs/harness/skills/shared/sync-noise-filter.md` の「1. 非アクションの CI ノイズを除外する」に従って除外する。bot のマーカー文字列は `/review-cycle` の profile（`.claude/skills/review-cycle/references/ci-and-conflict-profile.md` の「CI レビュー bot」節）の値を読む。本 skill を単独で呼ぶ場合も同じ値を読む。除外した件数だけを「CI noise」として Step 8 サマリに含める。`/review-cycle` から呼ばれた場合、auto LGTM のコメントは呼び出し元が終了判定のシグナルとして保持し、本 skill には渡さない。
 

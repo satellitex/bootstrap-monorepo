@@ -83,7 +83,7 @@ skill を経由しない作業でも、次の規定は変わらない: commit �
 Skill 間の接続のみを示す。各 skill の内部フローは `docs/harness/skills/<name>.md` を正本とする。
 
 ```
-[Issue 群] → /multi-issue または メインエージェント判断 → open PR → 人間レビュー・マージ（merge で Issue 自動 close）
+[Issue 群] → /multi-issue または メインエージェント判断 → open PR → レビュー・承認モデルに従ってマージ（merge で Issue 自動 close）
 ```
 
 ### Issue 番号の直接指示時のトリアージ
@@ -126,6 +126,7 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 | ---------------------- | ---------------------- | ------------------------------------------------------------- |
 | `/feedback-triage`     | opt-in:chat-feedback   | Slack / Discord で提案を確認し、承認済みの項目を Issue にする |
 | `/daily-implement`     | opt-in:daily-implement | 自動実装ラベルを付けた Issue を起票元にかかわらず実装する     |
+| `/pr-auto-merge`       | opt-in:pr-auto-merge   | 委任された開発ブランチ向け PR の影響・CI・レビューを確認し、判定した head を squash merge する |
 | `/renovate-sync`       | opt-in:renovate        | 依存 pin 箇所と Renovate 設定の突合 PR                        |
 | `/public-arch-sync`    | opt-in:public-site     | 内部設計正本から公開射影ドキュメントへの追従 PR               |
 | `/customer-doc-review` | opt-in:public-site     | 対外ドキュメントの多視点レビュー                              |
@@ -138,6 +139,8 @@ opt-in の行は、採用したグループの分だけを置く。定期実行�
 > 人間の明示承認が必須なのは次の 2 つのみ: (1) 課金が発生する操作（有償リソースの作成・プラン変更・外部サービス契約） (2) 秘密値の挿入・変更（credential / API key / token を設定へ投入する操作）。
 > ブランチモデルは main = dev 環境 / release = prod 環境。main は壊れても復旧可能な開発環境であり、開発過程ではセキュリティより柔軟性を優先する。
 > prod リリースのみ手順を踏む: main の安全性確認 → release への反映手順の確認（→ `docs/harness/skills/deploy-verify.md`）。
+
+opt-in:pr-auto-merge を採用する場合は、委任したリポジトリ・開発ブランチと制約を `docs/harness/skills/pr-auto-merge/profile.md` に記入する。この範囲では `docs/harness/skills/pr-auto-merge.md` の条件がそろえば、対話・無人のどちらでもマージできる。個別の保留、ブランチ保護・必須レビュー、本番リリースの手順は引き続き適用する。
 
 ### 人間引き渡し境界（既定: なし）
 
@@ -161,7 +164,7 @@ opt-in の行は、採用したグループの分だけを置く。定期実行�
 
 ### ブランチ
 
-- `main` = dev 環境 / `release` = prod 環境（上記承認モデル参照）
+- 既定は `main` = dev 環境 / `release` = prod 環境。導入先に既存の構成がある場合は開発用・本番用の実際のブランチ名を本節に記入する。各手順の `origin/main`・`release` はその役割を持つブランチ名に読み替える（上記承認モデル参照）
 - 作業ブランチは常に最新の `origin/main` を起点に切り、変更は Pull Request として提出する。PR の base は常に既定ブランチで、draft にしない（→ `docs/harness/skills/shared/pr-creation.md`）
 - エージェントの定期実行・sync 系の作業ブランチは `agent/<skill-name>-YYYY-MM-DD`（同日重複は末尾 `-2`）。共通フロー → `docs/harness/skills/shared/sync-pr-flow.md`
 - PR body には `Closes #<番号>` 等の closing keyword を記載する（→ `docs/styles/team-feedback/pr-closing-keyword.md`）

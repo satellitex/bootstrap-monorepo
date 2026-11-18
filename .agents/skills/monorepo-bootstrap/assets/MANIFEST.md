@@ -129,6 +129,8 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | docs/harness/skills/create-issue.md                      | Issue 作成                               | core               |
 | docs/harness/skills/handle-review.md                     | レビューコメントの評価と対応             | core               |
 | docs/harness/skills/review-cycle.md                      | LGTM までの自律対応                      | core               |
+| docs/harness/skills/pr-auto-merge.md | 委任された開発ブランチ向け PR の判定・マージ・報告 | opt-in:pr-auto-merge |
+| docs/harness/skills/pr-auto-merge/profile.md | 対象ブランチ、作成元、保留条件、実行上限の設定 | opt-in:pr-auto-merge |
 | docs/harness/skills/multi-issue.md                       | Planner–Worker 並列実装                  | core               |
 | docs/harness/skills/promote-memory.md                    | 個人 memory から team rule への昇格      | core               |
 | docs/harness/skills/runbook-alignment.md                 | 運用手順書と実装の照合                   | core               |
@@ -207,6 +209,15 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | tests/harness/harness-gates-e2e.test.mjs              | gate の結合テスト                                                                                                             |
 | tests/harness/harness-support.test.mjs                | support とランナーの自己テスト                                                                                                |
 
+### PR の自動マージ（opt-in:pr-auto-merge）
+
+| パス | 用途 |
+| --- | --- |
+| scripts/pr-auto-merge/gate.mjs | マージ条件の照会と、確認済み head SHA を指定した squash merge |
+| tests/harness/pr-auto-merge-gate.test.mjs | ゲートの判定とマージ操作の回帰検査 |
+
+正本・profile と Claude 用 adapter は上の skill の表に従う。Codex は `docs/harness/OPERATING_MODEL.md` の一覧から同じ正本を読む。
+
 ### チャットからのフィードバック（opt-in:chat-feedback）
 
 | パス | 用途 |
@@ -269,6 +280,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 採用する project                                                             | 不採用にする場合                                   |
 | --------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| `opt-in:pr-auto-merge` | 開発ブランチへのマージが委任され、対象・保留条件を設定できる | 人がマージする、または委任する範囲が未確定 |
 | `opt-in:daily-implement` | GitHub Issue を共通の実装キューから定期的に処理する | 実装は手動で依頼する |
 | `opt-in:chat-feedback` | Slack または Discord の投稿から、承認を経て GitHub Issues で変更を追跡する | この受付経路を使わない |
 | `opt-in:renovate`     | Renovate で依存を更新する                                                    | Renovate を使わない                                |
@@ -288,6 +300,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 除去する資産                                                                                                                                    | 処置の種類                                                                                                                           |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `opt-in:pr-auto-merge` | `/pr-auto-merge` の正本・adapter・profile、ゲートと対応テスト | skill 表、マージ委任、routine、テスト一覧、PR 作成・同期・レビュー終了からの起動を除く。採番を採用している場合は採番規定の自動マージ実行に関する記述だけを除き、採番区間の判定を残す |
 | `opt-in:daily-implement` | `/daily-implement` の正本と adapter | skill 表、routine、キュー専用ラベルと着手時の案内を除く。受付を採用している場合は実装担当を手動にする |
 | `opt-in:chat-feedback` | `/feedback-triage` の正本・adapter・profile、チャットの共通契約、CLI と対応テスト | skill 表、routine、無人 run 契約、受付用ラベル、テスト一覧、設定例の該当箇所を除く。実装キュー採用時はスレッドへの返信手順のみ除く |
 | `opt-in:renovate`     | `renovate.json`・`/renovate-sync` の正本と adapter                                                                                              | 行の削除                                                                                                                             |
@@ -295,7 +308,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 | `opt-in:submodule`    | `pre-commit-submodule-guard.sh`・`bin/submodule-guard.sh`・それぞれのテスト（`test-pre-commit-submodule-guard.sh` / `test-submodule-guard.sh`） | hook 本体とテストの一括削除（hook を残してテストだけ消すと、`run-all.sh` の逆向き検査が失敗する）。hook を有効化する区画と手順の削除 |
 | `opt-in:traceability` | `docs/product/tests/`                                                                                                                           | 行・項の削除。手順の番号を詰める                                                                                                     |
 | `opt-in:incident`     | `docs/postmortems/`・`docs/templates/`                                                                                                          | 行の削除。公開前 gate のパターン（public-site を採用している場合のみ）は語句だけ削除                                                 |
-| `opt-in:versioning`   | `docs/product/API_VERSIONING.md`                                                                                                                | 語句と行の削除                                                                                                                       |
+| `opt-in:versioning`   | `docs/product/API_VERSIONING.md` | 採番規定への参照を除く。自動マージを採用している場合は採番への引き渡しだけを除き、公開契約の互換性判定を残す |
 
 条件付きで落とす core 資産も、同じ検索で残存参照を処理する。
 

@@ -5,5 +5,5 @@ description: PR のレビューコメントに対応する場合に使う。ADR 
 
 # /handle-review
 
-正本は `docs/harness/skills/handle-review.md`。これを読み、記載の手順どおり実行する。
+正本は `docs/harness/skills/handle-review.md`。これを読み、記載の手順どおり実行する。`--reply-only` は指摘の評価と返信を行い、要修正の項目を作成者に返す。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。

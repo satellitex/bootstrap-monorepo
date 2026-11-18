@@ -53,6 +53,7 @@ skill は責務レイヤごとに分けている。名前は tool-neutral にし
 | 実装フロー | `multi-issue` | 複数 issue を Planner–Worker で並列実装し、独立した review pass を経て issue ごとに PR を作る（PR の base は常に既定ブランチ） |
 | 検証 | （skill ではなく共通契約 `shared/verification-gates.md`） | 検証ゲートの名前付き組合せ（`gate:commit` / `gate:push` / `gate:ci` / `gate:docs`）。skill・hook・CI が同じ名前で参照する |
 | レビュー | `handle-review` / `review-cycle` | レビューコメントの批判的評価と、LGTM までの自律対応（conflict 解消・CI 失敗の修正を含む） |
+| 開発ブランチへのマージ（opt-in） | `pr-auto-merge` | 委任された範囲で PR ごとに影響・CI・人の保留を判定し、確認済みの head をマージする |
 | 記録 | `create-issue` / `create-adr` | Issue と ADR の構造的記録（ADR は置換・廃止の手順を含む） |
 | 鮮度維持（`*-sync`） | `readme-sync` / `docs-sync` / `code-sync` / `refactor-guide-sync` | README・現状層 docs・ソースコメント・規約ガイドの drift 検知。記述と実装の矛盾は「記述修正 / 実装疑い / 判定不能」に分類してから直す |
 | 照合・提案 | `runbook-alignment` / `refactor-sync` | 手順書の未確定事項と実装の照合（差異評価表を PR 本文へ）、コード課題の Issue 提案（refactorer agent を起動する入口） |

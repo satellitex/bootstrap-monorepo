@@ -5,5 +5,5 @@ description: PR を LGTM まで自律対応させたい場合に使う。判定�
 
 # /review-cycle
 
-正本は `docs/harness/skills/review-cycle.md`。これを読み、記載の手順どおり実行する。
+正本は `docs/harness/skills/review-cycle.md`。これを読み、記載の手順どおり実行する。`--once` は 1 回の状態取得と対応の結果を呼び出し元に返す。
 プロジェクト固有値は本ディレクトリの `references/` 配下 profile を参照する（存在する場合のみ）。

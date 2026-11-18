@@ -43,7 +43,7 @@ docs/harness/skills/renovate-sync.md      (opt-in:renovate)
 docs/harness/skills/public-arch-sync.md   (opt-in:public-site)
 ```
 
-共通後段（origin/main 基準、0 件終了、open PR ガード、fail-closed 照会、1 スキャン 1 PR、識別ラベルの付与）と、ノイズ除外・実装整合・INDEX の更新主体・通知の共通契約は `docs/harness/skills/shared/`（sync 専用は `sync-` 接頭辞）を参照し、各 skill doc 本文に複製しない。
+共通後段（origin/main 基準、0 件終了、open PR ガード、fail-closed 照会、1 スキャン 1 PR、識別ラベルの付与）と、ノイズ除外・実装整合・INDEX の更新主体・通知の共通契約は `docs/harness/skills/shared/`（sync 専用は `sync-` 接頭辞）を参照し、各 skill doc 本文に複製しない。開発ブランチへの自動マージを採用する場合は、新規作成した同期 PR の番号と head SHA を同じ実行で共通後段から引き渡す。追加の sync workflow もこの入口を使う。
 
 Each workflow should be tool-neutral.
 Claude 側は `.claude/skills/<name>/SKILL.md` を薄い adapter とし、正本の手順を複製しない。

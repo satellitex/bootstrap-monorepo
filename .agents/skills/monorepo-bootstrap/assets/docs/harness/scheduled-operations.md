@@ -15,6 +15,7 @@
 | 週次（opt-in:public-site 採用時のみ）          | `/public-arch-sync`    | 内部設計正本と公開射影の差分を検出し追従 PR                   |
 | 定期（opt-in:chat-feedback、受付間隔を設定）   | `/feedback-triage`     | 提案・承認・起票と元スレッドへの進捗返信                      |
 | 定期（opt-in:daily-implement、実装間隔を設定） | `/daily-implement`     | 自動実装ラベルを付けた Issue を一つのキューから選ぶ           |
+| 定期（opt-in:pr-auto-merge、実行間隔を設定）  | `/pr-auto-merge`       | 委任範囲の open PR を順に判定し、マージ・保留・持ち越しを報告する |
 | 隔週                                           | `/gc-scan`             | ハーネスの重複・孤児・デッド参照を検出し修正 PR               |
 | 隔週                                           | `/adr-compress`        | ADR コーパスの肥大化を圧縮する PR                             |
 | 隔週                                           | `/refactor-guide-sync` | 規約正本とリファクタガイドの検出基準を突合する PR             |
@@ -28,6 +29,7 @@
 - routine の実体（scheduler 上の設定）は repo の外にある。repo が正本とするのはこのカタログと次節の起動プロンプトの形で、scheduler 側の設定は写しとして扱う。カタログの行を変えたら、scheduler 側も同時に更新する。写しが先に変わると、カタログが実際の登録と食い違うため。
 - カタログに載せるのは routine で起動する skill だけにする。手動起動だけの skill（`/runbook-alignment` など）は載せない。カタログを scheduler 側の登録と 1 対 1 に保つため。
 - sync 系の tick 重複は各 skill 側の open PR ガード（`docs/harness/skills/shared/sync-pr-flow.md`）で扱う。
+- opt-in:pr-auto-merge は対象リポジトリの委任範囲を確認し、初回は `--dry-run` で対象と保留理由を検証する。複数リポジトリをまとめる場合は同じ所有者の対象を実行環境に clone して `--all-repos` を指定する。実行間隔と `--max` は対象数に合わせる。開発期間モードは適用期間と対象環境が profile の条件に合うときだけ登録する。
 - opt-in:daily-implement は GitHub を起点に、リポジトリごとに 1 本登録する。手動 run も同じ実行枠で直列化する。初回は `/daily-implement --dry-run` で選定と除外理由を確かめる。
 - opt-in:chat-feedback は受付先ごとに `/feedback-triage --dry-run` で確認する。全受付先の triage と手動 run は同じリポジトリの実行枠を使い、自動実装を併用するときはそのキューとも直列化する。リリースは導入先の周期と承認手順に従う。定期リリースを採用する場合は既存の配備ジョブを使う。`/deploy-verify prod` を定期起動する構成では反映 PR まで進み、マージまで委任済みの場合だけ登録時に `--merge` を付ける。次の triage が配備結果を確認する。
 - routine が作る PR は `agent/<skill-name>-YYYY-MM-DD` ブランチに作る（→ `docs/harness/skills/shared/sync-pr-flow.md`）。PR / Issue に付ける `routine:<skill-name>` ラベルの一覧は `.claude/skills/create-issue/references/project-fields.md` を正本とする。`/refactor-sync` は PR を作らず、提案 Issue を起票する。
