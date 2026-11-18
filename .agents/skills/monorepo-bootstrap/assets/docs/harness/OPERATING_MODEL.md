@@ -122,11 +122,13 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 
 ### opt-in
 
-| コマンド               | グループ           | 用途                                            |
-| ---------------------- | ------------------ | ----------------------------------------------- |
-| `/renovate-sync`       | opt-in:renovate    | 依存 pin 箇所と Renovate 設定の突合 PR          |
-| `/public-arch-sync`    | opt-in:public-site | 内部設計正本から公開射影ドキュメントへの追従 PR |
-| `/customer-doc-review` | opt-in:public-site | 対外ドキュメントの多視点レビュー                |
+| コマンド               | グループ               | 用途                                                          |
+| ---------------------- | ---------------------- | ------------------------------------------------------------- |
+| `/feedback-triage`     | opt-in:chat-feedback   | Slack / Discord で提案を確認し、承認済みの項目を Issue にする |
+| `/daily-implement`     | opt-in:daily-implement | 自動実装ラベルを付けた Issue を起票元にかかわらず実装する     |
+| `/renovate-sync`       | opt-in:renovate        | 依存 pin 箇所と Renovate 設定の突合 PR                        |
+| `/public-arch-sync`    | opt-in:public-site     | 内部設計正本から公開射影ドキュメントへの追従 PR               |
+| `/customer-doc-review` | opt-in:public-site     | 対外ドキュメントの多視点レビュー                              |
 
 opt-in の行は、採用したグループの分だけを置く。定期実行に載せる skill と頻度は `docs/harness/scheduled-operations.md` の routine カタログを正本とする。
 

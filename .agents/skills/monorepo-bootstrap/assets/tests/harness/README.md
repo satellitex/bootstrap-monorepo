@@ -31,6 +31,7 @@ HARNESS_ROOT=/path/to/repo pnpm harness:test       # 検査対象のルートを
 | `check-agent-launch-paths.test.mjs`                | agent の起動経路（または orphan-allow の宣言）                                                                                          |
 | `check-adr-compression-lossless.mjs` / `.test.mjs` | ADR の要約圧縮の無損失検証 CLI と、その自己テスト                                                                                       |
 | `harness-gates-e2e.test.mjs`                       | 違反の無い最小のルートで全 gate が通り、gate ごとに違反を注入すると失敗する                                                             |
+| `feedback-*.test.mjs`                              | opt-in:chat-feedback の CLI、スレッドの読み書き、承認判定、添付取得を模擬 API で検査                                                    |
 | `harness-support.test.mjs`                         | `support/` のヘルパとランナーの自己テスト、空のルートでの退化ガード                                                                     |
 
 共有ヘルパは `support/` に置く。`repo-files.mjs` はルートの解決・ファイル列挙・除外定数の検査、`markdown.mjs` はルートに依存しない markdown の簡易解析・frontmatter の読み取り・計測、`gates.mjs` は走査系の gate を子プロセスで実行するヘルパである。

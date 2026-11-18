@@ -117,6 +117,10 @@ PR 本文に以下を確定して記録する（棚卸し表は「背景」、�
 
 表に列挙していない MANIFEST core 資産（`DEVELOPMENT.md`、`.gitignore`、`docs/requirements/`、`docs/product/` 骨格、`docs/runbooks/`、`docs/notes/`、`docs/audit/` 等）は Phase 1 に含める。
 
+`opt-in:chat-feedback`（チャット受付）と `opt-in:daily-implement`（Issue の定期実装）は個別に判断する。受付を採用するときは、既存の受付チャンネル、承認者、Issue のラベル、配備結果の確認方法を棚卸しする。受付用の bot と既存の一方向通知 webhook は用途ごとに設定する。
+
+定期実装を採用するときは、既存キューの選定条件・実行者・登録済みスケジュールを確認し、全起点の入口を収録済みの `/daily-implement` に揃える。例えば `/refactor-sync` の提案は、着手指示を受けて `auto-implement` ラベルが付いた段階で実装候補にする。既存の実装処理は選定後の委譲先に設定する。既存の定期実行が同じ Issue を選ぶ場合はその起動先を `/daily-implement` に切り替え、登録を一つにする。
+
 導入原則（全 Phase 共通）:
 
 - **既存優先**: 対象 repo の既存規約・既存ファイルとテンプレートが矛盾する場合、既存を書き換えず、テンプレート側の導入方法を調整する。置き換えた方がよいと判断した場合も、置き換えは提案（PR 内の別コミット + PR 本文で明示）に留める。
