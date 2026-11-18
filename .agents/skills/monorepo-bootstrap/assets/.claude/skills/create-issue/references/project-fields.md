@@ -153,6 +153,21 @@ TODO(取得方法: `gh label list` で上記 4 ラベルの実在を確認し、
 TODO(取得方法: `gh label list` で上記 3 ラベルの実在を確認し、未作成なら
 `gh label create <name> --description "<用途>"` で作成する)
 
+### 自動実装キューのラベル（opt-in:daily-implement）
+
+| ラベル           | 用途                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `auto-implement` | 自動実装を依頼する open Issue。起票元を問わず同じキューへ入れる |
+| `implementing`   | キューから選ばれ、実装に着手した Issue                          |
+
+### フィードバック受付のラベル（opt-in:chat-feedback）
+
+| ラベル            | 用途                             |
+| ----------------- | -------------------------------- |
+| `source:feedback` | チャットの項目から起票した Issue |
+
+導入先で使う既存ラベルに対応づける場合は、本表と下の routine ラベル表をその名称に揃える。
+
 ### routine ラベル
 
 routine（定期実行）を起点にする skill が作った PR / Issue に付け、人間が一覧で見分ける目印にする。
@@ -169,6 +184,7 @@ routine（定期実行）を起点にする skill が作った PR / Issue に付
 | `routine:adr-compress`        | `/adr-compress` が作った PR                                     |
 | `routine:refactor-guide-sync` | `/refactor-guide-sync` が作った PR                              |
 | `routine:refactor-sync`       | `/refactor-sync` が起票した Issue（`refactor:proposal` と併用） |
+| `routine:feedback-triage`     | `/feedback-triage` が作成する Issue（opt-in:chat-feedback）     |
 | `routine:renovate-sync`       | `/renovate-sync` が作った PR（採用時のみ）                      |
 | `routine:public-arch-sync`    | `/public-arch-sync` が作った PR（採用時のみ）                   |
 

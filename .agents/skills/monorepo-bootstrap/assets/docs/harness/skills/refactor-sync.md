@@ -27,6 +27,8 @@
 
 提案 Issue には、agent が付ける `refactor:proposal` ラベルと、処理 3 で付ける `routine:refactor-sync` ラベルが併存する。
 
+opt-in:daily-implement を採用する場合、リファクタ提案の実装を依頼する担当者は、既存の着手指示 `refactor:approved` とともに `auto-implement` を付ける。`/daily-implement` が他の起票元の Issue と一緒に選定する。
+
 ## 責務分界
 
 | 対象                                                                      | 担当                         |
