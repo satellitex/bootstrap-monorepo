@@ -12,7 +12,7 @@ Codex と Claude Code で使えるモノレポ運用テンプレートです。�
 | `docs/` | 要件、設計判断（ADR）、運用手順を記録する。`docs/harness/skills/` には両エージェントが使う手順を収録 |
 | `.claude/` | Claude Code のスキル呼び出し口、エージェント、開発ルール、コミット前や push 前のフック |
 | `.github/workflows/` · `tests/harness/` | GitHub Actions でテストとビルドを実行し、文書の参照先やスキルの構成も検査する |
-| `scripts/` | 任意で導入できるチャット受付や PR 自動マージのスクリプト |
+| `scripts/` | 任意で導入できるチャット受付、PR 自動マージ、ペルソナによる利用テストのスクリプト |
 
 ## インストール
 
@@ -41,6 +41,7 @@ npx skills add satellitex/bootstrap-monorepo -g --skill '*' -a claude-code codex
 
 - Slack や Discord の投稿を、担当者の承認後に GitHub Issue にする。[チャットからの受付](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)
 - `auto-implement` ラベル付きの Issue を定期的に実装し、PR を作る。[Issue の定期実装](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/daily-implement.md)
+- AI が演じる複数のペルソナに、検証環境のプロダクトをブラウザで実際に触らせ、改善してほしい点を画面の画像つきで集める。[ペルソナによる利用テスト](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/persona-test.md)
 - 指定した条件を満たす PR を開発ブランチへ自動マージする。[PR の自動マージ](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/pr-auto-merge.md)
 
 ## テンプレートの整合検査

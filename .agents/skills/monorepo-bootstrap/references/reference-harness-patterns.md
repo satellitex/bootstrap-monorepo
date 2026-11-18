@@ -61,6 +61,7 @@ skill は責務レイヤごとに分けている。名前は tool-neutral にし
 | 運用 | `deploy-verify` | deploy 一気通貫と、prod の release 反映（merge commit 限定・前提ゲート・マージ後の step 単位確認） |
 | 公開区画（opt-in:public-site） | `public-arch-sync` / `customer-doc-review` | 内部正本 → 公開射影の追従と、対外 docs のレビュー |
 | 定期実装（opt-in:daily-implement） | `daily-implement` | 手動登録・保守作業からの提案・チャット受付などの Issue から着手条件を満たしたものを選び、PR を作る |
+| 利用テスト（opt-in:persona-test） | `persona-test` | AI が演じるペルソナごとに画面なしの独立したブラウザで公開面と検証環境を触り、改善点を画面の画像つきで送り先に届ける |
 | チャットでの受付（opt-in:chat-feedback） | `feedback-triage` | スレッドで項目ごとの案と承認を受け付け、Issue にして対応状況を同じスレッドへ返す |
 | 依存自動化（opt-in:renovate） | `renovate-sync` | 依存 pin ↔ 依存更新設定の突合 |
 
