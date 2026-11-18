@@ -73,7 +73,7 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 1. 作成先のディレクトリ（新規の空ディレクトリ、または作成先 repo の checkout）で Claude Code（または Codex）を起動する。
 2. `/monorepo-bootstrap <product overview>` を実行し、作成先（ローカルパス or GitHub repo 名）、制約（provider / DB / 納期など）、project language、deploy 目標を伝える。
 3. 以降は自律実行される: 技術調査 → Gate A（選定を領域ごとの ADR と TECH_STACK に確定）→ 実装計画 → 基盤 scaffold → `assets/` からの copy + placeholder 置換 → 環境 / CI → 初期実装 → deploy 検証 → open PR。
-4. 人間がやること: 課金・秘密値の承認、PR レビューとマージ、routine 登録（生成された `docs/harness/scheduled-operations.md` のカタログ参照）。
+4. 人間がやること: 課金・秘密値の承認、導入 PR のレビューとマージ、routine 登録（生成された `docs/harness/scheduled-operations.md` のカタログ参照）。
 
 ### B. 既にある repo に導入する — `/harness-adopt`
 
@@ -93,6 +93,10 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 `opt-in:daily-implement` を選ぶと、`/daily-implement` が `auto-implement` ラベル付きの open Issue を選び、PR を作る。手動で登録した Issue、着手が決まった `/refactor-sync` の提案、チャットで自動実装まで承認された依頼を、同じキューで扱える。[実装手順](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/daily-implement.md)
 
 受付と実装は個別に採用できる。チャット受付だけなら承認した要望を Issue にして担当者が実装する。定期実装を採用した場合は、すべての出所の自動実装を `/daily-implement` に集約する。既存キューがあればその実装処理を委譲先として使い、同じ Issue を選ぶ定期実行を一本化する。
+
+### 開発ブランチへのマージを委任する
+
+`opt-in:pr-auto-merge` を選び、対象ブランチ、保留条件、実行上限を設定する。PR 作成後、レビュー対応後、定期実行から同じ手順を使える。`/pr-auto-merge --dry-run` で候補と判定理由を確認できる。採番も採用する場合は、マージ処理後の開発ブランチを採番規定に引き渡す。[自動マージ手順](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/pr-auto-merge.md)
 
 ### 使い分け
 

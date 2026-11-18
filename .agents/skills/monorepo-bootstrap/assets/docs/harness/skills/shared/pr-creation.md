@@ -14,13 +14,15 @@
 4. **base を確認する**（「## PR の base」に従う）。
 5. **open 前の衝突検査**を行う（「## open 前の衝突検査」に従う）。
 6. PR 本文を組み立てる。構成は「## PR 本文の標準節」に呼び出し側が指定する節を加えたものとし、Issue との linkage は「## closing keyword の注入」に従って**決定的に**埋める（placeholder のまま残さない）。
-7. `gh pr create --base main` で PR を作成する（通常 PR。「## draft にしない」に従う）。直前に「## closing keyword の注入」の self-check を通す。
+7. `gh pr create --base "$dev_branch"` で PR を作成する（通常 PR。「## draft にしない」に従う）。直前に「## closing keyword の注入」の self-check を通す。
+
+opt-in:pr-auto-merge を採用し、PR の対象ブランチへのマージを委任済みの場合は、作成後に `/pr-auto-merge #<番号>` を 1 回呼び、PR URL と実行結果を報告する。sync 系では `docs/harness/skills/shared/sync-pr-flow.md` のラベル付与後の手順を、実装とレビューを一続きで行う場合は `/review-cycle` の終了時の手順を使う。採番 PR のように呼び出し元がすでにマージ判定を管理している場合は、番号と作成時の head SHA をその呼び出し元へ返す。
 
 ## PR の base
 
-PR の base は常に既定ブランチ（`main`）である。`release` には prod リリース手順（→ `docs/harness/skills/deploy-verify.md`「release 反映（prod）」）でのみ反映するため、自動 PR の base にしない。
+PR の base には、導入先の承認モデルで定めた開発ブランチ（以下 `dev_branch`、既定構成では `main`）を使う。導入先が別名を使う場合、`dev_branch` にその名前を設定する。ブランチ名は対象リポジトリの承認モデルから取得し、本番向けのブランチはリリース手順に渡す。REST / MCP でも同じ名前を PR 作成時の base に明示する。
 
-`gh pr create` は `--base` 未指定でも既定ブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `origin/main` を fetch し、HEAD との merge-base を計算できることを確認する。計算できない場合は、原因を切り分ける。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）なら `git fetch --unshallow` を実行して merge-base を再計算し、なお計算できなければ PR を作らず、失敗として報告する。fetch 権限やネットワーク接続など、それ以外の原因は run 側で直せないため、PR を作らず、失敗として報告し、origin への fetch 権限とネットワーク接続の確認を案内する。
+`gh pr create` は `--base` 未指定でも既定ブランチを base に使うが、fetch 失敗や ref 不在で誤った base へ静かにフォールバックすることを避けるため、Step 4 で `git fetch origin "refs/heads/$dev_branch:refs/remotes/origin/$dev_branch"` を実行し、`git merge-base HEAD "origin/$dev_branch"` で共通の起点を確認する。計算できない場合は、原因を切り分ける。原因が shallow clone（`git rev-parse --is-shallow-repository` が `true`）なら `git fetch --unshallow` を実行して merge-base を再計算し、なお計算できなければ PR を作らず、失敗として報告する。fetch 権限やネットワーク接続など、それ以外の原因は run 側で直せないため、PR を作らず、失敗として報告し、origin への fetch 権限とネットワーク接続の確認を案内する。
 
 ### 積み上げ PR を作らない
 
@@ -29,15 +31,15 @@ PR の base は常に既定ブランチ（`main`）である。`release` には 
 - closing keyword は既定ブランチ向けの PR でのみ発火する。base が前 PR のブランチだと、マージ時の Issue の auto-close と Projects の Status 自動更新が効かない。
 - 後続 PR の差分が前 PR の変更に依存するため、前 PR がレビューで変わるたびに後続 PR の rebase とレビューのやり直しが発生する。
 
-直列に進める必要がある後続の作業は、前 PR のマージ後に `origin/main` を起点に着手する。マージを待つ間に実装だけ先行する場合も、PR の open は前 PR のマージ後（`origin/main` へ rebase した後）まで保留する。
+直列に進める必要がある後続の作業は、前 PR のマージ後に対象開発ブランチの最新の先端を起点に着手する。マージを待つ間に実装だけ先行する場合も、PR の open は前 PR のマージ後（対象開発ブランチへ rebase した後）まで保留する。
 
 ## open 前の衝突検査
 
-並列に open している他の PR との衝突は、PR を open する前に予測する。衝突が予測される PR は open せず、相手の PR のマージ後に `origin/main` へ rebase してから open する。open 後に衝突が判明すると、レビュー済みの PR が merge できなくなるためである。open を保留した場合は、ブランチを push 済みのまま、保留した事実と相手の PR を完了報告に記載する。
+並列に open している他の PR との衝突は、PR を open する前に予測する。衝突が予測される PR は open せず、相手の PR のマージ後に対象開発ブランチへ rebase してから open する。open 後に衝突が判明すると、レビュー済みの PR が merge できなくなるためである。open を保留した場合は、ブランチを push 済みのまま、保留した事実と相手の PR を完了報告に記載する。
 
 `git merge-tree --write-tree` は git 2.38 以上が前提で、作業ツリーとインデックスを変更しない。git 2.38 未満かどうかは、`git merge-tree --write-tree HEAD HEAD` が成功するかで判定し、未対応の環境では検査を skip して、skip した事実を PR 本文の「リスク」節に書く。
 
-open 中の他 PR の head ブランチ一覧は `docs/harness/skills/shared/gh-query-fail-closed.md` に従って取得し、自分の head ブランチを除く。各 head ブランチ `<b>` について `origin/<b>` を fetch し、`git merge-tree --write-tree --name-only HEAD origin/<b>` で仮マージする。終了コード 0 は衝突なし、1 は衝突ありで、出力の 2 行目から空行までが衝突ファイルである。衝突ありの PR は、ブランチ名と衝突ファイルを列挙する。`origin/<b>` を解決できない PR は、skip して報告する。
+同じ開発ブランチを base とする open PR の head ブランチ一覧は `docs/harness/skills/shared/gh-query-fail-closed.md` に従って取得し、自分の head ブランチを除く。各 head ブランチ `<b>` について `origin/<b>` を fetch し、`git merge-tree --write-tree --name-only HEAD origin/<b>` で仮マージする。終了コード 0 は衝突なし、1 は衝突ありで、出力の 2 行目から空行までが衝突ファイルである。衝突ありの PR は、ブランチ名と衝突ファイルを列挙する。`origin/<b>` を解決できない PR は、skip して報告する。
 
 ## draft にしない
 
@@ -54,6 +56,8 @@ PR は通常 PR（ready for review）で作る。draft の PR は CI 上のレ�
 ## PR 本文の標準節
 
 計画・判断の根拠・検証結果は、PR 本文と commit、設計判断としての ADR に残す。PR 本文は次の 5 節を標準とする。該当する内容がない節は、節ごと省かず「なし」と書く（省略した節と、確認し忘れた節を区別できなくなるため）。
+
+opt-in:pr-auto-merge を採用する場合、マージ前に人の判断が必要な事項（未達の受入条件、明示された待機条件を含む）は、追加の節 `## 人間に判断してほしい点` に具体的に記録する。どの変更で何を決める必要があるかを書き、未決事項がないときはこの節を省略できる。
 
 ```markdown
 <linkage 行（Closes #<番号> 等。「## closing keyword の注入」に従う）>
@@ -72,7 +76,7 @@ PR は通常 PR（ready for review）で作る。draft の PR は CI 上のレ�
 | 節           | 書くこと                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 背景         | この変更が必要な理由と、対象の Issue・事象。Issue がある場合は受入条件をチェックリストで引用する                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| 方針と却下案 | 採った方針と理由、退けた案と退けた理由（1 案ごとに 1 行）。選択肢や判断待ちが残っていた Issue でも、確認を求める形にせず確定した案として書く（案の選び方 → `docs/styles/team-feedback/single-solution.md`）。人間はこの記録を PR のレビューで覆せる。人間の確認・判断を求める見出しを置くのは、選んだ案が承認必須 2 種（課金・秘密値）に該当する場合と、`docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」に定めた区分に該当する場合だけである。複数案からの選択や既存方針の撤回など、設計判断として残すべきものは ADR に記録し、リンクを添える |
+| 方針と却下案 | 採った方針と理由、退けた案と退けた理由（1 案ごとに 1 行）。選択肢や判断待ちが残っていた Issue でも、確認を求める形にせず確定した案として書く（案の選び方 → `docs/styles/team-feedback/single-solution.md`）。人間はこの記録を PR のレビューで覆せる。選んだ案が承認必須 2 種（課金・秘密値）か `docs/harness/OPERATING_MODEL.md` の「人間引き渡し境界」に該当する場合は、人間の判断が必要な点を明記する。複数案からの選択や既存方針の撤回など、設計判断として残すべきものは ADR に記録し、リンクを添える |
 | スコープ外   | この PR で扱わなかったことと、その追跡先（Issue 番号）。Issue scope を超える指摘は scope 内で対応せず、ここへ記録する                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 検証結果     | 実行した検証ゲート（`gate:commit` 等の名前と結果）、追加・変更したテストの要旨、手動確認の内容。未検証の範囲は「未検証: <範囲と理由>」と書く                                                                                                                                                                                                                                                                                                                                                                                                          |
 | リスク       | 影響範囲、互換性、問題が出たときの戻し方、残る不確実性。衝突検査を skip した場合はその旨をここに書く                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -88,7 +92,7 @@ repository の立ち上げ（bootstrap）と既存 repository への導入（ado
 
 ## closing keyword の注入
 
-PR merge 時の Issue auto-close と Projects の Status 自動更新は、PR body の closing keyword で発火する。PR title の `#<num>` では発火しないため、linkage は title ではなく body へ確実に注入する。PR の base は常に既定ブランチなので、発火の条件は満たされる。keyword の文法・複数 Issue の書き方・NG / OK は `docs/styles/team-feedback/pr-closing-keyword.md`「How to apply」に従う。
+PR merge 時の Issue auto-close と Projects の Status 自動更新は、PR body の closing keyword で発火する。PR title の `#<num>` では発火しないため、linkage は title ではなく body へ確実に注入する。開発ブランチが GitHub の既定ブランチと異なる構成では、その PR のマージだけでは自動 close されない。本文に Issue を記録し、既定ブランチへの反映時に Issue の状態を確認する。keyword の文法・複数 Issue の書き方・NG / OK は `docs/styles/team-feedback/pr-closing-keyword.md`「How to apply」に従う。
 
 - **通常 PR（起票元 Issue を完了させる）**: 着手時に取得した起票元 Issue 番号から、body に `Closes #<issue_number>` を記載する。
 - **partial PR（大きな親 Issue の一部のみを対応し、親をまだ close すべきでない）**: `関連: #<parent>` で linkage のみ残す（`Closes` は使わない。記載の作法 → 同「How to apply」）。

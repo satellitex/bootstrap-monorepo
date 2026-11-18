@@ -1,19 +1,19 @@
 # Sync Prelude（比較基準の固定と 0 件終了）
 
-この文書は sync 系 skill が検査の最初に共通で実行する前段手順（origin/main fetch による比較基準の固定）と、検出 0 件時の終了規約を定める。検査後のブランチ・commit・PR 手順は書かない（`docs/harness/skills/shared/sync-pr-flow.md` が担当）。
+この文書は sync 系 skill が検査の最初に共通で実行する前段手順（開発ブランチの fetch による比較基準の固定）と、検出 0 件時の終了規約を定める。検査後のブランチ・commit・PR 手順は書かない（`docs/harness/skills/shared/sync-pr-flow.md` が担当）。
 
 ## 手順
 
-`git fetch origin main` を実行する。
+`docs/harness/skills/shared/pr-creation.md`「PR の base」に従い、開発ブランチ名を `dev_branch` に設定し、その追跡 ref を fetch する。既定は `main`。呼び出し先の手順にある `origin/main` も、ここで確認した開発ブランチの追跡 ref に読み替える。
 
 ## 意図
 
-比較・更新・検査の基準を `origin/main` に固定し、HEAD が feature ブランチでも結果がブレないようにする。
-以降の `git show origin/main:<path>` / `git ls-tree -r --name-only origin/main` 等の操作はすべて
-この fetch 結果に基づき、HEAD / feature ブランチは参照しない（`origin/main` に存在しない
+比較・更新・検査の基準を `origin/$dev_branch` に固定し、HEAD が feature ブランチでも結果がブレないようにする。
+以降の `git show "origin/$dev_branch:<path>"` / `git ls-tree -r --name-only "origin/$dev_branch"` 等の操作はすべて
+この fetch 結果に基づき、HEAD / feature ブランチは参照しない（開発ブランチに存在しない
 feature 追加ファイルでの停止や、ブランチ差分による検出結果のブレを防ぐ）。
 
-対象ファイルの列挙も `origin/main` の tree に対して行う（列挙と `git show` の ref を揃える）。
+対象ファイルの列挙も同じ追跡 ref の tree に対して行う（列挙と `git show` の ref を揃える）。
 
 ## 検出 0 件: 何も作らず終了する
 

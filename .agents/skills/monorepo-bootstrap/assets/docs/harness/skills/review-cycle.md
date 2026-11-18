@@ -11,11 +11,14 @@ PR を、承認されるか、これ以上自動で進められなくなるま�
 | 項目    | 必須 | 説明                                          | 例                   |
 | ------- | ---- | --------------------------------------------- | -------------------- |
 | PR 番号 | No   | 対象 PR。省略時は現在ブランチの PR を自動検出 | `/review-cycle #<N>` |
+| `--once` | No | 状態を 1 回取得し、判定表が選んだ動作を最大 1 回行って呼び出し元へ返す | `/review-cycle --once #<N>` |
+
+`--once` では CI 待機、次のイテレーション、終了通知を省く。待機行なら `waiting`、対応したら `acted`、終了行ならその終了理由を返す。結果には PR 番号、動作前後の head SHA、修正・再実行の有無、指摘の ID と処理結果、未解決事項を含める。同じ PR の続行では呼び出し元が前回のサマリを引き継ぎ、同一 SHA・同一指摘への二重対応を避ける。回数・時間の上限は呼び出し元が管理する。
 
 ## フロー
 
 ```
-/review-cycle [#PR]
+/review-cycle [--once] [#PR]
   ├─ 1. PR 特定・author 取得
   ├─ 2. ループ（最大 10 回）
   │    ├─ 2.1 CI 完了待機 → 状態の取得（PR 状態・CI・指摘）
@@ -46,7 +49,7 @@ PR 番号が未指定の場合、現在ブランチから自動検出する。PR
 
 1. PR の state（open / closed / merged）・draft か・`mergeable`・最新のレビュー状態（`gh pr view <PR> --json state,isDraft,mergeable,reviewDecision,headRefOid`）
 2. CI の結果（全 check の conclusion）
-3. 未処理の指摘: 未解決の review comment（スレッド）、`CHANGES_REQUESTED` レビュー（本文付き）、本文付きの `COMMENTED` レビュー（bot からの指摘を含む。本文が空のもの、つまり GitHub が line comment 時に自動生成するレビューは除外）。イテレーション間で処理済みの Comment ID（`/handle-review` のサマリが返す `rc:` / `rv:` / `ic:`）を保持し、同じ指摘を重複処理しない
+3. 未処理の指摘: 未解決の review comment（スレッド）、`CHANGES_REQUESTED` レビュー（本文付き）、本文付きの `COMMENTED` レビューと PR の会話欄の具体的な指摘（bot を含む）。イテレーション間で処理済みの Comment ID（`/handle-review` のサマリが返す `rc:` / `rv:` / `ic:`）を保持し、同一内容に重複返信しない。指摘の追記、再開されたスレッド、未解決の要修正項目は最新の状態で再評価する
 
 非アクションの CI ノイズは `docs/harness/skills/shared/sync-noise-filter.md` の「1. 非アクションの CI ノイズを除外する」に従って除外し、本文を `/handle-review` に渡さない。本 skill 固有の扱いとして、auto LGTM のコメントは対応対象から除外したうえで、終了判定のシグナルとして保持する。件数だけで捨てず、コメント/レビュー ID・投稿時刻・紐づく commit SHA（取得できる場合）を記録して判定表の行 9 に使う。
 
@@ -70,11 +73,13 @@ PR 番号が未指定の場合、現在ブランチから自動検出する。PR
 
 待機行（6・8・11）は連続回数を数え、動作行（4・5・7）を実行したら数え直す。CI レビュー bot を導入している PJ で、bot の投稿が進行中の間は push しない待機行（理由: push すると bot の進行中の投稿が破棄されることがある）が必要な場合は、`.claude/skills/review-cycle/references/ci-and-conflict-profile.md` に条件を記入し、行 4 の前に足す。
 
+opt-in:pr-auto-merge の委任済み PR で、個別承認を求めるルールがなく、人の変更要求・保留・未処理の指摘がなく、現在の head が競合せず CI の通過を確認できたら、行 11 の待機の代わりに `ready` を返す。これはマージ可否を次の手順で確認できる状態を示す。自動マージから呼ばれた場合、各動作の直前にも明示保留・変更要求を照合し、見つかったら修正を打ち切って理由を返す。
+
 ### 2.3: merge conflict の解消
 
 base ブランチを PR ブランチへ merge して解消する。
 
-1. `git fetch origin` し、base ブランチ（`origin/main`）を `git merge` する。rebase と force push は使わない。push 済みの履歴を書き換えると、他のセッションの worktree とレビューコメントの anchor が壊れるため。`--no-verify` も使わない。
+1. `git fetch origin` し、対象 PR の base ブランチを確認し、その追跡 ref を `git merge` する。rebase と force push は使わない。push 済みの履歴を書き換えると、他のセッションの worktree とレビューコメントの anchor が壊れるため。`--no-verify` も使わない。
 2. 双方の変更の意図を保持して解消する。どちらか一方を採るだけの解消は、もう一方の変更を消すため行わない。
 3. lockfile と生成物は手で混ぜない。base 側を採ってから、生成コマンドで再生成する（lockfile は `pnpm install`。その他の生成物と、連番を持つ生成物の採番規則は profile に従う）。連番を持つ生成物（migration 等）は、番号が base → head の順に単調増加になるよう採番し直す。
 4. 検証ゲート（`gate:commit`。定義 → `docs/harness/skills/shared/verification-gates.md`）を通してから push する。
@@ -118,6 +123,8 @@ base ブランチを PR ブランチへ merge して解消する。
 | `conflict`    | エスカレーション通知 | conflict を自動で解消できなかった。人による解消が必要                    |
 | `ci`          | エスカレーション通知 | CI の失敗を自動で解消できなかった（base 由来または修正回数の上限）       |
 
+opt-in:pr-auto-merge の `ready` は、次節のメッセージを「終了」とし、終了理由に `ready` を使って「マージ判定待ち」と伝える。`--once` は通知せず呼び出し元に返す。
+
 ### 3.2: GitHub → 通知先マッピング
 
 profile のマッピング表を読み込み、PR author の GitHub アカウントに対応する通知先メンション名を取得する。マッピングが見つからない場合は GitHub ユーザー名をそのまま表示する。
@@ -153,6 +160,8 @@ PR: <PR URL>
 ## Step 4: 結果報告
 
 コンソールに最終結果（終了理由・対応サマリ・通知の成否/スキップ理由）を出力する。
+
+opt-in:pr-auto-merge を導入し、対象ブランチへのマージを委任済みの場合は、通常呼び出しが `LGTM`・`all-skipped`・`ready` に至った時点で `/pr-auto-merge #<番号>` に判定を渡す。レビューの終了理由にかかわらず、実際のマージにはマージ側の全条件を適用する。`--once` は結果を返した時点で終了する。
 
 ## 制約
 

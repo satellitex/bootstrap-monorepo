@@ -9,7 +9,7 @@ skill 固有の差分（変更なしメッセージ、ブランチ slug、`git a
 ## 1. 既存 open PR ガード（ブランチ作成前）
 
 ブランチを切る前に、「呼び出し側の差分テーブルが指定するブランチ名から日付部分を除いた prefix」
-= `agent/<skill名>`（日付・末尾ハイフンを含めない）で既存 open PR の**存在**を確認する
+= `agent/<skill名>`（日付・末尾ハイフンを含めない）で対象開発ブランチ（`dev_branch`、前段で取得）宛ての既存 open PR の**存在**を確認する
 （候補 ID・変更ファイル集合等による内容の包含判定ではなく、存在判定のみ）。
 
 **疎通 canary（fail-closed）**: 絞り込みと直交した最小照会で照会経路の生存を先に確認する。
@@ -28,7 +28,7 @@ canary 通過後、**絞り込み前の生 JSON を一度変数に受けてか�
 （打ち切りが起きたか）を観測できない**ため:
 
 ```bash
-raw="$(gh pr list --state open --limit 1000 --json number,url,headRefName)"
+raw="$(gh pr list --base "$dev_branch" --state open --limit 1000 --json number,url,headRefName)"
 
 # 打ち切り検知: 取得件数が --limit に達していたら絞り込み前に PR が落ちている可能性がある。
 # 「既存 open PR なし」に倒さず、--limit を上げて再取得する。
@@ -61,13 +61,13 @@ REST / MCP 経路で同じ検査（canary・全件取得・打ち切り検知）
     無関係な PR に混入し得るため、人間が気付けるようにする
 - **絞り込み結果が 0 件**: 次節（§2. ブランチ作成）に進む。
 
-見送った検出は origin/main からの再導出のため、既存 PR がマージ / クローズされた後の次回実行で必ず
+見送った検出は開発ブランチからの再導出のため、既存 PR がマージ / クローズされた後の次回実行で必ず
 再検出される（**lossless な deferral**）。既存 PR ブランチへの追加コミットは (i) レビュー状態を
 無言に無効化し (ii) 古い基点に新しい基点の編集を積んで diff の意味を壊すため行わない。
 
 ## 2. ブランチ作成
 
-`git switch -c agent/<skill名>-{YYYY-MM-DD} origin/main` で `origin/main` 基点のブランチを切る
+`git switch -c agent/<skill名>-{YYYY-MM-DD} "origin/$dev_branch"` で同じ開発ブランチを基点にブランチを切る
 （`YYYY-MM-DD` は実行日）。同名ブランチが既に存在する場合は `-2` 等のサフィックスで別名にする。
 これは同日再実行時のブランチ名衝突を避けるためであり、重複 PR の抑止機構ではない（抑止は §1 が担う）。
 
@@ -89,7 +89,7 @@ skill 規定ブランチを切る。同一セッションで複数の sync 系 s
 
 `gh pr create` で**通常 PR** を作成する。base・open 前の衝突検査・draft にしない指定・PR 本文の標準節は
 `docs/harness/skills/shared/pr-creation.md` に従う。衝突が予測されて open を保留した場合も、見送った検出は
-次回実行で origin/main から再導出される。`gh` が使えない run の作成経路は
+次回実行で開発ブランチから再導出される。`gh` が使えない run の作成経路は
 `docs/harness/skills/shared/pr-creation.md`「書き込みの経路」に従う。
 
 title / body は呼び出し側 skill 文書の差分テーブルに従い、標準節に検出結果の節を加えた構成にする。
@@ -117,3 +117,11 @@ PR 作成後、別コマンドで次のラベルを付与する。
 - 付与に失敗しても run は失敗にしない。PR URL と、付与できなかったラベル名を報告する。
 - ラベル定義の作成・削除は行わない。ラベルは `docs/harness/scheduled-operations.md` の
   「事前作成が必要な外部リソース」に従い、人間または bootstrap 時に作成する。
+
+## 6. 今回作った PR の自動マージ（opt-in:pr-auto-merge）
+
+開発ブランチへのマージが委任済みなら、§3 の push 時に送ったコミットの SHA を控え、§4 で作成した PR の URL から番号を特定し、GitHub の作成日時を記録する。§5 の後に、この番号と SHA で `/pr-auto-merge --sync #<番号> --head <SHA>` を呼ぶ。§1 で見送った既存 PR は対象に含めない。委任がない場合は通常の PR 作成結果を返す。
+
+この経路では、作成時の head に対して登録済みの check が 1 件以上あり、全件が完了して成功・スキップ・中立であること、従来形式の commit status は未登録か全件成功であることを確認する。check の登録待ち・実行中・競合判定の計算中は 1 分間隔で待ち、PR 作成から 30 分を上限の既定とする。`docs/harness/skills/pr-auto-merge.md` の保留条件とマージ直前の判定を適用し、作成時の SHA を指定して squash merge する。
+
+head の変更、人の保留、CI 失敗、競合、期限超過、マージ拒否ではその場で判定を終える。CI の修正・再実行、ブランチへの push は行わない。終了時に PR URL、確認した SHA、マージ結果（外部でのマージ・クローズも区別）、該当する check や未解決事項を報告する。

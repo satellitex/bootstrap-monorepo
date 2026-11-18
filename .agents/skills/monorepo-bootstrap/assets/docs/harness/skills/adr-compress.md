@@ -57,7 +57,7 @@ adr-compactor agent（`.claude/agents/adr-compactor.md`）を起動し、`consol
 | PR ラベル          | `harness:harness`                                                                            |
 | PR body            | `docs/harness/skills/adr-compress/pr-output-format.md` の構成（標準 5 節 + 本 skill の区分） |
 
-1 回の実行で 1 PR にまとめる（全カテゴリの候補を同じ PR に入れる）。既存 open PR ガードが発火したときは、新規 PR を作らず既存 PR の番号と URL を報告して終了する。人間が既存 PR をマージまたはクローズするまで、新規 PR は作らない。
+1 回の実行で 1 PR にまとめる（全カテゴリの候補を同じ PR に入れる）。既存 open PR ガードが発火したときは、新規 PR を作らず既存 PR の番号と URL を報告して終了する。既存 PR がマージまたはクローズされるまで、新規 PR は作らない。
 
 ## Validation
 
