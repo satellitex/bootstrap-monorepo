@@ -86,7 +86,13 @@ python3 "$INSTALLER" --repo satellitex/bootstrap-monorepo \
 
 ### チャットのフィードバックを受け付ける
 
-新規・既存どちらの導入でも `opt-in:chat-feedback` と受付先（Slack または Discord）を指定する。担当者は元の投稿のスレッドで項目ごとの起票案を確認し、✅ で承認、❌ で見送りを選べる。承認した項目の Issue、PR、反映結果も同じスレッドで追跡できる。接続先と承認者の設定、初回の疎通確認は[受付 profile](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)を参照する。
+新規・既存どちらの導入でも `opt-in:chat-feedback` と受付先（Slack または Discord）を指定する。担当者は元の投稿のスレッドで項目ごとの起票案を確認し、✅ で承認、❌ で見送りを選べる。承認した項目の Issue、PR、反映結果も同じスレッドで追跡できる。接続先と承認者を設定し、初回は dry-run で受付を確認する。[受付 profile](.agents/skills/monorepo-bootstrap/assets/.claude/skills/feedback-triage/references/chat-profile.md)
+
+### Issue を定期的に実装する
+
+`opt-in:daily-implement` を選ぶと、`/daily-implement` が `auto-implement` ラベル付きの open Issue を選び、PR を作る。手動で登録した Issue、着手が決まった `/refactor-sync` の提案、チャットで自動実装まで承認された依頼を、同じキューで扱える。[実装手順](.agents/skills/monorepo-bootstrap/assets/docs/harness/skills/daily-implement.md)
+
+受付と実装は個別に採用できる。チャット受付だけなら承認した要望を Issue にして担当者が実装する。定期実装を採用した場合は、すべての出所の自動実装を `/daily-implement` に集約する。既存キューがあればその実装処理を委譲先として使い、同じ Issue を選ぶ定期実行を一本化する。
 
 ### 使い分け
 

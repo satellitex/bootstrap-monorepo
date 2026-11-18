@@ -1,6 +1,6 @@
 ---
 name: feedback-triage
-description: チャットのフィードバックを扱う場合、または routine の定期実行時に使う。元スレッドで項目ごとに起票案を示し、承認後に Issue を作成・更新し、配備の結果を返す。実装と PR 作成は /feedback-implement の担当
+description: チャットのフィードバックを扱う場合、または routine の定期実行時に使う。元スレッドで項目ごとに起票案を示し、承認後に Issue を作成・更新し、対応する PR と配備の結果を返す。自動実装を委任した項目は /daily-implement に渡す
 ---
 
 # /feedback-triage

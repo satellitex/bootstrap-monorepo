@@ -11,7 +11,7 @@
 - opt-in グループ（一覧は MANIFEST）は Intake の整理と制約から採否を判断し、採用グループのみ copy する。
 - MANIFEST にない鮮度境界（env examples、API schema、security policy、async runbook、runner 運用など）が product に必要な場合のみ、新しい sync workflow を §2 の契約に従って `docs/harness/skills/<name>.md` として追加設計する。
 
-不要な workflow を先回りで作らない。追加は「対応する surface が product に実在する」ことを条件にする。チャット受付からの実装には opt-in:chat-feedback を使う。その他の実装キュー・棚卸し・観測点検は §8 のレシピで設計する。
+不要な workflow を先回りで作らない。追加は「対応する surface が product に実在する」ことを条件にする。チャット受付には `opt-in:chat-feedback`、Issue の定期実装には `opt-in:daily-implement` を採用できる。§8 では実装キューの導入と、棚卸し・観測点検のレシピを扱う。
 
 ## 2. Generic `*-sync` Shape
 
@@ -158,11 +158,9 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 
 承認モデルは `../assets/docs/harness/OPERATING_MODEL.md`「承認モデル」に従う。remote GitHub mutation の自律実行の範囲と、実行した mutation の記録、実行できなかった remote setup の起票は `issue-lifecycle.md`「Remote GitHub Mutation」に従う。
 
-## 8. 実行系 routine のレシピ（資産として収録しないもの）
+## 8. 実装キューの導入と追加 routine の設計
 
-次の 3 つは、routine として定期に実行する実行系の skill のレシピである。資産としては収録しない。
-対応する surface（Issue を実装キューに使うか、監視基盤を持つか、棚卸しが要る規模か）が導入先ごとに異なり、profile 駆動の骨格だけを収録しても、profile が埋まるまで何も実行されないためである。
-需要が出た導入先が、§2 の 10 項目契約と §8.1 の共通前提に従い、`docs/harness/skills/<name>.md` として追加設計する。追加時は、正本と adapter の 1:1 を揃え、OPERATING_MODEL の skill 一覧と `docs/harness/scheduled-operations.md` の routine カタログを同一 PR で更新する。
+Issue の定期実装には収録済みの skill を使う（§8.2）。コード・docs の棚卸し（§8.3）と日次観測点検（§8.4）は、対象の規模や監視基盤に応じて導入先で設計する。追加時は §2 の 10 項目契約と §8.1 の共通前提に従い、正本と adapter、OPERATING_MODEL の skill 一覧、`docs/harness/scheduled-operations.md` の routine カタログを同一 PR で更新する。
 
 ### 8.1 共通前提
 
@@ -184,32 +182,11 @@ Record the final IDs in `.claude/skills/create-issue/references/project-fields.m
 
 ### 8.2 実装キュー
 
-チャットの承認を起点とする導入先は、収録済みの `feedback-implement` を使う。以下は他の起点から Issue を選ぶ場合のレシピである。
+`opt-in:daily-implement` を採用したときは、Issue の出所にかかわらず `/daily-implement` を自動実装の唯一の入口にする。選定・着手・再実行・PR 作成の手順は収録済みの正本に従う。[daily-implement](../assets/docs/harness/skills/daily-implement.md)
 
-open Issue を優先順に選び、`/multi-issue` に渡して Issue ごとに PR を作る。
-前提は、GitHub Issues を issue tracker とすること、`/multi-issue` が無人 run でも人の応答を待たず、PR の open から `/review-cycle` の終了（LGTM または終了理由の通知）まで進んで返ることである（`/review-cycle` の待機には上限があり、run を止めない → `docs/harness/skills/review-cycle.md`）。
+導入時は、各起点でキューへの着手指示となる `auto-implement` ラベルを付ける条件を確認する。例えば手動登録の Issue は担当者の着手指定、`/refactor-sync` が起票した提案は提案後の着手指示、`/feedback-triage` が受け付けた要望は項目ごとの自動実装の承認を使う。チャット受付は独立した `opt-in:chat-feedback` として選べる。
 
-| 段 | 内容 |
-|----|------|
-| 候補収集 | open Issue を全件取得し（canary 付き）、ローカルで絞り込む |
-| 除外 | 除外ラベル（既定は `question` / `wontfix` / `duplicate` / `invalid` / `refactor:proposal`。導入先が追加する）、open PR に紐づく Issue（PR 本文の closing keyword・`関連:`・出所マーカー・作業ブランチ名の 4 経路で判定）、試行マーカーの除外期間内の Issue |
-| 優先順位 | 層（既定は `bug` ラベルのみ。優先 milestone は導入先が任意に定義する）→ `priority:*` ラベル → 作成日の古い順 |
-| 一次判定 | 受入条件が origin/main ですべて満たされている Issue は、受入条件ごとの根拠（commit / PR / ファイルと行）を書いて close する。条件は、受入条件ごとの根拠がある、reopen 履歴がない、照会に成功している、の 3 つ。前提の Issue が open なら deferred にして着手しない |
-| 着手状態の記録 | Issue コメントの先頭行に機械可読マーカーを書き、状態を持つ（下表）。claim を書いた直後に読み直し、先着（comment id が最小）でなければ自分の claim を deferred に書き換えて引く。同じ状態・理由ならコメントを重ねず書き換える |
-| 実行 | 選定した Issue を種別によらず `/multi-issue` に明示的に渡す（明示呼び出しは振り分けを経ない → `docs/styles/team-feedback/implementation-flow-switch.md`「判定」）。PR 本文の先頭に出所マーカーを置く |
-| 上限 | `/multi-issue` の in-flight 上限（既定 3）を参照し、二重管理しない |
-| 報告 | 選定と除外の理由、close した Issue と根拠、deferred / failed / needs-human の Issue を完了報告に残す |
-
-| 状態 | 意味 | 除外期間 |
-|------|------|----------|
-| claimed | 着手中 | 導入先が決める（初期値の例は 1 日） |
-| pr | PR 作成済み | PR が open の間 |
-| deferred | 待ち相手が open の間は着手しない | 待ち相手が close するまで（上限は導入先が決める） |
-| failed | 着手して失敗した | 導入先が決める（初期値の例は 1 週間） |
-| needs-human | 受入条件の残りが課金操作または秘密値の投入を必須とし、実装・script・CI で代替できない | 人間が解消するまで |
-
-状態は Issue コメントに持つ。無人 run は state ファイルを持てず、GitHub 上に永続化できるのがコメントだけだからである。
-最小構成から始める。claimed と pr の 2 状態、除外は open PR との紐づきのみで運用を開始し、deferred・failed・needs-human と一次判定は、必要になってから足す。複数の routine や複数のアカウントが同じ Issue を選び得る運用でなければ、claim の排他は要らない。
+既存の実装処理は、この入口が選定した Issue を受け取る委譲先に設定する。同じ Issue 群を扱う定期実行は `/daily-implement` の一つに集約する。
 
 ### 8.3 コードと docs の棚卸し
 

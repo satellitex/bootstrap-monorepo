@@ -106,7 +106,7 @@ Skill 本体は orchestration に限定し、詳細 checklist と template は r
 | `references/technology-selection.md` | Gate A の比較範囲、infrastructure service selection、app topology、CSS/UI stack 選定を作るとき |
 | `references/docs-operating-model.md` | docs 配下の層分離、adapter 配置、公開射影を設計するとき |
 | `references/issue-lifecycle.md` | issue taxonomy、計画・判断・検証結果の置き場、ADR 要否、承認要否の判定を作るとき |
-| `references/generated-workflows.md` | `*-sync` 系、`create-issue`、milestone / Project 管理を PJ 固有化するとき。実行系 routine のレシピ（§8） |
+| `references/generated-workflows.md` | `*-sync` 系、`create-issue`、milestone / Project 管理を PJ 固有化するとき。実装キューの採否、棚卸し・観測点検のレシピ（§8） |
 | `references/ci-cd-runner-deploy.md` | CI/CD、self-hosted runner、deploy strategy、runbook を設計するとき |
 | `references/reference-harness-patterns.md` | assets/ 収録資産の設計根拠と縮約判断が必要なとき |
 
@@ -260,9 +260,11 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 ### 5.2 Docs 鮮度維持 workflow
 
 sync 系 skill（readme-sync / docs-sync / code-sync など）は `assets/MANIFEST.md` の core に含まれており、copy で導入される。
-product 固有の鮮度維持対象を追加する場合のみ、`references/generated-workflows.md` §2 の 10 項目契約に従って新しい sync doc を設計する。チャットで受け付けた依頼の実装には MANIFEST の opt-in:chat-feedback を使う。その他の実装キュー・棚卸し・観測点検は、需要に応じて同 §8 のレシピで追加する。
+product 固有の鮮度維持対象を追加する場合のみ、`references/generated-workflows.md` §2 の 10 項目契約に従って新しい sync doc を設計する。棚卸し・観測点検は、需要に応じて同 §8 のレシピで追加する。
 
 ### 5.3 Issue lifecycle
+
+チャット受付（`opt-in:chat-feedback`）と Issue の定期実装（`opt-in:daily-implement`）は個別に採否を決める。定期実装を採用した場合は `/daily-implement` を自動実装の唯一の入口にし、手動登録、`/refactor-sync` の提案、チャット受付など、各起点で `auto-implement` ラベルを付ける条件を決める。既存キューの実装処理は、この入口が選んだ Issue を実装する委譲先として使う。同じ Issue を選ぶ定期実行は一つにする。
 
 issue ごとの計画は PR 本文の標準節、設計判断は ADR、残タスクは GitHub Issue に置く。Issue ごとの計画ファイルは作らない。
 issue-local の人間承認は既定では置かない。実装方針が未確定でも、未確定点は 1 案に確定して「方針と却下案」に書き、open PR まで自律続行する。

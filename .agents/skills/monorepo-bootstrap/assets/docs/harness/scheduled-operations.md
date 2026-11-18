@@ -6,19 +6,19 @@
 
 ## routine 登録カタログ
 
-| 頻度                                         | エントリポイント       | 目的                                                          |
-| -------------------------------------------- | ---------------------- | ------------------------------------------------------------- |
-| 週次                                         | `/readme-sync`         | README と実コードの乖離を検出し修正 PR                        |
-| 週次                                         | `/docs-sync`           | docs「現状層」の鮮度ドリフト・原則違反を検出し修正 PR         |
-| 週次                                         | `/code-sync`           | ソースコメントの 3 原則違反・内部参照を検出し修正 PR          |
-| 週次（opt-in:renovate 採用時のみ）           | `/renovate-sync`       | 依存 pin と Renovate 設定の検知漏れを検出し改善 PR            |
-| 週次（opt-in:public-site 採用時のみ）        | `/public-arch-sync`    | 内部設計正本と公開射影の差分を検出し追従 PR                   |
-| 定期（opt-in:chat-feedback、受付間隔を設定） | `/feedback-triage`     | 提案・承認・起票と元スレッドへの進捗返信                      |
-| 定期（opt-in:chat-feedback、実装間隔を設定） | `/feedback-implement`  | 承認済み Issue を選び、既存の実装手順を起動                   |
-| 隔週                                         | `/gc-scan`             | ハーネスの重複・孤児・デッド参照を検出し修正 PR               |
-| 隔週                                         | `/adr-compress`        | ADR コーパスの肥大化を圧縮する PR                             |
-| 隔週                                         | `/refactor-guide-sync` | 規約正本とリファクタガイドの検出基準を突合する PR             |
-| 夜間                                         | `/refactor-sync`       | リファクタ観点を検出し提案 Issue を起票（コードは変更しない） |
+| 頻度                                           | エントリポイント       | 目的                                                          |
+| ---------------------------------------------- | ---------------------- | ------------------------------------------------------------- |
+| 週次                                           | `/readme-sync`         | README と実コードの乖離を検出し修正 PR                        |
+| 週次                                           | `/docs-sync`           | docs「現状層」の鮮度ドリフト・原則違反を検出し修正 PR         |
+| 週次                                           | `/code-sync`           | ソースコメントの 3 原則違反・内部参照を検出し修正 PR          |
+| 週次（opt-in:renovate 採用時のみ）             | `/renovate-sync`       | 依存 pin と Renovate 設定の検知漏れを検出し改善 PR            |
+| 週次（opt-in:public-site 採用時のみ）          | `/public-arch-sync`    | 内部設計正本と公開射影の差分を検出し追従 PR                   |
+| 定期（opt-in:chat-feedback、受付間隔を設定）   | `/feedback-triage`     | 提案・承認・起票と元スレッドへの進捗返信                      |
+| 定期（opt-in:daily-implement、実装間隔を設定） | `/daily-implement`     | 自動実装ラベルを付けた Issue を一つのキューから選ぶ           |
+| 隔週                                           | `/gc-scan`             | ハーネスの重複・孤児・デッド参照を検出し修正 PR               |
+| 隔週                                           | `/adr-compress`        | ADR コーパスの肥大化を圧縮する PR                             |
+| 隔週                                           | `/refactor-guide-sync` | 規約正本とリファクタガイドの検出基準を突合する PR             |
+| 夜間                                           | `/refactor-sync`       | リファクタ観点を検出し提案 Issue を起票（コードは変更しない） |
 
 エントリポイントに引数が要る skill は、この列に引数まで書く（`/<skill-name> <引数>`）。起動プロンプトはこの列から導く（次節）。
 
@@ -28,7 +28,8 @@
 - routine の実体（scheduler 上の設定）は repo の外にある。repo が正本とするのはこのカタログと次節の起動プロンプトの形で、scheduler 側の設定は写しとして扱う。カタログの行を変えたら、scheduler 側も同時に更新する。写しが先に変わると、カタログが実際の登録と食い違うため。
 - カタログに載せるのは routine で起動する skill だけにする。手動起動だけの skill（`/runbook-alignment` など）は載せない。カタログを scheduler 側の登録と 1 対 1 に保つため。
 - sync 系の tick 重複は各 skill 側の open PR ガード（`docs/harness/skills/shared/sync-pr-flow.md`）で扱う。
-- opt-in:chat-feedback の両 routine と手動 run は、同じ repo の全受付先で 1 本の直列キューを共有する。実行中は次回を待機させる。初回は各受付先で `/feedback-triage --dry-run`、実装対象の確認には `/feedback-implement --dry-run` を使う。リリースは導入先の周期と承認手順に従う。定期リリースを採用する場合は既存の配備ジョブを使う。`/deploy-verify prod` を定期起動する構成では反映 PR まで進み、マージまで委任済みの場合だけ登録時に `--merge` を付ける。次の triage が配備結果を確認する。
+- opt-in:daily-implement は GitHub を起点に、リポジトリごとに 1 本登録する。手動 run も同じ実行枠で直列化する。初回は `/daily-implement --dry-run` で選定と除外理由を確かめる。
+- opt-in:chat-feedback は受付先ごとに `/feedback-triage --dry-run` で確認する。全受付先の triage と手動 run は同じリポジトリの実行枠を使い、自動実装を併用するときはそのキューとも直列化する。リリースは導入先の周期と承認手順に従う。定期リリースを採用する場合は既存の配備ジョブを使う。`/deploy-verify prod` を定期起動する構成では反映 PR まで進み、マージまで委任済みの場合だけ登録時に `--merge` を付ける。次の triage が配備結果を確認する。
 - routine が作る PR は `agent/<skill-name>-YYYY-MM-DD` ブランチに作る（→ `docs/harness/skills/shared/sync-pr-flow.md`）。PR / Issue に付ける `routine:<skill-name>` ラベルの一覧は `.claude/skills/create-issue/references/project-fields.md` を正本とする。`/refactor-sync` は PR を作らず、提案 Issue を起票する。
 
 ## routine 起動プロンプトの正準形

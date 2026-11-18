@@ -59,7 +59,8 @@ skill は責務レイヤごとに分けている。名前は tool-neutral にし
 | ハーネス保守 | `gc-scan` / `adr-compress` / `promote-memory` | ハーネス文書の重複・孤児の GC、ADR コーパスの Status 追従・圧縮と INDEX 再構築、memory → team rule 昇格 |
 | 運用 | `deploy-verify` | deploy 一気通貫と、prod の release 反映（merge commit 限定・前提ゲート・マージ後の step 単位確認） |
 | 公開区画（opt-in:public-site） | `public-arch-sync` / `customer-doc-review` | 内部正本 → 公開射影の追従と、対外 docs のレビュー |
-| チャットでの受付（opt-in:chat-feedback） | `feedback-triage` / `feedback-implement` | 項目別の承認・Issue 化・実装をつなぎ、状態を元のスレッドへ返す |
+| 定期実装（opt-in:daily-implement） | `daily-implement` | 手動登録・保守作業からの提案・チャット受付などの Issue から着手条件を満たしたものを選び、PR を作る |
+| チャットでの受付（opt-in:chat-feedback） | `feedback-triage` | スレッドで項目ごとの案と承認を受け付け、Issue にして対応状況を同じスレッドへ返す |
 | 依存自動化（opt-in:renovate） | `renovate-sync` | 依存 pin ↔ 依存更新設定の突合 |
 
 縮約の判断基準は「対応する surface が product に実在するか」の一点にする。
@@ -67,7 +68,8 @@ skill は責務レイヤごとに分けている。名前は tool-neutral にし
 - core 区分は既定で全部入れる。相互参照（shared 契約、rules、hooks）が成立しているのは core 一式が揃っている前提のため、部分採用は参照切れを生む。
 - opt-in グループは surface が無いなら**グループ単位で丸ごと落とす**。個別ファイルだけ残すと adapter と正本の 1:1 が崩れる。
 - MANIFEST にない鮮度境界（env examples、API schema、security policy など）は、必要になってから `generated-workflows.md` §2 の 10 項目契約で追加する。
-- チャット受付以外の実装キュー・コードと docs の棚卸し・日次観測点検が必要な導入先は、`generated-workflows.md` §8 のレシピに従って skill 化する。
+- チャット受付と定期実装は独立して採用できる。自動実装は収録済みの `/daily-implement` に集約する。`/refactor-sync` が作る提案も、着手指示を受けたものをこのキューに渡せる。既存の実装処理は選定後の委譲先として使える。
+- コードと docs の棚卸し・日次観測点検が必要な導入先は、`generated-workflows.md` §8 のレシピに従って skill 化する。
 
 skill は 2 層構成にする。正本を片方のツールに閉じないための構造。
 

@@ -153,13 +153,18 @@ TODO(取得方法: `gh label list` で上記 4 ラベルの実在を確認し、
 TODO(取得方法: `gh label list` で上記 3 ラベルの実在を確認し、未作成なら
 `gh label create <name> --description "<用途>"` で作成する)
 
+### 自動実装キューのラベル（opt-in:daily-implement）
+
+| ラベル           | 用途                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `auto-implement` | 自動実装を依頼する open Issue。起票元を問わず同じキューへ入れる |
+| `implementing`   | キューから選ばれ、実装に着手した Issue                          |
+
 ### フィードバック受付のラベル（opt-in:chat-feedback）
 
 | ラベル            | 用途                             |
 | ----------------- | -------------------------------- |
 | `source:feedback` | チャットの項目から起票した Issue |
-| `auto-implement`  | 実装対象として選択できる Issue   |
-| `implementing`    | 実装に着手した Issue             |
 
 導入先で使う既存ラベルに対応づける場合は、本表と下の routine ラベル表をその名称に揃える。
 

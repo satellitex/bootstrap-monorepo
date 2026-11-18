@@ -134,7 +134,7 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | docs/harness/skills/runbook-alignment.md                 | 運用手順書と実装の照合                   | core               |
 | docs/harness/skills/deploy-verify.md                     | デプロイ一気通貫と release 反映の骨格    | core               |
 | docs/harness/skills/feedback-triage.md | チャットで承認された提案の起票と進捗返信 | opt-in:chat-feedback |
-| docs/harness/skills/feedback-implement.md | 承認済み Issue の実装と結果の返信 | opt-in:chat-feedback |
+| docs/harness/skills/daily-implement.md | 起票元を問わず自動実装ラベルの Issue を処理 | opt-in:daily-implement |
 | docs/harness/skills/shared/chat-feedback.md | 投稿・承認・Issue とスレッドの対応 | opt-in:chat-feedback |
 | docs/harness/skills/renovate-sync.md                     | 依存 pin と Renovate 設定の突合          | opt-in:renovate    |
 | docs/harness/skills/public-arch-sync.md                  | 内部正本から公開射影への追従             | opt-in:public-site |
@@ -269,6 +269,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 採用する project                                                             | 不採用にする場合                                   |
 | --------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| `opt-in:daily-implement` | GitHub Issue を共通の実装キューから定期的に処理する | 実装は手動で依頼する |
 | `opt-in:chat-feedback` | Slack または Discord の投稿から、承認を経て GitHub Issues で変更を追跡する | この受付経路を使わない |
 | `opt-in:renovate`     | Renovate で依存を更新する                                                    | Renovate を使わない                                |
 | `opt-in:public-site`  | 顧客・提携組織など外部へドキュメントや射影版の設計文書を公開する             | 公開先が無い                                       |
@@ -287,7 +288,8 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 
 | グループ              | 除去する資産                                                                                                                                    | 処置の種類                                                                                                                           |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `opt-in:chat-feedback` | 受付・実装の両 skill、profile、共通契約、CLI 一式と対応テスト | skill 表・routine・無人 run 契約・ラベル・テスト一覧の該当箇所と設定例の該当区画を削除 |
+| `opt-in:daily-implement` | `/daily-implement` の正本と adapter | skill 表、routine、キュー専用ラベルと着手時の案内を除く。受付を採用している場合は実装担当を手動にする |
+| `opt-in:chat-feedback` | `/feedback-triage` の正本・adapter・profile、チャットの共通契約、CLI と対応テスト | skill 表、routine、無人 run 契約、受付用ラベル、テスト一覧、設定例の該当箇所を除く。実装キュー採用時はスレッドへの返信手順のみ除く |
 | `opt-in:renovate`     | `renovate.json`・`/renovate-sync` の正本と adapter                                                                                              | 行の削除                                                                                                                             |
 | `opt-in:public-site`  | 公開区画の資産・skill 2 本の正本と adapter・profile 2 本・`post-edit-projection-reminder.sh` とそのテスト                                       | 行・項・節の削除。除外表の `docs/customer/**` は、列挙された他のパスを残して語句だけ削除。`docs/product/PUBLIC_*.md` は行ごと削除    |
 | `opt-in:submodule`    | `pre-commit-submodule-guard.sh`・`bin/submodule-guard.sh`・それぞれのテスト（`test-pre-commit-submodule-guard.sh` / `test-submodule-guard.sh`） | hook 本体とテストの一括削除（hook を残してテストだけ消すと、`run-all.sh` の逆向き検査が失敗する）。hook を有効化する区画と手順の削除 |
