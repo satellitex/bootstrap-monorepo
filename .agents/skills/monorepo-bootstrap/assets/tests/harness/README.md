@@ -32,6 +32,7 @@ HARNESS_ROOT=/path/to/repo pnpm harness:test       # 検査対象のルートを
 | `check-adr-compression-lossless.mjs` / `.test.mjs` | ADR の要約圧縮の無損失検証 CLI と、その自己テスト                                                                                       |
 | `harness-gates-e2e.test.mjs`                       | 違反の無い最小のルートで全 gate が通り、gate ごとに違反を注入すると失敗する                                                             |
 | `feedback-*.test.mjs`                              | opt-in:chat-feedback の CLI、スレッドの読み書き、承認判定、添付取得を模擬 API で検査                                                    |
+| `persona-test-scripts.test.mjs` | opt-in:persona-test の道具の自己テスト（公開しない資格情報を出力から伏せること、スクリーンショットの番号を続きから振ること、復元できない記録を除くこと、字数の上限と無い画像で止めること）。ブラウザを使わない |
 | `pr-auto-merge-gate.test.mjs` | opt-in:pr-auto-merge のマージ条件と確認済み SHA の扱いを検査 |
 | `harness-support.test.mjs`                         | `support/` のヘルパとランナーの自己テスト、空のルートでの退化ガード                                                                     |
 

@@ -247,6 +247,7 @@ Gate A で確定した技術選定をもとに、PR 本文の「Gate B 実装計
 1. product docs の骨格（ARCHITECTURE / TECH_STACK / TERMS / TEST_STRATEGY）と各 skill の profile 類を PJ 固有の内容で充填する。Intake の整理と確定した選定は、「成果物」の移管先の表に従って移す。
 2. 言語方針（収録言語のまま導入するか、翻訳するか）を PR 本文に記録し、`docs/harness/OPERATING_MODEL.md` の言語ポリシー節に反映する。
 3. 開発ブランチのマージが委任されていれば、自動マージの採用を ADR に記録する。対象リポジトリ・ブランチと委任の範囲を確認し、`assets/docs/harness/skills/pr-auto-merge/profile.md` の項目を導入先で設定する。公開契約の採番は別に採否を決め、両方を採用した場合はマージ処理後の採番を導入先の規定に接続する。
+4. ペルソナによる利用テスト（`opt-in:persona-test`）を採用した場合は、Step 9 の deploy で検証環境の URL と入り方を確かめた時点で、`assets/.claude/skills/persona-test/references/target-profile.md` の該当項目を導入先で記入する。アカウントの作り方、権利の付与、送り先など、利用者が触れる画面ができるまで確かめられない値は TODO のまま残し、完了報告の残 TODO に転記する。
 
 設計判断の背景が必要な場合のみ `references/docs-operating-model.md`、`references/issue-lifecycle.md`、`references/reference-harness-patterns.md` を読む。
 

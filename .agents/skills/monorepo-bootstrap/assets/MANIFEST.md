@@ -138,6 +138,10 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | docs/harness/skills/feedback-triage.md | チャットで承認された提案の起票と進捗返信 | opt-in:chat-feedback |
 | docs/harness/skills/daily-implement.md | 起票元を問わず自動実装ラベルの Issue を処理 | opt-in:daily-implement |
 | docs/harness/skills/shared/chat-feedback.md | 投稿・承認・Issue とスレッドの対応 | opt-in:chat-feedback |
+| docs/harness/skills/persona-test.md | ペルソナによる利用テストと feedback の送信 | opt-in:persona-test |
+| docs/harness/skills/persona-test/persona-sheet.md | ペルソナの様式とリテラシーの段階 | opt-in:persona-test |
+| docs/harness/skills/persona-test/tester-brief.md | テスターに渡す共通の手順書 | opt-in:persona-test |
+| docs/harness/skills/persona-test/tools.md | 道具の使い方、run の設定と feedback の形 | opt-in:persona-test |
 | docs/harness/skills/renovate-sync.md                     | 依存 pin と Renovate 設定の突合          | opt-in:renovate    |
 | docs/harness/skills/public-arch-sync.md                  | 内部正本から公開射影への追従             | opt-in:public-site |
 | docs/harness/skills/customer-doc-review.md               | 対外ドキュメントのレビュー               | opt-in:public-site |
@@ -150,6 +154,7 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | .claude/skills/multi-issue/references/model-profile.md            | モデル名と subagent 起動パラメータの profile                                                    | core               |
 | .claude/skills/create-issue/references/project-fields.md          | Project / ラベル / マイルストーンの profile                                                     | core               |
 | .claude/skills/feedback-triage/references/chat-profile.md | Slack / Discord の受付先、承認者と導入設定 | opt-in:chat-feedback |
+| .claude/skills/persona-test/references/target-profile.md | 対象のホスト、検証環境、アカウント、送り先、ペルソナの既定の条件 | opt-in:persona-test |
 | .claude/skills/docs-sync/references/freshness-policy.md           | 鮮度検証対象の profile                                                                          | core               |
 | .claude/skills/review-cycle/references/notification-mapping.md    | 通知手段と宛先の profile                                                                        | core               |
 | .claude/skills/review-cycle/references/ci-and-conflict-profile.md | conflict 解消と CI 修正の profile                                                               | core               |
@@ -233,6 +238,19 @@ TODO は次の 2 種類だけを使う。他の文書は本節を参照し、記
 | tests/harness/feedback-slack.test.mjs | Slack adapter の回帰テスト |
 | tests/harness/feedback-discord.test.mjs | Discord adapter の回帰テスト |
 
+### ペルソナによる利用テスト（opt-in:persona-test）
+
+| パス | 用途 |
+| --- | --- |
+| scripts/persona-test/browser-server.mjs | ペルソナごとに独立した画面なしのブラウザを持ち、操作を 1 つずつ受けるサーバー |
+| scripts/persona-test/browser.mjs | サーバーへ 1 操作を送る CLI |
+| scripts/persona-test/assemble-posts.mjs | 1 人分の feedback から送る本文と画像を組み立てる |
+| scripts/persona-test/lib.mjs | 設定と feedback の検査、資格情報の生成と伏せ字、本文の組み立て |
+| scripts/persona-test/playwright.mjs | Playwright の解決、ブラウザの起動、端末の種類ごとの設定 |
+| tests/harness/persona-test-scripts.test.mjs | 伏せ字・番号の継続・状態の復元・字数の上限の回帰テスト |
+
+正本・付属文書・profile と Claude 用 adapter は上の skill と `.claude` の表に従う。道具は Playwright を使い、テンプレートの依存には含めない（解決元と取得の方法は profile に記入する）。
+
 ### 公開区画（opt-in:public-site をまとめて採否判断）
 
 | パス                                | 用途                       |
@@ -283,6 +301,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 | `opt-in:pr-auto-merge` | 開発ブランチへのマージが委任され、対象・保留条件を設定できる | 人がマージする、または委任する範囲が未確定 |
 | `opt-in:daily-implement` | GitHub Issue を共通の実装キューから定期的に処理する | 実装は手動で依頼する |
 | `opt-in:chat-feedback` | Slack または Discord の投稿から、承認を経て GitHub Issues で変更を追跡する | この受付経路を使わない |
+| `opt-in:persona-test` | 利用者が触れる Web の画面と、登録や操作を試せる検証環境がある | 画面を持たない、または本番のほかに操作してよい環境が無い |
 | `opt-in:renovate`     | Renovate で依存を更新する                                                    | Renovate を使わない                                |
 | `opt-in:public-site`  | 顧客・提携組織など外部へドキュメントや射影版の設計文書を公開する             | 公開先が無い                                       |
 | `opt-in:submodule`    | git submodule を含む repository                                              | submodule を持たない                               |
@@ -303,6 +322,7 @@ skill 正本と adapter は、上の skill の表で `opt-in:renovate` の区分
 | `opt-in:pr-auto-merge` | `/pr-auto-merge` の正本・adapter・profile、ゲートと対応テスト | skill 表、マージ委任、routine、テスト一覧、PR 作成・同期・レビュー終了からの起動を除く。採番を採用している場合は採番規定の自動マージ実行に関する記述だけを除き、採番区間の判定を残す |
 | `opt-in:daily-implement` | `/daily-implement` の正本と adapter | skill 表、routine、キュー専用ラベルと着手時の案内を除く。受付を採用している場合は実装担当を手動にする |
 | `opt-in:chat-feedback` | `/feedback-triage` の正本・adapter・profile、チャットの共通契約、CLI と対応テスト | skill 表、routine、無人 run 契約、受付用ラベル、テスト一覧、設定例の該当箇所を除く。実装キュー採用時はスレッドへの返信手順のみ除く |
+| `opt-in:persona-test` | `/persona-test` の正本・付属文書・adapter・profile、道具と対応テスト | skill 表、無人 run 契約、テスト一覧の該当箇所を除く |
 | `opt-in:renovate`     | `renovate.json`・`/renovate-sync` の正本と adapter                                                                                              | 行の削除                                                                                                                             |
 | `opt-in:public-site`  | 公開区画の資産・skill 2 本の正本と adapter・profile 2 本・`post-edit-projection-reminder.sh` とそのテスト                                       | 行・項・節の削除。除外表の `docs/customer/**` は、列挙された他のパスを残して語句だけ削除。`docs/product/PUBLIC_*.md` は行ごと削除    |
 | `opt-in:submodule`    | `pre-commit-submodule-guard.sh`・`bin/submodule-guard.sh`・それぞれのテスト（`test-pre-commit-submodule-guard.sh` / `test-submodule-guard.sh`） | hook 本体とテストの一括削除（hook を残してテストだけ消すと、`run-all.sh` の逆向き検査が失敗する）。hook を有効化する区画と手順の削除 |

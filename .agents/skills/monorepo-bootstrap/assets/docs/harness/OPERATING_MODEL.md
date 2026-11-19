@@ -126,6 +126,7 @@ Skill 間の接続のみを示す。各 skill の内部フローは `docs/harnes
 | ---------------------- | ---------------------- | ------------------------------------------------------------- |
 | `/feedback-triage`     | opt-in:chat-feedback   | Slack / Discord で提案を確認し、承認済みの項目を Issue にする |
 | `/daily-implement`     | opt-in:daily-implement | 自動実装ラベルを付けた Issue を起票元にかかわらず実装する     |
+| `/persona-test`        | opt-in:persona-test    | AI が演じるペルソナに検証環境のプロダクトを触らせ、改善点を画面の画像つきで送り先に届ける |
 | `/pr-auto-merge`       | opt-in:pr-auto-merge   | 委任された開発ブランチ向け PR の影響・CI・レビューを確認し、判定した head を squash merge する |
 | `/renovate-sync`       | opt-in:renovate        | 依存 pin 箇所と Renovate 設定の突合 PR                        |
 | `/public-arch-sync`    | opt-in:public-site     | 内部設計正本から公開射影ドキュメントへの追従 PR               |
